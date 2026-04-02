@@ -1,0 +1,537 @@
+{
+  "project": "C:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app",
+  "restored": 106,
+  "createdAt": "2026-04-02T18:29:17.765Z",
+  "files": [
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\resume-builder\\page.tsx",
+      "ts": 1775152911355,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\f398a5\\s0go.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\questions\\sync\\route.ts",
+      "ts": 1775149997907,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\a373898\\1er1.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\ai-feedback\\route.ts",
+      "ts": 1775152911401,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\7fa477c7\\7nB8.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\enrich-question-metadata.mjs",
+      "ts": 1775152911400,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\7dfe83ed\\VPpL.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\bulk-import-sample.mjs",
+      "ts": 1774965981146,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\7cedf996\\oEs5.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\dashboard\\page.tsx",
+      "ts": 1775152911354,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\73379b9e\\gx36.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\contests\\[id]\\questions\\route.ts",
+      "ts": 1774957060104,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\6dc20bfc\\tnkK.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\voice-interview\\route.ts",
+      "ts": 1775153116626,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\69a1892b\\vX59.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\enrich-problems-with-ai.mjs",
+      "ts": 1775152907037,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\687c2fef\\1kqj.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\supabaseAdmin.ts",
+      "ts": 1774937396229,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\6632bda7\\hQZD.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\resume-analysis\\route.ts",
+      "ts": 1775152911401,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\6603a815\\yRNE.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\questions\\[id]\\performance\\route.ts",
+      "ts": 1775015736195,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\65dd0b6b\\gANz.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\contests\\page.tsx",
+      "ts": 1775150583479,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\60014681\\uyy4.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\package.json",
+      "ts": 1775153083148,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\5b3daae0\\9e8M.json"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\coding\\QuestionPanel.tsx",
+      "ts": 1775153083148,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\58cbc502\\0Z0x.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\questions\\similar\\[id]\\route.ts",
+      "ts": 1775149997907,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\4f29f548\\Gndf.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\voice-interviewer\\page.tsx",
+      "ts": 1775153117020,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\4b846a3f\\vKXp.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\contests\\join\\route.ts",
+      "ts": 1775152659007,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\4a008e77\\QEsU.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\auth\\signin\\page.tsx",
+      "ts": 1775153083152,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\47da31a9\\JLeX.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\placement-hub\\page.tsx",
+      "ts": 1775152907056,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\45d34fc5\\obb3.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\questions\\[id]\\progress\\route.ts",
+      "ts": 1774954453050,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\4549debe\\2sKR.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\middleware.ts",
+      "ts": 1775011112748,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\42d8d0b\\olvV.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\dashboard\\loading.tsx",
+      "ts": 1775010840339,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\41258e03\\Tivc.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\import-gfg-curated.mjs",
+      "ts": 1775025601329,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\40241a04\\DbF1.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\auth\\[...nextauth]\\route.ts",
+      "ts": 1775152653299,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\3ed819ff\\fHoF.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\reset-question-bank.mjs",
+      "ts": 1775025748302,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\36e3f576\\JCCx.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\supabase.ts",
+      "ts": 1774881695588,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\36658184\\zJRR.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\dashboard\\stats\\route.ts",
+      "ts": 1775152911354,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\324a482d\\Mude.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\contests\\[id]\\complete\\route.ts",
+      "ts": 1775149997905,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\30402c64\\1fAp.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\import-codeforces.mjs",
+      "ts": 1775025579464,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\2d53562e\\E73v.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\import-industry-bank.mjs",
+      "ts": 1775025600556,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\2d45cf22\\d5rx.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\editor\\page.tsx",
+      "ts": 1775152911400,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\2d35c73\\oNHQ.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\dsaSections.ts",
+      "ts": 1774977374349,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\2ce20552\\qwi2.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\debug\\db-status\\route.ts",
+      "ts": 1774949659627,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\2bc61b4c\\BBL1.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\questions\\seed\\route.ts",
+      "ts": 1774956689667,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\28957582\\Slv8.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\resume-builder\\route.ts",
+      "ts": 1775152911355,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\282e867a\\fiLD.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\purge-incomplete-questions.mjs",
+      "ts": 1774970730194,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\280c923f\\bESb.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\interviewSession.ts",
+      "ts": 1775153083153,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\27c27833\\4q3d.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\quick-seed.mjs",
+      "ts": 1774961213315,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\267a1690\\kSTi.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\ThemeToggle.tsx",
+      "ts": 1775152686767,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\2574222a\\mOUQ.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\import-leetcode-complete.mjs",
+      "ts": 1775152911355,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\21066608\\yjI5.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\import-enriched-problems.mjs",
+      "ts": 1775152907040,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\1e46b2d4\\rBu1.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\contests\\[id]\\loading.tsx",
+      "ts": 1775010841606,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\1da28266\\Hibi.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\activity\\track\\route.ts",
+      "ts": 1775150749582,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\1a119c2a\\OmKU.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\GlassCard.tsx",
+      "ts": 1774799143820,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\10775159\\S4f2.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\codingQuestions.ts",
+      "ts": 1775152907010,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\104848ef\\FHMw.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\contests\\[id]\\page.tsx",
+      "ts": 1775151022060,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\1036ba1b\\tKgx.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\admin\\page.tsx",
+      "ts": 1775149997907,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-e5b2e3d\\rM3m.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\coding\\page.tsx",
+      "ts": 1775149997905,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-d9998ea\\vKWQ.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\tmp_note_do_not_use.txt",
+      "ts": 1775138732220,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-d6ae022\\3V8W.txt"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\users\\sync\\route.ts",
+      "ts": 1774881663452,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-d283ced\\7Iah.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\question\\[id]\\page.tsx",
+      "ts": 1775153080799,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-9a54b9e\\ysPR.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\contests\\loading.tsx",
+      "ts": 1775010840539,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-7e952bc0\\GUB2.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\contests\\[id]\\route.ts",
+      "ts": 1775149999133,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-7dca4f06\\meX9.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\leetcode.ts",
+      "ts": 1774864832747,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-7db630cd\\0Rtc.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\health\\route.ts",
+      "ts": 1775153083153,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-7cf83ec7\\0r4H.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\chatbot\\route.ts",
+      "ts": 1775153080799,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-79ba737e\\Rhk1.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\SETUP.md",
+      "ts": 1775152911401,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-77be5be8\\Qe3q.md"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\graphql\\route.ts",
+      "ts": 1774889436475,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-754532b8\\97dR.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\page.tsx",
+      "ts": 1775153087524,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-75421a3d\\x8Mm.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\bulk-import-leetcode.mjs",
+      "ts": 1774974857434,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-747f38bf\\Z7PG.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\sanitize-question-topics.mjs",
+      "ts": 1774976006659,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-7382277a\\6H6f.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\tmp-audit-data-quality.mjs",
+      "ts": 1775045879308,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-6fe3ccbd\\JHFI.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\contests\\[id]\\claim\\route.ts",
+      "ts": 1775147646906,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-6dc7f313\\d6AW.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\.env.example",
+      "ts": 1774873293641,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-674fde35\\xupV.example"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\questions\\route.ts",
+      "ts": 1775149997906,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-6563df1c\\kcHX.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\admin\\analytics\\route.ts",
+      "ts": 1775152532286,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-653620f5\\fcXi.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\next.config.ts",
+      "ts": 1775152911401,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-6451b340\\JFzU.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\resume-analyzer\\page.tsx",
+      "ts": 1774862175024,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-61582694\\Ey4J.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\health-check.mjs",
+      "ts": 1775013000941,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-5fc27e2a\\kOcG.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\submissionSkillReport.ts",
+      "ts": 1774979282736,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-5dc00d87\\uyiV.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\audit-data-quality.mjs",
+      "ts": 1775152907045,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-5d0ebeb3\\9iTq.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\ai-coach\\route.ts",
+      "ts": 1775152911401,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-5c91ef80\\D7Iv.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\contests\\route.ts",
+      "ts": 1775149997907,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-5ab876a\\2HIp.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\coding\\loading.tsx",
+      "ts": 1775011502811,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-584a9075\\Z9Bw.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\studentLearning.ts",
+      "ts": 1774978745388,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-4ec50c47\\d7r7.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\globals.css",
+      "ts": 1774963312983,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-4db6f424\\MuPu.css"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\database.sql",
+      "ts": 1775152907031,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-4d967fd5\\7x7j.sql"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\tmp-db-verify.mjs",
+      "ts": 1775040106652,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-4824ca9d\\3E6H.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\tmp-db-counts.mjs",
+      "ts": 1775039438221,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-4739df52\\bKS0.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\SessionWrapper.tsx",
+      "ts": 1775149997906,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-461880fa\\1Fro.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\rateLimit.ts",
+      "ts": 1775152911400,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-411b5809\\teSO.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\Button.tsx",
+      "ts": 1774799144168,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-4076b365\\EF2n.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\execute\\route.ts",
+      "ts": 1775152911400,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-3dc338c4\\gjVN.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\tmp-inspect-questions.mjs",
+      "ts": 1775041866102,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-3c452371\\Zi0m.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\tmp-clean-non-enriched.mjs",
+      "ts": 1775041969820,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-3a8f43e3\\38sX.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\my-resume\\page.tsx",
+      "ts": 1774864082966,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-39b2cffc\\hUBm.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\tmp-final-counts.mjs",
+      "ts": 1775042242933,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-397e4a90\\Onsr.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\load-test.mjs",
+      "ts": 1775152911401,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-33a007f6\\fQBJ.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\retry-failed-enrich.mjs",
+      "ts": 1774935096957,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-33476d9f\\Fm5Q.mjs"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\question\\[id]\\loading.tsx",
+      "ts": 1775149997763,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-2d9b7141\\XGyG.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\coding\\CodeEditor.tsx",
+      "ts": 1774869422703,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-2d755114\\0l5l.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\data\\gfg-curated.json",
+      "ts": 1775025579873,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-296dd409\\bOAD.json"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\localQuestionFallback.ts",
+      "ts": 1775132329024,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-282b5641\\ukIa.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\layout.tsx",
+      "ts": 1775011475193,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-266e1562\\ZrzQ.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\chatbot\\page.tsx",
+      "ts": 1775153080660,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-2437309d\\5h7H.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\lib\\resilientFetch.ts",
+      "ts": 1775151471031,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-2412f4cd\\T0Ez.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\.env.local",
+      "ts": 1775056806508,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1fb46bf4\\i48x.local"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\UserAvatarDropdown.tsx",
+      "ts": 1775152675015,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1f7d27e2\\Kha6.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\ActivityTracker.tsx",
+      "ts": 1775149997906,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1f0caa2a\\eZo2.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\README.md",
+      "ts": 1775013039868,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1e8b1579\\rd10.md"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\app\\api\\questions\\[id]\\route.ts",
+      "ts": 1775149997906,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1d947f94\\G3xc.ts"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\AppHeader.tsx",
+      "ts": 1775153086238,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1cd59c45\\5fbZ.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\src\\components\\coding\\OutputConsole.tsx",
+      "ts": 1775152911354,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1bd693a6\\vAXL.tsx"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\sql\\reset_question_bank.sql",
+      "ts": 1775025577586,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1b6a8b3\\dbSV.sql"
+    },
+    {
+      "file": "c:\\Users\\USER\\OneDrive\\ドキュメント\\Desktop\\PROJECTS\\NextHire AI\\my-app\\scripts\\import-questions.mjs",
+      "ts": 1775152907034,
+      "source": "C:\\Users\\USER\\AppData\\Roaming\\Code\\User\\History\\-1634e1dc\\29Ut.mjs"
+    }
+  ]
+}

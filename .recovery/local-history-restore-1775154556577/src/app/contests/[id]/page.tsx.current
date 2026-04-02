@@ -914,45 +914,22 @@ export default function ContestWorkspacePage() {
             </div>
 
             {isOwner && !attemptState && (
-              <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/20 bg-white/5' : 'border-black/15 bg-black/5'}`}>
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h2 className="text-base font-semibold">Creator Question Setup (Mandatory)</h2>
-                  <span className={`text-xs ${isDark ? 'text-white/70' : 'text-black/70'}`}>{creatorDraftQuestionIds.length} selected</span>
-                </div>
-                {questionSetLocked && (
-                  <div className={`mb-3 rounded-lg border px-3 py-2 text-xs ${isDark ? 'border-white/20 bg-white/10 text-white/80' : 'border-black/15 bg-white text-black/75'}`}>
-                    Question Set Locked: participants already joined this contest, so creator edits are disabled.
+              <div className={`space-y-4 rounded-2xl border p-4 ${isDark ? 'border-white/20 bg-white/5' : 'border-black/15 bg-black/5'}`}>
+                <div className={`rounded-xl border p-4 ${isDark ? 'border-white/15 bg-black/35' : 'border-black/10 bg-white'}`}>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold">Selected Curated Questions</h2>
+                    <span className={`text-xs ${isDark ? 'text-white/70' : 'text-black/70'}`}>{creatorDraftQuestionIds.length} selected</span>
                   </div>
-                )}
-                <p className={`mb-3 text-xs ${isDark ? 'text-white/65' : 'text-black/65'}`}>
-                  Save your contest questions here. Participants can only solve this saved set.
-                </p>
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowLibraryModal(true);
-                      void reloadQuestionCatalog();
-                    }}
-                    disabled={questionSetLocked}
-                    className={isDark ? 'rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 disabled:opacity-50' : 'rounded-lg border border-black/20 bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-black/5 disabled:opacity-50'}
-                  >
-                    Open Question Library
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(true)}
-                    disabled={questionSetLocked}
-                    className={isDark ? 'rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 disabled:opacity-50' : 'rounded-lg border border-black/20 bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-black/5 disabled:opacity-50'}
-                  >
-                    Create New Question
-                  </button>
 
-                </div>
-                <div className={`rounded-xl border p-3 ${isDark ? 'border-white/10 bg-black/40' : 'border-black/10 bg-white'}`}>
+                  {questionSetLocked && (
+                    <div className={`mb-3 rounded-lg border px-3 py-2 text-xs ${isDark ? 'border-white/20 bg-white/10 text-white/80' : 'border-black/15 bg-white text-black/75'}`}>
+                      Question Set Locked: participants already joined this contest, so creator edits are disabled.
+                    </div>
+                  )}
+
                   {creatorPreviewQuestions.length === 0 ? (
                     <p className={`text-xs ${isDark ? 'text-white/70' : 'text-black/70'}`}>
-                      No questions selected yet. Open Question Library and add questions to your contest set.
+                      No curated questions selected yet.
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
@@ -969,22 +946,74 @@ export default function ContestWorkspacePage() {
                     </div>
                   )}
                 </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void saveCreatorQuestions()}
-                    disabled={questionSetLocked || savingCreatorQuestions || creatorDraftQuestionIds.length === 0}
-                    className={
-                      isDark
-                        ? 'rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-white/90 disabled:opacity-50'
-                        : 'rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white hover:bg-black/90 disabled:opacity-50'
-                    }
-                  >
-                    {savingCreatorQuestions ? 'Saving...' : 'Save Contest Questions'}
-                  </button>
-                  {fixedContestQuestionIds.length > 0 && (
-                    <span className={`text-xs ${isDark ? 'text-white/75' : 'text-black/70'}`}>Saved and locked for participants</span>
-                  )}
+
+                <div className={`rounded-xl border p-4 ${isDark ? 'border-white/15 bg-black/35' : 'border-black/10 bg-white'}`}>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div>
+                      <h2 className="text-base font-semibold">Curated Question Set</h2>
+                      <p className={`text-xs ${isDark ? 'text-white/65' : 'text-black/65'}`}>
+                        Select questions first or create a new one with description, difficulty, topics, and test cases.
+                      </p>
+                    </div>
+                    {fixedContestQuestionIds.length > 0 && (
+                      <span className={`text-xs ${isDark ? 'text-white/75' : 'text-black/70'}`}>Saved and locked for participants</span>
+                    )}
+                  </div>
+
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowLibraryModal(true);
+                        void reloadQuestionCatalog();
+                      }}
+                      disabled={questionSetLocked}
+                      className={isDark ? 'rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 disabled:opacity-50' : 'rounded-lg border border-black/20 bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-black/5 disabled:opacity-50'}
+                    >
+                      Select Questions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModal(true)}
+                      disabled={questionSetLocked}
+                      className={isDark ? 'rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 disabled:opacity-50' : 'rounded-lg border border-black/20 bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-black/5 disabled:opacity-50'}
+                    >
+                      Create Question
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveCreatorQuestions()}
+                      disabled={questionSetLocked || savingCreatorQuestions || creatorDraftQuestionIds.length === 0}
+                      className={
+                        isDark
+                          ? 'rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-white/90 disabled:opacity-50'
+                          : 'rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white hover:bg-black/90 disabled:opacity-50'
+                      }
+                    >
+                      {savingCreatorQuestions ? 'Saving...' : 'Save Contest Questions'}
+                    </button>
+                  </div>
+
+                  <div className={`rounded-xl border p-3 ${isDark ? 'border-white/10 bg-black/40' : 'border-black/10 bg-white'}`}>
+                    {creatorPreviewQuestions.length === 0 ? (
+                      <p className={`text-xs ${isDark ? 'text-white/70' : 'text-black/70'}`}>
+                        No questions selected yet. Open Question Library and add questions to your contest set.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {creatorPreviewQuestions.slice(0, 12).map((q) => (
+                          <span key={`selected-${q.id}`} className={`rounded-lg border px-2 py-1 text-xs ${isDark ? 'border-white/20 bg-white/10' : 'border-black/15 bg-black/5'}`}>
+                            {q.title}
+                          </span>
+                        ))}
+                        {creatorPreviewQuestions.length > 12 && (
+                          <span className={`rounded-lg border px-2 py-1 text-xs ${isDark ? 'border-white/20 bg-white/10' : 'border-black/15 bg-black/5'}`}>
+                            +{creatorPreviewQuestions.length - 12} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

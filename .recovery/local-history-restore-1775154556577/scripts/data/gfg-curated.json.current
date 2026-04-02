@@ -1,0 +1,78 @@
+[
+  {
+    "id": "gfg-two-sum",
+    "title": "Two Sum",
+    "difficulty": "Easy",
+    "topic": ["array", "hashing"],
+    "description": "Given an array of integers and a target value, return indices of two numbers such that they add up to the target. Assume exactly one valid answer exists and same index cannot be used twice.",
+    "examples": [
+      {
+        "input": "nums = [2,7,11,15], target = 9",
+        "output": "[0,1]",
+        "explanation": "nums[0] + nums[1] = 2 + 7 = 9"
+      }
+    ],
+    "testcases": [
+      { "input": "4\n2 7 11 15\n9", "expectedOutput": "0 1" },
+      { "input": "3\n3 2 4\n6", "expectedOutput": "1 2" },
+      { "input": "2\n3 3\n6", "expectedOutput": "0 1" }
+    ]
+  },
+  {
+    "id": "gfg-valid-parentheses",
+    "title": "Valid Parentheses",
+    "difficulty": "Easy",
+    "topic": ["stack", "string"],
+    "description": "Given a string containing just the characters (), {}, and [], determine if the input string is valid. An input string is valid if open brackets are closed by same type and in correct order.",
+    "examples": [
+      {
+        "input": "s = ()[]{}",
+        "output": "true",
+        "explanation": "All opening brackets are closed correctly in order."
+      }
+    ],
+    "testcases": [
+      { "input": "()[]{}", "expectedOutput": "true" },
+      { "input": "(]", "expectedOutput": "false" },
+      { "input": "([{}])", "expectedOutput": "true" }
+    ]
+  },
+  {
+    "id": "gfg-merge-intervals",
+    "title": "Merge Intervals",
+    "difficulty": "Medium",
+    "topic": ["array", "sorting"],
+    "description": "Given an array of intervals where intervals[i] = [start, end], merge all overlapping intervals and return non-overlapping intervals covering all intervals.",
+    "examples": [
+      {
+        "input": "intervals = [[1,3],[2,6],[8,10],[15,18]]",
+        "output": "[[1,6],[8,10],[15,18]]",
+        "explanation": "[1,3] and [2,6] overlap, so merge into [1,6]."
+      }
+    ],
+    "testcases": [
+      { "input": "4\n1 3\n2 6\n8 10\n15 18", "expectedOutput": "1 6\n8 10\n15 18" },
+      { "input": "2\n1 4\n4 5", "expectedOutput": "1 5" },
+      { "input": "3\n1 2\n3 4\n5 6", "expectedOutput": "1 2\n3 4\n5 6" }
+    ]
+  },
+  {
+    "id": "gfg-lru-cache",
+    "title": "LRU Cache Design",
+    "difficulty": "Hard",
+    "topic": ["design", "hashmap", "linked-list"],
+    "description": "Design a data structure that follows least recently used (LRU) cache policy with O(1) get and put operations.",
+    "examples": [
+      {
+        "input": "capacity=2, put(1,1), put(2,2), get(1), put(3,3), get(2)",
+        "output": "1, -1",
+        "explanation": "Key 2 is evicted when key 3 is inserted."
+      }
+    ],
+    "testcases": [
+      { "input": "capacity=2; put 1 1; put 2 2; get 1; put 3 3; get 2", "expectedOutput": "1\n-1" },
+      { "input": "capacity=1; put 2 1; get 2; put 3 2; get 2; get 3", "expectedOutput": "1\n-1\n2" },
+      { "input": "capacity=2; put 2 1; put 1 1; put 2 3; put 4 1; get 1; get 2", "expectedOutput": "-1\n3" }
+    ]
+  }
+]
