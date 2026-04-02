@@ -16,6 +16,22 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Health Check
+
+Use the built-in endpoint to verify server health quickly:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+Or run the local script:
+
+```bash
+npm run health:check
+```
+
+If the browser tab keeps loading, run `npm run health:check` first to confirm whether the app server is actually responding.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

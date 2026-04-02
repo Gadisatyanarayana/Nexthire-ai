@@ -3,15 +3,39 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
+    "dev:turbo": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "health:check": "node scripts/health-check.mjs",
+    "audit:data": "node scripts/audit-data-quality.mjs",
+    "import:questions": "node scripts/import-questions.mjs",
+    "enrich:problems:ai": "node scripts/enrich-problems-with-ai.mjs",
+    "import:problems:enriched": "node scripts/import-enriched-problems.mjs",
+    "enrich:questions": "node scripts/enrich-question-metadata.mjs",
+    "reset:question-bank": "node scripts/reset-question-bank.mjs",
+    "import:codeforces": "node scripts/import-codeforces.mjs",
+    "import:gfg": "node scripts/import-gfg-curated.mjs",
+    "import:industry-bank": "node scripts/import-industry-bank.mjs",
+    "import:industry-bank:reset": "node scripts/import-industry-bank.mjs --reset",
+    "contests:backfill-questions": "node scripts/backfill-contest-questions.mjs",
+    "contests:backfill-questions:force": "node scripts/backfill-contest-questions.mjs --force"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@supabase/supabase-js": "^2.100.1",
+    "axios": "^1.14.0",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.7.0",
+    "mammoth": "^1.12.0",
     "next": "16.2.1",
+    "next-auth": "^4.24.13",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-resizable-panels": "^4.8.0",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
