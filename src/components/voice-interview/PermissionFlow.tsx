@@ -20,49 +20,74 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
   const requestPermissions = useCallback(async () => {
     setRequesting(true);
     setShowRecovery(false);
+    
     let cameraStream: MediaStream | null = null;
     let micStream: MediaStream | null = null;
 
-    // 1. Camera check
+    // Try joint request first (standard browser behavior for unified prompts)
     try {
-      addToast("Requesting camera access...", "info", 2000);
-      cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      addToast("Requesting camera and microphone access...", "info", 2000);
+      const combinedStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      
       setCameraState("granted");
-      addToast("Camera access granted", "success");
-    } catch (err: any) {
-      console.warn("Camera permission failed:", err);
-      const isBlocked = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
-      setCameraState(isBlocked ? "blocked" : "denied");
-      addToast(isBlocked ? "Camera blocked in browser settings" : "Camera permission denied", "error");
-    }
-
-    // 2. Microphone check
-    try {
-      addToast("Requesting microphone access...", "info", 2000);
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setMicState("granted");
+      addToast("Camera access granted", "success");
       addToast("Microphone access granted", "success");
-    } catch (err: any) {
-      console.warn("Microphone permission failed:", err);
-      const isBlocked = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
-      setMicState(isBlocked ? "blocked" : "denied");
-      addToast(isBlocked ? "Microphone blocked in browser settings" : "Microphone permission denied", "error");
-    }
-
-    setRequesting(false);
-
-    if (cameraStream && micStream) {
       addToast("All permissions granted", "success");
+      
+      // Split stream tracks
+      const videoTracks = combinedStream.getVideoTracks();
+      const audioTracks = combinedStream.getAudioTracks();
+      
+      cameraStream = new MediaStream(videoTracks);
+      micStream = new MediaStream(audioTracks);
+
+      setRequesting(false);
       onAllPermissionsGranted({ video: cameraStream, audio: micStream });
-    } else {
-      // Cleanup successful streams if the other one failed
-      if (cameraStream) {
-        cameraStream.getTracks().forEach((track) => track.stop());
+      return;
+    } catch (combinedErr: any) {
+      console.warn("Combined permission request failed, fallback to separate requests...", combinedErr);
+      
+      // Fallback to checking individually to isolate which hardware failed
+      // 1. Camera check
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setCameraState("granted");
+        addToast("Camera access granted", "success");
+      } catch (err: any) {
+        console.warn("Camera permission failed:", err);
+        const isBlocked = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
+        setCameraState(isBlocked ? "blocked" : "denied");
+        addToast(isBlocked ? "Camera blocked in browser settings" : "Camera permission denied", "error");
       }
-      if (micStream) {
-        micStream.getTracks().forEach((track) => track.stop());
+
+      // 2. Microphone check
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setMicState("granted");
+        addToast("Microphone access granted", "success");
+      } catch (err: any) {
+        console.warn("Microphone permission failed:", err);
+        const isBlocked = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
+        setMicState(isBlocked ? "blocked" : "denied");
+        addToast(isBlocked ? "Microphone blocked in browser settings" : "Microphone permission denied", "error");
       }
-      setShowRecovery(true);
+
+      setRequesting(false);
+
+      if (cameraStream && micStream) {
+        addToast("All permissions granted", "success");
+        onAllPermissionsGranted({ video: cameraStream, audio: micStream });
+      } else {
+        // Cleanup successful streams if the other failed
+        if (cameraStream) {
+          cameraStream.getTracks().forEach((track) => track.stop());
+        }
+        if (micStream) {
+          micStream.getTracks().forEach((track) => track.stop());
+        }
+        setShowRecovery(true);
+      }
     }
   }, [addToast, onAllPermissionsGranted]);
 
