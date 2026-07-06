@@ -18,6 +18,7 @@ import { ConnectionIndicator } from "@/components/voice-interview/ConnectionIndi
 import { PermissionFlow } from "@/components/voice-interview/PermissionFlow";
 import { ResumeFlow } from "@/components/voice-interview/ResumeFlow";
 import { ResumeManager } from "@/components/voice-interview/ResumeManager";
+import { InterviewScorecard } from "@/components/voice-interview/InterviewScorecard";
 import { CompanyModeSelector } from "@/components/voice-interview/CompanyModeSelector";
 import { PersonaSelector } from "@/components/voice-interview/PersonaSelector";
 import { InterviewCountdown } from "@/components/voice-interview/InterviewCountdown";
@@ -1378,149 +1379,11 @@ function VoiceInterviewerWorkspace() {
 
         {/* STEP 3: SCORECARD / PERFORMANCE ANALYTICS */}
         {step === "scorecard" && analysis && (
-          <div className="space-y-8">
-            
-            {/* Header circular stats summary */}
-            <div className={`rounded-3xl border p-8 grid grid-cols-1 md:grid-cols-3 gap-8 items-center ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
-              
-              <div className="flex flex-col items-center justify-center text-center space-y-2">
-                <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">Overall Interview Rating</p>
-                <div className="relative flex items-center justify-center h-32 w-32">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle className="text-foreground/10" strokeWidth="6" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
-                    <circle className="text-cyan-400" strokeWidth="6" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * analysis.overallScore) / 100} strokeLinecap="round" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
-                  </svg>
-                  <span className="absolute text-3xl font-extrabold tracking-tight">{analysis.overallScore}<span className="text-xs font-bold text-foreground/40">/100</span></span>
-                </div>
-                {analysis.cheatingViolation && (
-                  <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
-                    Cheating Detected
-                  </span>
-                )}
-              </div>
-
-              {/* Granular Radar Chart Visualizer */}
-              <div className="flex flex-col items-center justify-center">
-                <p className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-2">Category Performance Radar</p>
-                {(() => {
-                  const radarData = [
-                    { subject: "Technical", A: analysis.codeQuality || 75 },
-                    { subject: "Self-Intro", A: analysis.selfIntroQuality || 80 },
-                    { subject: "Comm.", A: analysis.communicationClarity || 80 },
-                    { subject: "Confidence", A: analysis.confidenceScore || 75 },
-                    { subject: "Fluency", A: analysis.fillerWordScore || 85 }
-                  ];
-                  return (
-                    <div className="h-48 w-full min-w-[200px] flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                          <PolarGrid stroke={isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.08)"} />
-                          <PolarAngleAxis dataKey="subject" tick={{ fill: isDark ? "#fff" : "#334155", fontSize: 9, fontWeight: "600" }} />
-                          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)", fontSize: 7 }} />
-                          <Radar name="Candidate" dataKey="A" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.4} />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Detailed metrics slider grid */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground/60 border-b border-foreground/10 pb-2">Category Scorecard Breakdown</h3>
-                <div className="space-y-3">
-                  
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold text-foreground/75 mb-1.5">
-                      <span>Technical Logic & Syntax</span>
-                      <span className="font-bold text-cyan-400">{analysis.codeQuality}/100</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-foreground/15">
-                      <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${analysis.codeQuality}%` }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold text-foreground/75 mb-1.5">
-                      <span>Self-Introduction Structure</span>
-                      <span className="font-bold text-cyan-400">{analysis.selfIntroQuality}/100</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-foreground/15">
-                      <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${analysis.selfIntroQuality}%` }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold text-foreground/75 mb-1.5">
-                      <span>Vocal Clarity & Tone</span>
-                      <span className="font-bold text-cyan-400">{analysis.communicationClarity || 80}/100</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-foreground/15">
-                      <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${analysis.communicationClarity || 80}%` }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold text-foreground/75 mb-1.5">
-                      <span>STAR Framework Confidence</span>
-                      <span className="font-bold text-cyan-400">{analysis.confidenceScore || 75}/100</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-foreground/15">
-                      <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${analysis.confidenceScore || 75}%` }} />
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-            </div>
-
-            {/* Strengths and Weaknesses section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              <div className={`rounded-3xl border p-6 space-y-4 ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
-                <h3 className="font-extrabold text-sm text-emerald-400 uppercase tracking-wider">Identified Key Strengths</h3>
-                <ul className="space-y-2 text-xs leading-relaxed text-foreground/80 list-disc pl-4">
-                  {analysis.strengths?.map((str: string, idx: number) => (
-                    <li key={idx}>{str}</li>
-                  ))}
-                  {(!analysis.strengths || analysis.strengths.length === 0) && (
-                    <li>Candidate communicates clearly during introductory warm-up sequence.</li>
-                  )}
-                </ul>
-              </div>
-
-              <div className={`rounded-3xl border p-6 space-y-4 ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
-                <h3 className="font-extrabold text-sm text-red-400 uppercase tracking-wider">Areas for Improvement</h3>
-                <ul className="space-y-2 text-xs leading-relaxed text-foreground/80 list-disc pl-4">
-                  {analysis.improvements?.map((imp: string, idx: number) => (
-                    <li key={idx}>{imp}</li>
-                  ))}
-                  {(!analysis.improvements || analysis.improvements.length === 0) && (
-                    <li>Specify exact time and space complexity variables explicitly during code explanation stages.</li>
-                  )}
-                </ul>
-              </div>
-
-            </div>
-
-            {/* Action buttons scorecard */}
-            <div className="flex gap-4 items-center justify-center">
-              <button
-                onClick={() => setStep("permissions")}
-                className="bg-cyan-500 hover:bg-cyan-400 text-black px-6 py-3 rounded-2xl text-xs font-bold transition flex items-center gap-1.5"
-              >
-                <RefreshCw className="h-4 w-4" /> Start Another Mock Round
-              </button>
-              <button
-                onClick={() => downloadPdfReport(analysis)}
-                className={`rounded-2xl border px-6 py-3 text-xs font-bold transition flex items-center gap-1.5 ${isDark ? "border-white/10 bg-zinc-950/40 text-white hover:bg-white/5" : "border-black/10 bg-white text-black hover:bg-slate-100"}`}
-              >
-                <Download className="h-4 w-4" /> Download Placement PDF
-              </button>
-            </div>
-
-          </div>
+          <InterviewScorecard
+            analysis={analysis}
+            onExportPdf={() => downloadPdfReport(analysis)}
+            onReturn={() => setStep("permissions")}
+          />
         )}
 
         {/* STEP 4: INTERVIEW HISTORY LOGS */}
