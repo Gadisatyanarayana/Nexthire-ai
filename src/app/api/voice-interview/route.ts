@@ -715,6 +715,7 @@ type RequestBody = {
   companyMode?: string;
   persona?: string;
   jobDescription?: string;
+  interviewType?: string;
 };
 
 function scoreBand(value: number): number {
@@ -1192,7 +1193,8 @@ export async function POST(req: Request) {
           companyMode: body.companyMode || "general",
           persona: body.persona || "professional",
           jobDescription: body.jobDescription || "",
-          askedQuestionIds: []
+          askedQuestionIds: [],
+          interviewType: body.interviewType || "Technical"
         },
         timeline: {
           phase: "intro",
@@ -1451,6 +1453,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Session not found" }, { status: 404 });
       }
 
+      if (sess.timeline.phase === "completed") {
+        return NextResponse.json({ error: "Session already finalized", session: sess, analysis: sess.analysis }, { status: 200 });
+      }
+
       const code = String(body.code || sess.submission?.code || "");
       if (!sess.submission) {
         sess.submission = {
@@ -1469,6 +1475,109 @@ export async function POST(req: Request) {
         timestamp: Date.now(),
       });
       await persistSession(sess);
+
+      // Persist to structured tables for Phase 6 history, analytics, and gamification
+      try {
+        const admin = getAdminClient();
+        const { data: userRow } = await admin
+          .from("users")
+          .select("id")
+          .eq("email", normalizeEmail(session.user.email))
+          .maybeSingle();
+
+        if (userRow?.id) {
+          const userId = userRow.id;
+          const durationSec = sess.timeline?.totalStartedAt
+            ? Math.floor((Date.now() - sess.timeline.totalStartedAt) / 1000)
+            : 0;
+
+          // 1. Insert history record
+          const historyRow = {
+            user_id: userId,
+            session_id: sess.id,
+            interview_type: sess.config.interviewType || "Technical",
+            company_mode: sess.config.companyMode || null,
+            persona: sess.config.persona || null,
+            difficulty: sess.config.difficulty || "medium",
+            duration_seconds: durationSec,
+            questions_count: sess.aiResponses.filter((m) => m.role === "user").length || 0,
+            overall_score: analysis.overallScore,
+            category_scores: {
+              self_introduction: analysis.selfIntroQuality,
+              code_quality: analysis.codeQuality,
+              communication: analysis.communicationClarity,
+              filler_words: analysis.fillerWordScore,
+              confidence: analysis.confidenceScore,
+            },
+            transcript: sess.aiResponses,
+            feedback: {
+              overall_summary: finalSummary,
+              strengths: analysis.strengths,
+              aiSuggestions: analysis.aiSuggestions,
+            },
+            learning_recommendations: analysis.learningRecommendations,
+            status: "completed",
+            created_at: new Date().toISOString(),
+          };
+          await admin.from("voice_interview_history").insert(historyRow);
+
+          // 2. Award XP and calculate Level/Streak updates
+          const xpEarned = Math.round(50 + analysis.overallScore * 1.5);
+          const { data: gamificationRow } = await admin
+            .from("voice_interview_gamification")
+            .select("*")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+          let totalXp = xpEarned;
+          let streak = 1;
+          let longestStreak = 1;
+          let level = 1;
+          let badges: string[] = [];
+
+          if (gamificationRow) {
+            totalXp = (gamificationRow.total_xp || 0) + xpEarned;
+            level = Math.floor(totalXp / 500) + 1;
+
+            const todayStr = new Date().toISOString().split("T")[0];
+            const lastDateStr = gamificationRow.last_interview_date;
+
+            if (lastDateStr) {
+              const lastDate = new Date(lastDateStr);
+              const today = new Date(todayStr);
+              const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+              if (diffDays === 1) {
+                streak = (gamificationRow.current_streak || 0) + 1;
+              } else if (diffDays === 0) {
+                streak = gamificationRow.current_streak || 1;
+              } else {
+                streak = 1;
+              }
+            } else {
+              streak = 1;
+            }
+
+            longestStreak = Math.max(gamificationRow.longest_streak || 1, streak);
+            badges = Array.isArray(gamificationRow.badges) ? gamificationRow.badges : [];
+          }
+
+          const newGamification = {
+            user_id: userId,
+            total_xp: totalXp,
+            current_streak: streak,
+            longest_streak: longestStreak,
+            last_interview_date: new Date().toISOString().split("T")[0],
+            level: level,
+            badges: badges,
+            updated_at: new Date().toISOString(),
+          };
+          await admin.from("voice_interview_gamification").upsert(newGamification, { onConflict: "user_id" });
+        }
+      } catch (dbErr) {
+        console.error("DB persistence failed during voice interview finalization:", dbErr);
+      }
 
       return NextResponse.json({ session: sess, analysis, message: finalSummary });
     }

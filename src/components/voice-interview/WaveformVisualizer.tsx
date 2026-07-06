@@ -21,6 +21,7 @@ export function WaveformVisualizer({ stream, isActive, color = "#06b6d4" }: Wave
     }
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioCtx();
       const source = ctx.createMediaStreamSource(stream);

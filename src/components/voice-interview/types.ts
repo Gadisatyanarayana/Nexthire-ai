@@ -56,6 +56,7 @@ export type InterviewSessionConfig = {
   persona?: RecruiterPersona;
   jobDescription?: string;
   askedQuestionIds?: string[];
+  interviewType?: string;
 };
 
 export type InterviewTimeline = {

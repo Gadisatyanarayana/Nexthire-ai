@@ -8,6 +8,7 @@ export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsOnline(navigator.onLine);
     const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
@@ -70,6 +71,7 @@ export function useMediaDevices() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void updateDevices();
     navigator.mediaDevices?.addEventListener("devicechange", updateDevices);
     return () => {

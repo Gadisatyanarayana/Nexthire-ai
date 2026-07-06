@@ -18,7 +18,16 @@ export function ResumeManager() {
   const [resume, setResume] = useState<StoredResume | null>(null);
   const [showReplace, setShowReplace] = useState(false);
 
+  const isMounted = React.useRef(true);
+  
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const fetchResumeMetadata = useCallback(async () => {
+    if (!isMounted.current) return;
     setLoading(true);
     try {
       const res = await fetch("/api/voice-interview", {
@@ -27,16 +36,20 @@ export function ResumeManager() {
         body: JSON.stringify({ action: "get-resume" }),
       });
       const data = await res.json();
+      if (!isMounted.current) return;
       if (res.ok && data.resume) {
         setResume(data.resume);
       } else {
         setResume(null);
       }
     } catch (e) {
+      if (!isMounted.current) return;
       console.error(e);
       addToast("Failed to fetch resume status", "error");
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   }, [addToast]);
 

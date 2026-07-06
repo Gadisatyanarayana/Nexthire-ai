@@ -28,6 +28,8 @@ export function ResumeFlow({ userEmail, onResumeVerified, onBack }: ResumeFlowPr
 
   // Fetch user profile resume on mount
   useEffect(() => {
+    let active = true;
+
     async function checkUserProfile() {
       try {
         const res = await fetch("/api/voice-interview", {
@@ -37,6 +39,8 @@ export function ResumeFlow({ userEmail, onResumeVerified, onBack }: ResumeFlowPr
         });
         const data = await res.json();
         
+        if (!active) return;
+
         if (data.resume) {
           setResume(data.resume);
           setSkills(data.skills || ["React", "JavaScript", "SQL", "Node.js"]);
@@ -44,9 +48,11 @@ export function ResumeFlow({ userEmail, onResumeVerified, onBack }: ResumeFlowPr
           // Trigger "Resume Found -> Resume Verified -> Continue" animation sequence
           setStatus("verifying");
           setTimeout(() => {
+            if (!active) return;
             setStatus("verified");
             addToast("Resume verified successfully", "success");
             setTimeout(() => {
+              if (!active) return;
               onResumeVerified(data.resume.path, data.skills || ["React", "JavaScript", "SQL", "Node.js"]);
             }, 1200);
           }, 1500);
@@ -54,14 +60,19 @@ export function ResumeFlow({ userEmail, onResumeVerified, onBack }: ResumeFlowPr
           setShowUpload(true);
         }
       } catch (err) {
+        if (!active) return;
         console.error("Failed to check user resume profile:", err);
         addToast("Error querying profile metadata", "error");
         setShowUpload(true);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     void checkUserProfile();
+    
+    return () => {
+      active = false;
+    };
   }, [addToast, onResumeVerified]);
 
   const handleUploadSuccess = (path: string, filename: string, size: number, detectedSkills: string[]) => {

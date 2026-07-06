@@ -349,7 +349,7 @@ export function InterviewScorecard({ analysis, onExportPdf, onReturn }: Intervie
               <FileText className="h-4 w-4" /> STAR Framework Evaluation Details
             </div>
             <p className="text-foreground/80 font-medium">
-              We analyzed your situation, task, actions, and quantitative results. Feedback recommendation: <span className="text-cyan-200 italic">"{star.feedback}"</span>
+              We analyzed your situation, task, actions, and quantitative results. Feedback recommendation: <span className="text-cyan-200 italic">&quot;{star.feedback}&quot;</span>
             </p>
           </div>
         </div>

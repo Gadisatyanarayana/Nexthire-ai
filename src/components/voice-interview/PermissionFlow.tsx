@@ -13,8 +13,8 @@ type PermissionFlowProps = {
 export function PermissionFlow({ onAllPermissionsGranted, onCancel }: PermissionFlowProps) {
   const { addToast } = useToast();
   const [requesting, setRequesting] = useState(false);
-  const [cameraState, setCameraState] = useState<"idle" | "granted" | "denied" | "blocked">("idle");
-  const [micState, setMicState] = useState<"idle" | "granted" | "denied" | "blocked">("idle");
+  const [cameraState, setCameraState] = useState<"idle" | "granted" | "denied" | "blocked" | "notFound" | "inUse">("idle");
+  const [micState, setMicState] = useState<"idle" | "granted" | "denied" | "blocked" | "notFound" | "inUse">("idle");
   const [showRecovery, setShowRecovery] = useState(false);
 
   const requestPermissions = useCallback(async () => {
@@ -22,24 +22,20 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
     setShowRecovery(false);
 
     console.log("----------------------------------------");
-    
+
     // 1. Log current browser permission state if available
-    let currentCameraPermission = "unknown";
-    let currentMicPermission = "unknown";
     if (navigator.permissions && navigator.permissions.query) {
       try {
-        const cam = await navigator.permissions.query({ name: "camera" as any });
-        currentCameraPermission = cam.state;
+        const cam = await navigator.permissions.query({ name: "camera" as PermissionName });
         console.log(`Current browser permission state: camera = ${cam.state}`);
-      } catch (e) {
+      } catch {
         console.log("Current browser permission state: camera = not queryable");
       }
 
       try {
-        const mic = await navigator.permissions.query({ name: "microphone" as any });
-        currentMicPermission = mic.state;
+        const mic = await navigator.permissions.query({ name: "microphone" as PermissionName });
         console.log(`Current browser permission state: microphone = ${mic.state}`);
-      } catch (e) {
+      } catch {
         console.log("Current browser permission state: microphone = not queryable");
       }
     } else {
@@ -55,29 +51,30 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
     try {
       addToast("Requesting camera and microphone access...", "info", 2000);
       const combinedStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      
+
       console.log("getUserMedia() succeeded: combined stream received");
       console.log("Stream received ID:", combinedStream.id);
-      
+
       const videoTracks = combinedStream.getVideoTracks();
       const audioTracks = combinedStream.getAudioTracks();
       console.log(`Video tracks count: ${videoTracks.length}`);
       videoTracks.forEach(t => console.log(`- Track: ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
       console.log(`Audio tracks count: ${audioTracks.length}`);
       audioTracks.forEach(t => console.log(`- Track: ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
-      
+
       setCameraState("granted");
       setMicState("granted");
       addToast("Camera and microphone access granted", "success");
       addToast("All permissions granted", "success");
-      
+
       cameraStream = new MediaStream(videoTracks);
       micStream = new MediaStream(audioTracks);
 
       setRequesting(false);
       onAllPermissionsGranted({ video: cameraStream, audio: micStream });
       return;
-    } catch (combinedErr: any) {
+    } catch (e) {
+      const combinedErr = e as Error;
       const errName = combinedErr.name || "UnknownError";
       const errMsg = combinedErr.message || "";
       console.log("getUserMedia() failed: combined request threw an error");
@@ -109,32 +106,41 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         console.log("getUserMedia() succeeded: camera video track isolation test passed");
         setCameraState("granted");
         camPassed = true;
-        
+
         // Release hardware resources immediately
         camTest.getTracks().forEach((t) => {
           t.stop();
           console.log(`Stopped camera track: ${t.label}`);
         });
-      } catch (err: any) {
+      } catch (e) {
+        const err = e as Error;
         const name = err.name || "UnknownError";
         const msg = err.message || "";
         console.log(`getUserMedia() failed: camera individual test failed. Error: ${name}. Message: ${msg}`);
-        
+
+        let state: "blocked" | "notFound" | "inUse" | "denied" = "denied";
+        let toastMsg = "Camera permission denied";
+
         if (name === "NotAllowedError" || name === "PermissionDeniedError") {
           console.log("Recovery dialog reason: Permission denied");
+          state = "blocked";
+          toastMsg = "Camera blocked in settings";
         } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
           console.log("Recovery dialog reason: Device unavailable");
+          state = "notFound";
+          toastMsg = "Camera device not found";
         } else if (name === "NotReadableError" || name === "TrackStartError") {
           console.log("Recovery dialog reason: NotReadableError");
+          state = "inUse";
+          toastMsg = "Camera is in use by another application";
         } else if (name === "AbortError") {
           console.log("Recovery dialog reason: AbortError");
         } else if (name === "SecurityError") {
           console.log("Recovery dialog reason: SecurityError");
         }
 
-        const isBlocked = name === "NotAllowedError" || name === "PermissionDeniedError";
-        setCameraState(isBlocked ? "blocked" : "denied");
-        addToast(isBlocked ? "Camera blocked in settings" : "Camera permission denied", "error");
+        setCameraState(state);
+        addToast(toastMsg, "error");
       }
 
       // Fallback: Check Microphone in isolation
@@ -144,32 +150,41 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         console.log("getUserMedia() succeeded: microphone audio track isolation test passed");
         setMicState("granted");
         micPassed = true;
-        
+
         // Release hardware resources immediately
         micTest.getTracks().forEach((t) => {
           t.stop();
           console.log(`Stopped microphone track: ${t.label}`);
         });
-      } catch (err: any) {
+      } catch (e) {
+        const err = e as Error;
         const name = err.name || "UnknownError";
         const msg = err.message || "";
         console.log(`getUserMedia() failed: microphone individual test failed. Error: ${name}. Message: ${msg}`);
-        
+
+        let state: "blocked" | "notFound" | "inUse" | "denied" = "denied";
+        let toastMsg = "Microphone permission denied";
+
         if (name === "NotAllowedError" || name === "PermissionDeniedError") {
           console.log("Recovery dialog reason: Permission denied");
+          state = "blocked";
+          toastMsg = "Microphone blocked in settings";
         } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
           console.log("Recovery dialog reason: Device unavailable");
+          state = "notFound";
+          toastMsg = "Microphone device not found";
         } else if (name === "NotReadableError" || name === "TrackStartError") {
           console.log("Recovery dialog reason: NotReadableError");
+          state = "inUse";
+          toastMsg = "Microphone is in use by another application";
         } else if (name === "AbortError") {
           console.log("Recovery dialog reason: AbortError");
         } else if (name === "SecurityError") {
           console.log("Recovery dialog reason: SecurityError");
         }
 
-        const isBlocked = name === "NotAllowedError" || name === "PermissionDeniedError";
-        setMicState(isBlocked ? "blocked" : "denied");
-        addToast(isBlocked ? "Microphone blocked in settings" : "Microphone permission denied", "error");
+        setMicState(state);
+        addToast(toastMsg, "error");
       }
 
       setRequesting(false);
@@ -180,13 +195,14 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
           const finalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
           const videoTracks = finalStream.getVideoTracks();
           const audioTracks = finalStream.getAudioTracks();
-          
+
           cameraStream = new MediaStream(videoTracks);
           micStream = new MediaStream(audioTracks);
-          
+
           addToast("All permissions granted", "success");
           onAllPermissionsGranted({ video: cameraStream, audio: micStream });
-        } catch (e: any) {
+        } catch (e) {
+        const err = e as Error;
           console.error("Failed final combined re-acquisition stream callback:", e);
           setShowRecovery(true);
         }
@@ -200,30 +216,96 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
   // Auto check permissions on mount (bypasses click if already granted in browser settings)
   useEffect(() => {
     let active = true;
-    const autoCheckState = async () => {
-      if (typeof window === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-      
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const cam = await navigator.permissions.query({ name: "camera" as any });
-          const mic = await navigator.permissions.query({ name: "microphone" as any });
-          
-          if (cam.state === "granted" && mic.state === "granted") {
-            console.log("Browser settings indicate permissions are already granted. Auto-initiating stream request...");
-            if (active) {
-              void requestPermissions();
-            }
-          }
-        } catch (e) {
-          console.log("Error querying auto-permissions check:", e);
-        }
+
+    const checkPermissions = async () => {
+      if (
+        !navigator.permissions ||
+        !navigator.permissions.query
+      ) {
+        return;
+      }
+
+      try {
+        const cam = await navigator.permissions.query({
+          name: "camera" as PermissionName,
+        });
+
+        const mic = await navigator.permissions.query({
+          name: "microphone" as PermissionName,
+        });
+
+        if (!active) return;
+
+        setCameraState(
+          cam.state === "granted"
+            ? "granted"
+            : cam.state === "denied"
+              ? "blocked"
+              : "idle"
+        );
+
+        setMicState(
+          mic.state === "granted"
+            ? "granted"
+            : mic.state === "denied"
+              ? "blocked"
+              : "idle"
+        );
+      } catch (err) {
+        console.error(err);
       }
     };
-    void autoCheckState();
+
+    checkPermissions();
+
     return () => {
       active = false;
     };
-  }, [requestPermissions]);
+  }, []);
+
+  const getStatusBadge = (state: typeof cameraState) => {
+    switch (state) {
+      case "granted":
+        return {
+          text: "Active",
+          styles: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+          iconStyles: "bg-emerald-500/10 text-emerald-400",
+        };
+      case "blocked":
+        return {
+          text: "Blocked",
+          styles: "border-red-500/20 bg-red-500/10 text-red-400",
+          iconStyles: "bg-red-500/10 text-red-400",
+        };
+      case "notFound":
+        return {
+          text: "Not Found",
+          styles: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+          iconStyles: "bg-amber-500/10 text-amber-400",
+        };
+      case "inUse":
+        return {
+          text: "Busy / In Use",
+          styles: "border-purple-500/20 bg-purple-500/10 text-purple-400",
+          iconStyles: "bg-purple-500/10 text-purple-400",
+        };
+      case "denied":
+        return {
+          text: "Denied",
+          styles: "border-red-500/20 bg-red-500/10 text-red-400",
+          iconStyles: "bg-red-500/10 text-red-400",
+        };
+      default:
+        return {
+          text: "Idle",
+          styles: "border-white/5 bg-transparent text-foreground/40",
+          iconStyles: "bg-white/5 text-foreground/60",
+        };
+    }
+  };
+
+  const camBadge = getStatusBadge(cameraState);
+  const micBadge = getStatusBadge(micState);
 
   return (
     <div className="w-full max-w-lg mx-auto p-6 md:p-8 rounded-3xl border border-white/10 bg-zinc-950/20 backdrop-blur-xl animate-scale-in">
@@ -238,7 +320,7 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         {/* Camera Status Card */}
         <div className="flex items-center justify-between p-4 rounded-2xl border border-white/5 bg-white/5">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${cameraState === "granted" ? "bg-emerald-500/10 text-emerald-400" : cameraState === "blocked" || cameraState === "denied" ? "bg-red-500/10 text-red-400" : "bg-white/5 text-foreground/60"}`}>
+            <div className={`p-2.5 rounded-xl ${camBadge.iconStyles}`}>
               <Camera className="h-5 w-5" />
             </div>
             <div>
@@ -246,15 +328,15 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
               <div className="text-[10px] text-foreground/50">Required for presence and identity audits</div>
             </div>
           </div>
-          <span className={`text-xs font-bold px-3 py-1.5 rounded-xl border ${cameraState === "granted" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : cameraState === "blocked" || cameraState === "denied" ? "border-red-500/20 bg-red-500/10 text-red-400" : "border-white/5 bg-transparent text-foreground/40"}`}>
-            {cameraState === "granted" ? "Active" : cameraState === "blocked" ? "Blocked" : cameraState === "denied" ? "Denied" : "Idle"}
+          <span className={`text-xs font-bold px-3 py-1.5 rounded-xl border ${camBadge.styles}`}>
+            {camBadge.text}
           </span>
         </div>
 
         {/* Mic Status Card */}
         <div className="flex items-center justify-between p-4 rounded-2xl border border-white/5 bg-white/5">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${micState === "granted" ? "bg-emerald-500/10 text-emerald-400" : micState === "blocked" || micState === "denied" ? "bg-red-500/10 text-red-400" : "bg-white/5 text-foreground/60"}`}>
+            <div className={`p-2.5 rounded-xl ${micBadge.iconStyles}`}>
               <Mic className="h-5 w-5" />
             </div>
             <div>
@@ -262,8 +344,8 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
               <div className="text-[10px] text-foreground/50">Required for vocal responses and STT logic</div>
             </div>
           </div>
-          <span className={`text-xs font-bold px-3 py-1.5 rounded-xl border ${micState === "granted" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : micState === "blocked" || micState === "denied" ? "border-red-500/20 bg-red-500/10 text-red-400" : "border-white/5 bg-transparent text-foreground/40"}`}>
-            {micState === "granted" ? "Active" : micState === "blocked" ? "Blocked" : micState === "denied" ? "Denied" : "Idle"}
+          <span className={`text-xs font-bold px-3 py-1.5 rounded-xl border ${micBadge.styles}`}>
+            {micBadge.text}
           </span>
         </div>
       </div>
@@ -299,8 +381,8 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
 
       {showRecovery && (
         <PermissionRecoveryDialog
-          cameraBlocked={cameraState === "blocked" || cameraState === "denied"}
-          micBlocked={micState === "blocked" || micState === "denied"}
+          cameraState={cameraState}
+          micState={micState}
           onRetry={requestPermissions}
           onClose={() => setShowRecovery(false)}
         />

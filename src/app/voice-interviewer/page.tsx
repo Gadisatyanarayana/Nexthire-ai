@@ -28,6 +28,9 @@ import { InterviewTimer } from "@/components/voice-interview/InterviewTimer";
 import { InterviewControls } from "@/components/voice-interview/InterviewControls";
 import { InterviewProgress } from "@/components/voice-interview/InterviewProgress";
 import { ExitConfirmation } from "@/components/voice-interview/ExitConfirmation";
+import { InterviewHistory } from "@/components/voice-interview/InterviewHistory";
+import { WeeklyAnalytics } from "@/components/voice-interview/WeeklyAnalytics";
+import { GamificationPanel } from "@/components/voice-interview/GamificationPanel";
 import { CompanyMode, RecruiterPersona } from "@/components/voice-interview/types";
 import { COMPANY_MODES, PERSONAS } from "@/components/voice-interview/constants";
 
@@ -135,6 +138,23 @@ function VoiceInterviewerWorkspace() {
   // Scoring / Final Analysis Report
   const [analysis, setAnalysis] = useState<any>(null);
   const [interviewHistoryList, setInterviewHistoryList] = useState<any[]>([]);
+
+  // Phase 6 States
+  const [historyTab, setHistoryTab] = useState<"history" | "analytics" | "gamification">("history");
+  const [analyticsData, setAnalyticsData] = useState<any>({
+    snapshotData: [],
+    averageScore: 0,
+    readinessScore: 0,
+    strengths: [],
+    weaknesses: [],
+    categoryAverages: {},
+  });
+  const [gamificationData, setGamificationData] = useState<any>({
+    xp: 0,
+    level: 1,
+    streak: 0,
+    badges: [],
+  });
 
   const messagesRef = useRef<ChatMessage[]>(messages);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -762,6 +782,7 @@ function VoiceInterviewerWorkspace() {
           dsaTopic,
           companyMode,
           persona,
+          interviewType,
           selfIntroduction: resumeUploaded ? `My name is candidate. I know ${skillsDetected.join(", ")}.` : "Hi, I am ready for the interview."
         })
       });
@@ -948,19 +969,61 @@ function VoiceInterviewerWorkspace() {
     setStep("history");
     setCheckingHardware(true);
     try {
-      const res = await fetch("/api/dashboard/stats");
-      const data = await res.json();
-      // Filter out only voice interview submissions
-      const filtered = (data.submissions || []).filter((sub: any) => sub.language === "voice-interview");
-      setInterviewHistoryList(filtered);
-    } catch {
-      // Mock history logs fallback
-      setInterviewHistoryList([
-        { id: "1", question_title: "Arrays Mock Interview", result: "Completed", difficulty: "Medium", created_at: new Date().toISOString() }
-      ]);
+      const histRes = await fetch("/api/voice-interview/history");
+      if (histRes.ok) {
+        const histData = await histRes.json();
+        setInterviewHistoryList(histData.history || []);
+      }
+
+      const analyticRes = await fetch("/api/voice-interview/analytics");
+      if (analyticRes.ok) {
+        const data = await analyticRes.json();
+        setGamificationData({
+          xp: data.xp || 0,
+          level: data.level || 1,
+          streak: data.streak || 0,
+          badges: data.badges || [],
+        });
+        setAnalyticsData(
+          data.analytics || {
+            snapshotData: [],
+            averageScore: 0,
+            readinessScore: 0,
+            strengths: [],
+            weaknesses: [],
+            categoryAverages: {},
+          }
+        );
+      }
+    } catch (err) {
+      console.error("Failed to load history metrics:", err);
     } finally {
       setCheckingHardware(false);
     }
+  };
+
+  const handleDeleteHistory = async (id: string) => {
+    try {
+      const res = await fetch(`/api/voice-interview/history?id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        void fetchHistory();
+      }
+    } catch (err) {
+      console.error("Failed to delete history record:", err);
+    }
+  };
+
+  const handleRetakeInterview = (item: any) => {
+    setInterviewType((item.interview_type as any) || "Technical");
+    setDifficulty((item.difficulty as any) || "medium");
+    setCompanyMode((item.company_mode as any) || "general");
+    setPersona((item.persona as any) || "professional");
+    
+    setMessages([]);
+    setCheatingWarnings(0);
+    setStep("countdown");
   };
 
   // Cleanup on unmount
@@ -1389,48 +1452,73 @@ function VoiceInterviewerWorkspace() {
         {/* STEP 4: INTERVIEW HISTORY LOGS */}
         {step === "history" && (
           <div className={`rounded-3xl border p-8 space-y-6 ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
-            <div>
-              <h2 className="text-xl font-bold mb-1.5">My Placement History</h2>
-              <p className="text-xs text-foreground/60">Review past vocal scorecard performance logs and feedback trends.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
+              <div>
+                <h2 className="text-xl font-bold mb-1.5">Placement Performance Dashboard</h2>
+                <p className="text-xs text-foreground/60">Review past vocal scorecard performance logs, gamification badges, and feedback trends.</p>
+              </div>
+
+              {/* Navigation Tabs */}
+              <div className="flex gap-4 text-xs font-bold bg-white/5 border border-white/5 p-1 rounded-2xl">
+                <button
+                  onClick={() => setHistoryTab("history")}
+                  className={`px-4 py-2 rounded-xl transition-all ${historyTab === "history" ? "bg-cyan-500 text-black" : "text-foreground/60 hover:text-white"}`}
+                >
+                  History
+                </button>
+                <button
+                  onClick={() => setHistoryTab("analytics")}
+                  className={`px-4 py-2 rounded-xl transition-all ${historyTab === "analytics" ? "bg-cyan-500 text-black" : "text-foreground/60 hover:text-white"}`}
+                >
+                  Analytics
+                </button>
+                <button
+                  onClick={() => setHistoryTab("gamification")}
+                  className={`px-4 py-2 rounded-xl transition-all ${historyTab === "gamification" ? "bg-cyan-500 text-black" : "text-foreground/60 hover:text-white"}`}
+                >
+                  Achievements
+                </button>
+              </div>
             </div>
 
             {checkingHardware ? (
               <div className="text-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-cyan-400 mx-auto mb-2" />
-                <span className="text-xs text-foreground/50">Fetching historical dashboard logs...</span>
-              </div>
-            ) : interviewHistoryList.length === 0 ? (
-              <div className="text-center py-12 text-foreground/40 text-xs">
-                No previous voice interview logs stored yet. Complete your first evaluation round to see progress logs here!
+                <span className="text-xs text-foreground/50">Fetching dashboard metrics...</span>
               </div>
             ) : (
-              <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="text-foreground/50 border-b border-primary">
-                      <th className="py-3 font-semibold">Evaluation Topic</th>
-                      <th className="py-3 font-semibold">Status</th>
-                      <th className="py-3 font-semibold">Difficulty Target</th>
-                      <th className="py-3 font-semibold">Date Completed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {interviewHistoryList.map((hist: any, idx: number) => (
-                      <tr key={idx} className="border-b border-primary/50 transition hover:bg-foreground/5">
-                        <td className="py-3.5 font-bold text-cyan-400">{hist.question_title || "Placement Mock Round"}</td>
-                        <td className="py-3.5 font-semibold text-emerald-400">{hist.result || "Completed"}</td>
-                        <td className="py-3.5 capitalize">{hist.difficulty || "medium"}</td>
-                        <td className="py-3.5 text-foreground/60">{new Date(hist.created_at).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {historyTab === "history" && (
+                  <InterviewHistory
+                    history={interviewHistoryList}
+                    onDelete={handleDeleteHistory}
+                    onRetake={handleRetakeInterview}
+                  />
+                )}
+                {historyTab === "analytics" && (
+                  <WeeklyAnalytics
+                    snapshotData={analyticsData.snapshotData}
+                    averageScore={analyticsData.averageScore}
+                    readinessScore={analyticsData.readinessScore}
+                    strengths={analyticsData.strengths}
+                    weaknesses={analyticsData.weaknesses}
+                    categoryAverages={analyticsData.categoryAverages}
+                  />
+                )}
+                {historyTab === "gamification" && (
+                  <GamificationPanel
+                    xp={gamificationData.xp}
+                    level={gamificationData.level}
+                    streak={gamificationData.streak}
+                    badges={gamificationData.badges}
+                  />
+                )}
+              </>
             )}
 
             <button
               onClick={() => setStep("permissions")}
-              className="bg-cyan-500 hover:bg-cyan-400 text-black px-6 py-2.5 rounded-2xl text-xs font-bold transition mx-auto block"
+              className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-6 py-2.5 rounded-2xl text-xs font-bold transition mx-auto block mt-6"
             >
               Return to Workspace Setup
             </button>

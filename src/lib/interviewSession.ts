@@ -24,6 +24,7 @@ export type InterviewSessionConfig = {
   persona?: string;
   jobDescription?: string;
   askedQuestionIds?: string[];
+  interviewType?: string;
 };
 
 export type InterviewTimeline = {

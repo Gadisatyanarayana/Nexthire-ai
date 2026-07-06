@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
           <h2 className="text-base font-bold text-red-200 mb-2">Something went wrong</h2>
           <p className="text-xs text-foreground/60 leading-relaxed mb-6">
-            An unexpected runtime error occurred within the placement workspace. We've logged the error details.
+            An unexpected runtime error occurred within the placement workspace. We&apos;ve logged the error details.
           </p>
           {this.state.error && (
             <pre className="w-full text-left p-3 rounded-xl bg-black/40 border border-white/5 font-mono text-[10px] text-red-300/80 overflow-auto max-h-32 mb-6 leading-normal select-text">
