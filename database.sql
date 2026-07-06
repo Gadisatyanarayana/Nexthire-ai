@@ -536,7 +536,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_uploaded_at timestamp;
 CREATE TABLE IF NOT EXISTS voice_interview_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  session_id text REFERENCES voice_interview_sessions(session_id) ON DELETE SET NULL,
+  session_id text UNIQUE REFERENCES voice_interview_sessions(session_id) ON DELETE SET NULL,
   interview_type text NOT NULL DEFAULT 'Technical',
   company_mode text,
   persona text,

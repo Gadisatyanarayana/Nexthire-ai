@@ -665,24 +665,50 @@ async function callGroqAPI(messages: Array<{ role: "system" | "user" | "assistan
     const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     try {
-      const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Authorization": `Bearer ${GROQ_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages,
-          temperature: 0.7,
-          max_tokens: 1024,
-          top_p: 1,
-        }),
-      });
+      let response: Response | null = null;
+      let retries = 0;
+      const maxRetries = 2;
 
-      if (!response.ok) {
-        lastError = `Model ${model} failed`;
+      while (retries <= maxRetries) {
+        try {
+          response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Authorization": `Bearer ${GROQ_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model,
+              messages,
+              temperature: 0.7,
+              max_tokens: 1024,
+              top_p: 1,
+            }),
+          });
+
+          if (response.ok) break;
+
+          if (response.status === 429 || response.status === 503 || response.status === 500) {
+            retries++;
+            if (retries <= maxRetries) {
+              await new Promise(r => setTimeout(r, 1000 * Math.pow(2, retries)));
+              continue;
+            }
+          }
+          break;
+        } catch (e) {
+          retries++;
+          if (retries <= maxRetries) {
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, retries)));
+            continue;
+          }
+          break;
+        }
+      }
+
+      if (!response || !response.ok) {
+        lastError = `Model ${model} failed${response ? ` with status ${response.status}` : ""}`;
         continue;
       }
 

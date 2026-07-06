@@ -3,14 +3,21 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import MonacoEditor from "@monaco-editor/react";
+import dynamic from "next/dynamic";
 import {
   Loader2, Mic, MicOff, ShieldAlert,
   Camera, Wifi, Battery, FileText, CheckCircle2, AlertCircle, Play,
-  RefreshCw, Check, Clock, Activity, Terminal, Download, User, Volume2
+  RefreshCw, Check, Clock, Activity, Terminal, Download, User, Volume2,
+  Settings // We will use this later
 } from "lucide-react";
-import { jsPDF } from "jspdf";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
+
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false, loading: () => <div className="h-full w-full bg-zinc-950 flex items-center justify-center text-foreground/40 text-xs">Loading Editor...</div> });
+const ResponsiveContainer = dynamic(() => import("recharts").then(mod => mod.ResponsiveContainer), { ssr: false });
+const RadarChart = dynamic(() => import("recharts").then(mod => mod.RadarChart), { ssr: false });
+const PolarGrid = dynamic(() => import("recharts").then(mod => mod.PolarGrid), { ssr: false });
+const PolarAngleAxis = dynamic(() => import("recharts").then(mod => mod.PolarAngleAxis), { ssr: false });
+const PolarRadiusAxis = dynamic(() => import("recharts").then(mod => mod.PolarRadiusAxis), { ssr: false });
+const Radar = dynamic(() => import("recharts").then(mod => mod.Radar), { ssr: false });
 import { supabase } from "@/lib/supabase";
 import { ToastProvider } from "@/components/voice-interview/ToastProvider";
 import { ErrorBoundary } from "@/components/voice-interview/ErrorBoundary";
@@ -31,6 +38,7 @@ import { ExitConfirmation } from "@/components/voice-interview/ExitConfirmation"
 import { InterviewHistory } from "@/components/voice-interview/InterviewHistory";
 import { WeeklyAnalytics } from "@/components/voice-interview/WeeklyAnalytics";
 import { GamificationPanel } from "@/components/voice-interview/GamificationPanel";
+import { SettingsPanel } from "@/components/voice-interview/SettingsPanel";
 import { CompanyMode, RecruiterPersona } from "@/components/voice-interview/types";
 import { COMPANY_MODES, PERSONAS } from "@/components/voice-interview/constants";
 
@@ -98,6 +106,7 @@ function VoiceInterviewerWorkspace() {
   const [companyMode, setCompanyMode] = useState<CompanyMode>("general");
   const [persona, setPersona] = useState<RecruiterPersona>("professional");
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   
@@ -149,6 +158,7 @@ function VoiceInterviewerWorkspace() {
     weaknesses: [],
     categoryAverages: {},
   });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [gamificationData, setGamificationData] = useState<any>({
     xp: 0,
     level: 1,
@@ -242,14 +252,27 @@ function VoiceInterviewerWorkspace() {
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices();
       if (!voices.length) return;
-      const english = voices.filter((voice) => /^en(-|_)?/i.test(voice.lang));
+      // User preferences from localStorage
+      const savedLang = window.localStorage.getItem("nh-language")?.replace(/"/g, "") || "en-US";
+      const savedVoiceURI = window.localStorage.getItem("nh-voice")?.replace(/"/g, "");
       
+      const targetLangVoices = voices.filter(v => v.lang.startsWith(savedLang));
+      const fallbackEnglish = voices.filter(v => /^en(-|_)?/i.test(v.lang));
+      
+      const english = targetLangVoices.length > 0 ? targetLangVoices : fallbackEnglish;
+
       // Select voice by persona matching key traits
       let selected: SpeechSynthesisVoice | null = null;
-      if (persona === "friendly") {
-        selected = english.find((voice) => /zira|samantha/i.test(voice.name)) || null;
-      } else if (persona === "tough") {
-        selected = english.find((voice) => /david|mark/i.test(voice.name)) || null;
+      if (savedVoiceURI) {
+        selected = voices.find(v => v.voiceURI === savedVoiceURI) || null;
+      }
+      
+      if (!selected) {
+        if (persona === "friendly") {
+          selected = english.find((voice) => /zira|samantha|female|girl/i.test(voice.name)) || null;
+        } else if (persona === "tough") {
+          selected = english.find((voice) => /david|mark|male|guy/i.test(voice.name)) || null;
+        }
       }
       
       preferredVoiceRef.current =
@@ -631,8 +654,9 @@ function VoiceInterviewerWorkspace() {
     }
   };
 
-  const downloadPdfReport = (reportAnalysis: any) => {
+  const downloadPdfReport = async (reportAnalysis: any) => {
     if (!reportAnalysis) return;
+    const { jsPDF } = await import("jspdf");
     const doc = new jsPDF();
 
     doc.setFillColor(15, 23, 42);
@@ -920,6 +944,7 @@ function VoiceInterviewerWorkspace() {
 
   // Finalize interview normal complete
   const finalizeScorecard = async () => {
+    setIsSaving(true);
     stopListening();
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     setIsThinking(true);
@@ -959,6 +984,7 @@ function VoiceInterviewerWorkspace() {
         aiSuggestions: ["Solve 2-3 medium coding problems weekly on arrays and trees."]
       });
     } finally {
+      setIsSaving(false);
       setIsThinking(false);
       setStep("scorecard");
     }
@@ -1090,6 +1116,7 @@ function VoiceInterviewerWorkspace() {
             </Link>
           </div>
         </header>
+        <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
         {/* STEP 1: PERMISSIONS CONFIGURATION */}
         {step === "permissions" && (
@@ -1325,8 +1352,8 @@ function VoiceInterviewerWorkspace() {
                   <div className="space-y-2 font-medium text-xs leading-relaxed text-left">
                     {/* Recruiter caption */}
                     <div className="flex gap-2">
-                      <span className="text-cyan-400 font-extrabold select-none">AI:</span>
-                      <span className={isSpeaking ? "text-foreground" : "text-foreground/60"}>
+                      <span className="text-cyan-400 font-extrabold select-none" aria-hidden="true">AI:</span>
+                      <span className={isSpeaking ? "text-foreground" : "text-foreground/60"} aria-live="polite" aria-atomic="true">
                         {(() => {
                           const lastRec = [...messages].reverse().find(m => m.role === "assistant");
                           return lastRec?.content || "Recruiter initial introduction.";
@@ -1336,8 +1363,8 @@ function VoiceInterviewerWorkspace() {
 
                     {/* Candidate caption */}
                     <div className="flex gap-2 border-t border-foreground/5 pt-2">
-                      <span className="text-emerald-400 font-extrabold select-none">You:</span>
-                      <span className={isListening ? "text-foreground font-semibold" : "text-foreground/60"}>
+                      <span className="text-emerald-400 font-extrabold select-none" aria-hidden="true">You:</span>
+                      <span className={isListening ? "text-foreground font-semibold" : "text-foreground/60"} aria-live="polite" aria-atomic="true">
                         {voiceDraft ? `"${voiceDraft}"` : (() => {
                           const lastUsr = [...messages].reverse().find(m => m.role === "user");
                           return lastUsr?.content || "Listening for speech...";
@@ -1373,10 +1400,11 @@ function VoiceInterviewerWorkspace() {
               {/* Workspace Action Controls */}
               <InterviewControls
                 isMuted={isMuted}
-                onMuteToggle={() => setIsMuted(prev => !prev)}
+                onMuteToggle={() => setIsMuted((prev) => !prev)}
                 isPaused={isPaused}
-                onPauseToggle={() => setIsPaused(prev => !prev)}
+                onPauseToggle={() => setIsPaused((prev) => !prev)}
                 onExit={() => setShowExitConfirm(true)}
+                onSettingsToggle={() => setIsSettingsOpen(true)}
               />
 
             </div>
@@ -1530,8 +1558,8 @@ function VoiceInterviewerWorkspace() {
             questionsAnswered={messages.filter((m) => m.role === "user").length}
             timeSpentStr={formatTimer(duration * 60 - timeRemaining)}
             onCancel={() => setShowExitConfirm(false)}
+            isSaving={isSaving}
             onConfirm={() => {
-              setShowExitConfirm(false);
               void finalizeScorecard();
             }}
           />

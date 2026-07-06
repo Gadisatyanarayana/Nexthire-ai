@@ -8,9 +8,10 @@ type ExitConfirmationProps = {
   timeSpentStr: string;
   onCancel: () => void;
   onConfirm: () => void;
+  isSaving?: boolean;
 };
 
-export function ExitConfirmation({ questionsAnswered, timeSpentStr, onCancel, onConfirm }: ExitConfirmationProps) {
+export function ExitConfirmation({ questionsAnswered, timeSpentStr, onCancel, onConfirm, isSaving }: ExitConfirmationProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
       <div className="w-full max-w-sm rounded-3xl border border-red-500/20 bg-zinc-950 p-6 md:p-8 shadow-2xl text-center relative animate-scale-in">
@@ -37,10 +38,13 @@ export function ExitConfirmation({ questionsAnswered, timeSpentStr, onCancel, on
         <div className="flex flex-col gap-2.5">
           <button
             onClick={onConfirm}
-            className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-red-500 hover:bg-red-400 text-black py-3.5 text-xs font-extrabold transition-all"
+            disabled={isSaving}
+            className={`w-full inline-flex items-center justify-center gap-1.5 rounded-2xl py-3.5 text-xs font-extrabold transition-all ${
+              isSaving ? "bg-red-500/50 text-black/50 cursor-not-allowed" : "bg-red-500 hover:bg-red-400 text-black"
+            }`}
           >
             <LogOut className="h-4 w-4" />
-            <span>Abandon and End mock</span>
+            <span>{isSaving ? "Saving..." : "Abandon and End mock"}</span>
           </button>
           
           <button
