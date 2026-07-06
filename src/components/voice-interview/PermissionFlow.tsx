@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Camera, Mic, RefreshCw, ShieldCheck } from "lucide-react";
 import { useToast } from "./hooks";
 import { PermissionRecoveryDialog } from "./PermissionRecoveryDialog";
@@ -20,27 +20,33 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
   const requestPermissions = useCallback(async () => {
     setRequesting(true);
     setShowRecovery(false);
-    console.log("----------------------------------------");
-    console.log("getUserMedia started");
 
-    // 1. Log Permissions API status
+    console.log("----------------------------------------");
+    
+    // 1. Log current browser permission state if available
+    let currentCameraPermission = "unknown";
+    let currentMicPermission = "unknown";
     if (navigator.permissions && navigator.permissions.query) {
       try {
         const cam = await navigator.permissions.query({ name: "camera" as any });
-        console.log(`Permission API status: camera = ${cam.state}`);
+        currentCameraPermission = cam.state;
+        console.log(`Current browser permission state: camera = ${cam.state}`);
       } catch (e) {
-        console.log("Permission API status: camera = unsupported/error querying");
+        console.log("Current browser permission state: camera = not queryable");
       }
 
       try {
         const mic = await navigator.permissions.query({ name: "microphone" as any });
-        console.log(`Permission API status: microphone = ${mic.state}`);
+        currentMicPermission = mic.state;
+        console.log(`Current browser permission state: microphone = ${mic.state}`);
       } catch (e) {
-        console.log("Permission API status: microphone = unsupported/error querying");
+        console.log("Current browser permission state: microphone = not queryable");
       }
     } else {
-      console.log("Permission API status: Permissions API not supported by browser");
+      console.log("Current browser permission state: Permissions API not supported");
     }
+
+    console.log("getUserMedia() called: requesting combined video and audio streams");
 
     let cameraStream: MediaStream | null = null;
     let micStream: MediaStream | null = null;
@@ -50,22 +56,21 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       addToast("Requesting camera and microphone access...", "info", 2000);
       const combinedStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       
-      console.log("getUserMedia success");
-      console.log("Stream received:", combinedStream.id);
+      console.log("getUserMedia() succeeded: combined stream received");
+      console.log("Stream received ID:", combinedStream.id);
       
       const videoTracks = combinedStream.getVideoTracks();
       const audioTracks = combinedStream.getAudioTracks();
-      console.log(`Video tracks: ${videoTracks.length} tracks found`);
-      videoTracks.forEach(t => console.log(`- ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
-      console.log(`Audio tracks: ${audioTracks.length} tracks found`);
-      audioTracks.forEach(t => console.log(`- ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
+      console.log(`Video tracks count: ${videoTracks.length}`);
+      videoTracks.forEach(t => console.log(`- Track: ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
+      console.log(`Audio tracks count: ${audioTracks.length}`);
+      audioTracks.forEach(t => console.log(`- Track: ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
       
       setCameraState("granted");
       setMicState("granted");
       addToast("Camera and microphone access granted", "success");
       addToast("All permissions granted", "success");
       
-      // Split stream tracks into separate MediaStreams
       cameraStream = new MediaStream(videoTracks);
       micStream = new MediaStream(audioTracks);
 
@@ -73,40 +78,60 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       onAllPermissionsGranted({ video: cameraStream, audio: micStream });
       return;
     } catch (combinedErr: any) {
-      console.warn("Combined permission request failed, fallback to separate isolated checks:", combinedErr);
-      console.log("Recovery dialog reason: check failed, analyzing hardware components separately...");
+      const errName = combinedErr.name || "UnknownError";
+      const errMsg = combinedErr.message || "";
+      console.log("getUserMedia() failed: combined request threw an error");
+      console.log(`Exact error name: ${errName}`);
+      console.log(`Exact error message: ${errMsg}`);
+
+      // Handle each error separately
+      if (errName === "NotAllowedError" || errName === "PermissionDeniedError") {
+        console.log("Recovery dialog reason: Permission denied");
+      } else if (errName === "NotFoundError" || errName === "DevicesNotFoundError") {
+        console.log("Recovery dialog reason: Device unavailable");
+      } else if (errName === "NotReadableError" || errName === "TrackStartError") {
+        console.log("Recovery dialog reason: NotReadableError");
+      } else if (errName === "AbortError") {
+        console.log("Recovery dialog reason: AbortError");
+      } else if (errName === "SecurityError") {
+        console.log("Recovery dialog reason: SecurityError");
+      }
+
+      console.warn("Combined request failed. Initiating fallback separate checks to isolate status...");
 
       let camPassed = false;
       let micPassed = false;
 
       // Fallback: Check Camera in isolation
       try {
-        console.log("Fallback: Requesting camera only...");
+        console.log("getUserMedia() called: fallback requesting camera video track in isolation");
         const camTest = await navigator.mediaDevices.getUserMedia({ video: true });
-        console.log("Camera test success");
+        console.log("getUserMedia() succeeded: camera video track isolation test passed");
         setCameraState("granted");
         camPassed = true;
         
-        // Stop the tracks immediately to release hardware locks
+        // Release hardware resources immediately
         camTest.getTracks().forEach((t) => {
           t.stop();
           console.log(`Stopped camera track: ${t.label}`);
         });
       } catch (err: any) {
-        console.error("Camera individual test failed:", err);
-        const name = err.name || "";
-        console.log(`Recovery dialog reason: camera error name = ${name}`);
+        const name = err.name || "UnknownError";
+        const msg = err.message || "";
+        console.log(`getUserMedia() failed: camera individual test failed. Error: ${name}. Message: ${msg}`);
         
-        if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          console.log("Recovery dialog reason: Permission denied");
+        } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
           console.log("Recovery dialog reason: Device unavailable");
-        } else if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-          console.log("Recovery dialog reason: Permission denied / Permission blocked");
         } else if (name === "NotReadableError" || name === "TrackStartError") {
-          console.log("Recovery dialog reason: NotReadableError (device locked by another app)");
+          console.log("Recovery dialog reason: NotReadableError");
         } else if (name === "AbortError") {
           console.log("Recovery dialog reason: AbortError");
+        } else if (name === "SecurityError") {
+          console.log("Recovery dialog reason: SecurityError");
         }
-        
+
         const isBlocked = name === "NotAllowedError" || name === "PermissionDeniedError";
         setCameraState(isBlocked ? "blocked" : "denied");
         addToast(isBlocked ? "Camera blocked in settings" : "Camera permission denied", "error");
@@ -114,32 +139,34 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
 
       // Fallback: Check Microphone in isolation
       try {
-        console.log("Fallback: Requesting microphone only...");
+        console.log("getUserMedia() called: fallback requesting microphone audio track in isolation");
         const micTest = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log("Microphone test success");
+        console.log("getUserMedia() succeeded: microphone audio track isolation test passed");
         setMicState("granted");
         micPassed = true;
         
-        // Stop the tracks immediately to release hardware locks
+        // Release hardware resources immediately
         micTest.getTracks().forEach((t) => {
           t.stop();
           console.log(`Stopped microphone track: ${t.label}`);
         });
       } catch (err: any) {
-        console.error("Microphone individual test failed:", err);
-        const name = err.name || "";
-        console.log(`Recovery dialog reason: microphone error name = ${name}`);
+        const name = err.name || "UnknownError";
+        const msg = err.message || "";
+        console.log(`getUserMedia() failed: microphone individual test failed. Error: ${name}. Message: ${msg}`);
         
-        if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          console.log("Recovery dialog reason: Permission denied");
+        } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
           console.log("Recovery dialog reason: Device unavailable");
-        } else if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-          console.log("Recovery dialog reason: Permission denied / Permission blocked");
         } else if (name === "NotReadableError" || name === "TrackStartError") {
-          console.log("Recovery dialog reason: NotReadableError (device locked by another app)");
+          console.log("Recovery dialog reason: NotReadableError");
         } else if (name === "AbortError") {
           console.log("Recovery dialog reason: AbortError");
+        } else if (name === "SecurityError") {
+          console.log("Recovery dialog reason: SecurityError");
         }
-        
+
         const isBlocked = name === "NotAllowedError" || name === "PermissionDeniedError";
         setMicState(isBlocked ? "blocked" : "denied");
         addToast(isBlocked ? "Microphone blocked in settings" : "Microphone permission denied", "error");
@@ -148,7 +175,7 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       setRequesting(false);
 
       if (camPassed && micPassed) {
-        console.log("Both devices passed verification in isolation. Re-triggering combined stream...");
+        console.log("Both checks passed in isolation fallback. Re-calling getUserMedia() for final combined streams...");
         try {
           const finalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
           const videoTracks = finalStream.getVideoTracks();
@@ -160,15 +187,43 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
           addToast("All permissions granted", "success");
           onAllPermissionsGranted({ video: cameraStream, audio: micStream });
         } catch (e: any) {
-          console.error("Failed final combined re-acquisition:", e);
+          console.error("Failed final combined re-acquisition stream callback:", e);
           setShowRecovery(true);
         }
       } else {
-        console.log("One or both devices failed permissions check. Opening recovery dialog.");
+        console.log("One or both devices failed checks. Recovery dialog shown.");
         setShowRecovery(true);
       }
     }
   }, [addToast, onAllPermissionsGranted]);
+
+  // Auto check permissions on mount (bypasses click if already granted in browser settings)
+  useEffect(() => {
+    let active = true;
+    const autoCheckState = async () => {
+      if (typeof window === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+      
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const cam = await navigator.permissions.query({ name: "camera" as any });
+          const mic = await navigator.permissions.query({ name: "microphone" as any });
+          
+          if (cam.state === "granted" && mic.state === "granted") {
+            console.log("Browser settings indicate permissions are already granted. Auto-initiating stream request...");
+            if (active) {
+              void requestPermissions();
+            }
+          }
+        } catch (e) {
+          console.log("Error querying auto-permissions check:", e);
+        }
+      }
+    };
+    void autoCheckState();
+    return () => {
+      active = false;
+    };
+  }, [requestPermissions]);
 
   return (
     <div className="w-full max-w-lg mx-auto p-6 md:p-8 rounded-3xl border border-white/10 bg-zinc-950/20 backdrop-blur-xl animate-scale-in">
