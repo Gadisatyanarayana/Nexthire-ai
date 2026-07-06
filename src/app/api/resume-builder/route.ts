@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-
-export const runtime = "nodejs";
 
 async function logBuilderActivity(
   sessionEmail: string | null,
@@ -69,6 +66,19 @@ function extractJsonBlock(text: string): Record<string, unknown> | null {
   }
 }
 
+async function parsePdfText(buffer: Buffer): Promise<string> {
+  try {
+    const pdfParseLib = (await import("pdf-parse")) as unknown;
+    const parser = ((pdfParseLib as { default?: unknown }).default ?? pdfParseLib) as (bytes: Buffer) => Promise<{ text?: string }>;
+    if (typeof parser !== "function") return "";
+    const parsed = await parser(buffer);
+    return cleanText(parsed?.text ?? "");
+  } catch (error) {
+    console.error("PDF parse failed:", error);
+    return "";
+  }
+}
+
 async function extractResumeText(file: File | null): Promise<string> {
   if (!file) return "";
 
@@ -78,10 +88,7 @@ async function extractResumeText(file: File | null): Promise<string> {
     const lowerName = file.name.toLowerCase();
 
     if (lowerName.endsWith(".pdf")) {
-      const parser = new PDFParse({ data: buffer });
-      const parsed = await parser.getText();
-      await parser.destroy();
-      return cleanText(parsed.text ?? "");
+      return await parsePdfText(buffer);
     }
 
     if (lowerName.endsWith(".docx")) {

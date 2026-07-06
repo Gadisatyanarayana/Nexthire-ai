@@ -1,0 +1,54 @@
+﻿
+> my-app@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+node.exe : Turbopack build encountered 1 warnings:
+At line:1 char:1
++ & "C:\Program Files\nodejs\satya.js/node.exe" "C:\Program Files\nodej ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Turbopack build encountered 1 war 
+   nings::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+./next.config.ts
+Encountered unexpected file in NFT list
+A file was traced that indicates that the whole project was traced 
+unintentionally. Somewhere in the import trace below, there are:
+- filesystem operations (like path.join, path.resolve or fs.readFile), or
+- very dynamic requires (like require('./' + foo)).
+To resolve this, you can
+- remove them if possible, or
+- only use them in development, or
+- make sure they are statically scoped to some subfolder: 
+path.join(process.cwd(), 'data', bar), or
+- add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+
+Import trace:
+  App Route:
+    ./next.config.ts
+    ./src/judge/dockerExecutor.ts
+    ./src/judge/evaluator.ts
+    ./src/app/api/run/route.ts
+
+
+Γ£ô Compiled successfully in 59s
+  Running TypeScript ...
+Failed to type check.
+
+./src/app/api/questions/route.ts:410:28
+Type error: Property 'questions' does not exist on type 'never'.
+
+  [90m408 |[0m       };
+  [90m409 |[0m     }
+[31m[1m>[0m [90m410 |[0m     [36mif[0m (redisCachedBundle?.questions && 
+redisCachedBundle.questions.length > [35m0[0m) {
+  [90m    |[0m                            [31m[1m^[0m
+  [90m411 |[0m       [36mreturn[0m {
+  [90m412 |[0m         ...redisCachedBundle,
+  [90m413 |[0m         warning: [32m"Using cached question bank due to 
+temporary DB issue."[0m,
+Next.js build worker exited with code: 1 and signal: null

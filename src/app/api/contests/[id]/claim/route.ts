@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { jsonBadRequest, jsonError, jsonForbidden, jsonNotFound, jsonOk, jsonRateLimited, jsonUnauthorized } from "../../../../../lib/apiResponses";
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -11,17 +13,23 @@ function normalizeEmail(value: unknown): string {
   return String(value || "").trim().toLowerCase();
 }
 
-export async function POST(_req: NextRequest, context: { params: { id: string } | Promise<{ id: string }> }) {
+export async function POST(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const ip = getClientIp(_req);
+    const gate = await checkRateLimit({ key: `contest-claim:${ip}`, limit: 8, windowMs: 60_000 });
+    if (!gate.allowed) {
+      return jsonRateLimited(gate.retryAfterSeconds);
+    }
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonUnauthorized();
     }
 
     const resolvedParams = await Promise.resolve(context.params);
     const contestId = String(resolvedParams?.id || "").trim();
     if (!contestId || !isUuid(contestId)) {
-      return NextResponse.json({ error: "Invalid contest id" }, { status: 400 });
+      return jsonBadRequest("Invalid contest id");
     }
 
     const supabase = getAdminClient();
@@ -37,18 +45,18 @@ export async function POST(_req: NextRequest, context: { params: { id: string } 
       .maybeSingle();
 
     if (existingError) {
-      return NextResponse.json({ error: "Failed to read contest ownership." }, { status: 500 });
+      return jsonError("Failed to read contest ownership.", 500);
     }
     if (!existingContest) {
-      return NextResponse.json({ error: "Contest not found" }, { status: 404 });
+      return jsonNotFound("Contest not found");
     }
 
     const currentOwner = String(existingContest.owner_user_id || "").trim();
     if (currentOwner && currentOwner !== String(userRow.id || "")) {
-      return NextResponse.json({ error: "Contest already belongs to another owner." }, { status: 403 });
+      return jsonForbidden("Contest already belongs to another owner.");
     }
     if (currentOwner === String(userRow.id || "")) {
-      return NextResponse.json({ success: true, alreadyOwner: true });
+      return jsonOk({ success: true, alreadyOwner: true });
     }
 
     const { error: updateError } = await supabase
@@ -58,12 +66,12 @@ export async function POST(_req: NextRequest, context: { params: { id: string } 
       .is("owner_user_id", null);
 
     if (updateError) {
-      return NextResponse.json({ error: "Failed to claim contest ownership." }, { status: 500 });
+      return jsonError("Failed to claim contest ownership.", 500);
     }
 
-    return NextResponse.json({ success: true, ownerUserId: userRow.id });
+    return jsonOk({ success: true, ownerUserId: userRow.id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Error in POST /api/contests/[id]/claim", error);
+    return jsonError("Internal server error", 500);
   }
 }

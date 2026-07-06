@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { jsonBadRequest, jsonError, jsonRateLimited, jsonUnauthorized, withNoStore } from "../../../lib/apiResponses";
 
 function normalizeEmail(value: unknown): string {
   return String(value || "").trim().toLowerCase();
@@ -11,8 +13,29 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
+    const supabase = getAdminClient();
+
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const { data: publicContests, error: publicError } = await supabase
+        .from("contests")
+        .select("id, title, description, mode, duration_minutes, starts_at, status, created_at")
+        .eq("mode", "public")
+        .order("starts_at", { ascending: true })
+        .limit(20);
+
+      if (publicError) {
+        console.error("Error fetching public contests", publicError);
+        return NextResponse.json({ error: "Failed to fetch contests" }, { status: 500 });
+      }
+
+      return NextResponse.json(
+        { myContests: [], publicContests: publicContests ?? [], myContestResults: [] },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+          },
+        }
+      );
     }
 
     // Auto-sync user if they don't exist in database
@@ -20,8 +43,6 @@ export async function GET() {
       name: session.user.name ?? null,
       email: normalizeEmail(session.user.email),
     });
-
-    const supabase = getAdminClient();
 
     const { data: myContests, error: myContestsError } = await supabase
       .from("contests")
@@ -36,8 +57,9 @@ export async function GET() {
 
     const { data: publicContests, error: publicError } = await supabase
       .from("contests")
-      .select("id, title, description, mode, join_code, duration_minutes, starts_at, status, created_at")
+      .select("id, title, description, mode, duration_minutes, starts_at, status, created_at")
       .eq("mode", "public")
+      .neq("owner_user_id", userRow.id)
       .order("starts_at", { ascending: true })
       .limit(20);
 
@@ -91,7 +113,14 @@ export async function GET() {
       })
       .filter(Boolean);
 
-    return NextResponse.json({ myContests: myContests ?? [], publicContests: publicContests ?? [], myContestResults });
+    return NextResponse.json(
+      { myContests: myContests ?? [], publicContests: publicContests ?? [], myContestResults },
+      {
+        headers: {
+          "Cache-Control": "private, no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Unexpected error in GET /api/contests", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -109,24 +138,38 @@ function generateJoinCode(): string {
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const gate = await checkRateLimit({ key: `contest-create:${ip}`, limit: 10, windowMs: 60_000 });
+    if (!gate.allowed) {
+      return jsonRateLimited(gate.retryAfterSeconds);
+    }
+
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonUnauthorized();
     }
 
     const body = await req.json().catch(() => ({}));
-    const { title, description, mode, durationMinutes, startsAt, questionIds } = body as {
+    const { title, description, mode, durationMinutes, startsAt, questionIds, config } = body as {
       title?: string;
       description?: string;
       mode?: string;
       durationMinutes?: number;
       startsAt?: string | null;
       questionIds?: string[];
+      config?: {
+        selectedSubsections?: string[];
+        selectedDifficulties?: string[];
+        selectedCompanies?: string[];
+        selectedTopics?: string[];
+        questionCount?: number;
+        selectionMode?: 'auto' | 'manual';
+      };
     };
 
     if (!title || typeof title !== "string" || title.trim().length < 3) {
-      return NextResponse.json({ error: "Title is required and should be at least 3 characters." }, { status: 400 });
+      return jsonBadRequest("Title is required and should be at least 3 characters.");
     }
 
     const normalizedMode = mode === "private" ? "private" : "public";
@@ -152,21 +195,71 @@ export async function POST(req: Request) {
         duration_minutes: typeof durationMinutes === "number" && durationMinutes > 0 ? durationMinutes : 90,
         starts_at: startsAt ? new Date(startsAt).toISOString() : null,
         status: "scheduled",
+        config: config || {},
       })
-      .select("id, title, description, mode, join_code, duration_minutes, starts_at, status, created_at")
+      .select("id, title, description, mode, join_code, duration_minutes, starts_at, status, created_at, config")
       .single();
 
     if (error || !data) {
       console.error("Error creating contest", error);
-      return NextResponse.json({ error: "Failed to create contest" }, { status: 500 });
+      return jsonError("Failed to create contest", 500);
     }
 
-    const selectedQuestionIds = Array.isArray(questionIds)
-      ? Array.from(new Set(questionIds.map((id) => String(id || "").trim()).filter(Boolean))).slice(0, 25)
-      : [];
+    let finalQuestionIds: string[] = [];
 
-    if (selectedQuestionIds.length > 0) {
-      const rows = selectedQuestionIds.map((questionId) => ({
+    if (config?.selectionMode === 'auto') {
+      // Perform dynamic category/subject/difficulty/company auto-selection
+      let dbQuery = supabase.from("questions").select("id, difficulty, topic, company_tags");
+      
+      const diffs = config.selectedDifficulties || [];
+      if (diffs.length > 0) {
+        dbQuery = dbQuery.in("difficulty", diffs);
+      }
+
+      const { data: matchedQuestions } = await dbQuery.limit(1000);
+      
+      if (Array.isArray(matchedQuestions) && matchedQuestions.length > 0) {
+        let pool = [...matchedQuestions];
+
+        // Filter by subsections if specified
+        const subs = (config.selectedSubsections || []).map(s => s.toLowerCase());
+        if (subs.length > 0) {
+          pool = pool.filter(q => {
+            const topics = (q.topic || []).map((t: string) => t.toLowerCase());
+            return topics.some((t: string) => subs.includes(t));
+          });
+        }
+
+        // Filter by company tags if specified
+        const comps = (config.selectedCompanies || []).map(c => c.toLowerCase());
+        if (comps.length > 0) {
+          pool = pool.filter(q => {
+            const tags = (q.company_tags || []).map((t: string) => t.toLowerCase());
+            return tags.some((t: string) => comps.includes(t));
+          });
+        }
+
+        // Fallback: if filtering left 0 questions, revert to base difficulty matched pool
+        if (pool.length === 0 && matchedQuestions.length > 0) {
+          pool = [...matchedQuestions];
+        }
+
+        // Shuffle pool
+        pool.sort(() => Math.random() - 0.5);
+
+        // Take requested count
+        const count = Math.max(1, Math.min(25, Number(config.questionCount || 5)));
+        finalQuestionIds = pool.slice(0, count).map(q => q.id);
+      }
+    } else {
+      // Manual selection
+      finalQuestionIds = Array.isArray(questionIds)
+        ? Array.from(new Set(questionIds.map((id) => String(id || "").trim()).filter(Boolean))).slice(0, 25)
+        : [];
+    }
+
+    if (finalQuestionIds.length > 0) {
+      const rows = finalQuestionIds.map((questionId) => ({
         contest_id: data.id,
         question_id: questionId,
         created_by_user_id: userRow.id,
@@ -181,9 +274,9 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ contest: data }, { status: 201 });
+    return NextResponse.json({ contest: data }, { status: 201, headers: withNoStore() });
   } catch (error) {
     console.error("Unexpected error in POST /api/contests", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonError("Internal server error", 500);
   }
 }

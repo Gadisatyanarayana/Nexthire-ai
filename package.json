@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "dev:turbo": "next dev",
+    "dev": "kill-port 3000 && next dev --webpack -p 3000",
+    "dev:turbo": "kill-port 3000 && next dev -p 3000",
+    "dev:webpack": "kill-port 3000 && next dev --webpack -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
     "health:check": "node scripts/health-check.mjs",
+    "test:wrapper": "node scripts/test-wrapper-regression.cjs",
     "audit:data": "node scripts/audit-data-quality.mjs",
     "import:questions": "node scripts/import-questions.mjs",
     "enrich:problems:ai": "node scripts/enrich-problems-with-ai.mjs",
@@ -19,23 +21,35 @@
     "import:gfg": "node scripts/import-gfg-curated.mjs",
     "import:industry-bank": "node scripts/import-industry-bank.mjs",
     "import:industry-bank:reset": "node scripts/import-industry-bank.mjs --reset",
+    "questions:tune:all": "node scripts/tune-question-bank.cjs",
     "contests:backfill-questions": "node scripts/backfill-contest-questions.mjs",
-    "contests:backfill-questions:force": "node scripts/backfill-contest-questions.mjs --force"
+    "contests:backfill-questions:force": "node scripts/backfill-contest-questions.mjs --force",
+    "judge:worker": "ts-node --project tsconfig.worker.json src/workers/judgeWorker.ts",
+    "judge:smoke": "node scripts/judge-smoke-all.cjs",
+    "judge:up": "docker compose -f docker-compose.judge.yml up -d",
+    "judge:up:build": "docker compose -f docker-compose.judge.yml up -d --build",
+    "judge:down": "docker compose -f docker-compose.judge.yml down",
+    "questions:backfill:hidden": "node scripts/backfill-hidden-testcases.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@supabase/supabase-js": "^2.100.1",
     "axios": "^1.14.0",
+    "bullmq": "^5.73.0",
+    "ioredis": "^5.10.1",
     "jspdf": "^4.2.1",
+    "kill-port": "^2.0.1",
     "lucide-react": "^1.7.0",
     "mammoth": "^1.12.0",
     "next": "16.2.1",
     "next-auth": "^4.24.13",
     "pdf-parse": "^2.4.5",
+    "pino": "^10.3.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-resizable-panels": "^4.8.0",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -44,6 +58,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "kill-port": "^2.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

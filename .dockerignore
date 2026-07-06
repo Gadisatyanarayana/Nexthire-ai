@@ -1,0 +1,8 @@
+node_modules
+.next
+.git
+.gitignore
+.recovery
+*.log
+dist
+tsconfig.tsbuildinfo

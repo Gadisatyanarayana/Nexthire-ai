@@ -23,12 +23,14 @@ export type CodingQuestion = {
   examples: Array<{ input: string; output: string; explanation?: string }>;
   testcases: QuestionTestCase[];
   starter_code?: Partial<Record<"cpp" | "java" | "python", string>>;
+  hints?: string[];
 };
 
-export const LANGUAGE_TO_JUDGE0: Record<string, number> = {
-  cpp: 54,
-  java: 62,
-  python: 71,
+export const LANGUAGE_TO_RUNTIME_ID: Record<string, number> = {
+  javascript: 1,
+  python: 2,
+  cpp: 3,
+  java: 4,
 };
 
 export const STARTER_CODE: Record<string, string> = {
@@ -105,42 +107,6 @@ function detectVariablesFromExample(exampleInput: string | undefined): DetectedV
   return vars;
 }
 
-function normalizeStringLiteral(raw: string): string {
-  const value = raw.trim();
-  if (value.startsWith('"') && value.endsWith('"')) return value;
-  if (value.startsWith("'") && value.endsWith("'")) {
-    return `"${value.slice(1, -1).replace(/"/g, '\\"')}"`;
-  }
-  return `"${value.replace(/"/g, '\\"')}"`;
-}
-
-function javaTypeAndValue(raw: string): { typeName: string; value: string } {
-  const value = raw.trim();
-  if (/^\[\[.*\]\]$/.test(value)) return { typeName: "int[][]", value: `new int[][]${value}` };
-  if (/^\[.*\]$/.test(value)) return { typeName: "int[]", value: `new int[]${value}` };
-  if (/^(true|false)$/i.test(value)) return { typeName: "boolean", value: value.toLowerCase() };
-  if (/^-?\d+$/.test(value)) return { typeName: "int", value };
-  if (/^-?\d+\.\d+$/.test(value)) return { typeName: "double", value };
-  return { typeName: "String", value: normalizeStringLiteral(value) };
-}
-
-function cppTypeAndValue(raw: string): { typeName: string; value: string } {
-  const value = raw.trim();
-  if (/^\[\[.*\]\]$/.test(value)) return { typeName: "vector<vector<int>>", value: value.replace(/\[/g, "{").replace(/\]/g, "}") };
-  if (/^\[.*\]$/.test(value)) return { typeName: "vector<int>", value: value.replace(/\[/g, "{").replace(/\]/g, "}") };
-  if (/^(true|false)$/i.test(value)) return { typeName: "bool", value: value.toLowerCase() };
-  if (/^-?\d+$/.test(value)) return { typeName: "int", value };
-  if (/^-?\d+\.\d+$/.test(value)) return { typeName: "double", value };
-  return { typeName: "string", value: normalizeStringLiteral(value) };
-}
-
-function pythonValue(raw: string): string {
-  const value = raw.trim();
-  if (value.startsWith("[") || /^-?\d/.test(value) || /^(True|False|true|false)$/.test(value)) return value.replace(/\btrue\b/gi, "True").replace(/\bfalse\b/gi, "False");
-  if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) return value;
-  return normalizeStringLiteral(value);
-}
-
 function toCamelCase(value: string): string {
   const parts = String(value || "")
     .toLowerCase()
@@ -163,8 +129,107 @@ function toSnakeCase(value: string): string {
 
 function parseTypeList(inputType: string | undefined): string[] {
   const raw = String(inputType || "").trim();
-  if (!raw || raw.toLowerCase() === "auto") return [];
+  const normalized = raw.toLowerCase();
+  if (!raw || normalized === "auto" || normalized === "structured" || normalized === "any" || normalized === "object") return [];
   return splitTopLevel(raw).map((t) => t.trim()).filter(Boolean);
+}
+
+function isLooseType(type: string | undefined): boolean {
+  const t = normalizeTypeName(type || "");
+  return !t || t === "auto" || t === "structured" || t === "any" || t === "object";
+}
+
+function inferScalarType(raw: string): string {
+  const value = String(raw || "").trim();
+  if (!value) return "string";
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) return "string";
+  if (/^(true|false)$/i.test(value)) return "bool";
+  if (/^-?\d+$/.test(value)) return "int";
+  if (/^-?\d+\.\d+$/.test(value)) return "double";
+  return "string";
+}
+
+function inferTypeFromRaw(raw: string): string {
+  const value = String(raw || "").trim();
+  if (!value) return "string";
+
+  if (/^\[\[.*\]\]$/.test(value)) {
+    const compact = value.replace(/\s+/g, "");
+    if (/\"|\'/.test(compact)) return "string[][]";
+    if (/\btrue\b|\bfalse\b/i.test(compact)) return "bool[][]";
+    if (/\d+\.\d+/.test(compact)) return "double[][]";
+    return "int[][]";
+  }
+
+  if (/^\[.*\]$/.test(value)) {
+    const inner = value.slice(1, -1).trim();
+    if (!inner) return "int[]";
+    const items = splitTopLevel(inner);
+    const inferred = items.map(inferScalarType);
+    if (inferred.every((t) => t === "int")) return "int[]";
+    if (inferred.every((t) => t === "double" || t === "int")) return "double[]";
+    if (inferred.every((t) => t === "bool")) return "bool[]";
+    return "string[]";
+  }
+
+  return inferScalarType(value);
+}
+
+function areTypesCompatible(declaredType: string | undefined, inferredType: string | undefined): boolean {
+  const declared = normalizeTypeName(declaredType || "");
+  const inferred = normalizeTypeName(inferredType || "");
+  if (!declared || !inferred) return true;
+  if (declared === inferred) return true;
+  if (declared.includes("auto") || declared.includes("structured") || declared.includes("any") || declared.includes("object")) return true;
+
+  const isDeclaredArray = declared.includes("[]");
+  const isInferredArray = inferred.includes("[]");
+  if (isDeclaredArray !== isInferredArray) return false;
+
+  if ((declared.includes("int") || declared.includes("long") || declared.includes("double") || declared.includes("float")) &&
+      (inferred.includes("int") || inferred.includes("long") || inferred.includes("double") || inferred.includes("float"))) {
+    return true;
+  }
+
+  if ((declared.includes("str") || declared.includes("string")) && (inferred.includes("str") || inferred.includes("string"))) {
+    return true;
+  }
+
+  if (declared.includes("bool") && inferred.includes("bool")) {
+    return true;
+  }
+
+  return false;
+}
+
+function inferInputType(inputType: string | undefined, vars: DetectedVariable[]): string | undefined {
+  const declared = parseTypeList(inputType);
+  if (declared.length === 0) {
+    if (vars.length === 0) return inputType;
+    return vars.map((v) => inferTypeFromRaw(v.rawValue)).join(", ");
+  }
+
+  const allLoose = declared.every((t) => isLooseType(t));
+  if (allLoose && vars.length > 0) {
+    return vars.map((v) => inferTypeFromRaw(v.rawValue)).join(", ");
+  }
+
+  const resolved = declared.map((t, idx) => {
+    if (!vars[idx]) return t;
+    const inferred = inferTypeFromRaw(vars[idx].rawValue);
+    if (isLooseType(t)) return inferred;
+    if (!areTypesCompatible(t, inferred)) return inferred;
+    return t;
+  });
+  return resolved.join(", ");
+}
+
+function inferOutputType(outputType: string | undefined, firstExampleOutput: string | undefined): string | undefined {
+  if (!firstExampleOutput) return outputType;
+  const inferred = inferTypeFromRaw(firstExampleOutput);
+  if (isLooseType(outputType)) return inferred;
+  if (!areTypesCompatible(outputType, inferred)) return inferred;
+  return outputType;
 }
 
 function normalizeTypeName(type: string): string {
@@ -174,7 +239,13 @@ function normalizeTypeName(type: string): string {
 function mapToJavaType(type: string): string {
   const t = normalizeTypeName(type);
   if (!t || t === "auto") return "Object";
+  if (t.includes("string[][]") || t.includes("str[][]")) return "String[][]";
+  if (t.includes("double[][]") || t.includes("float[][]")) return "double[][]";
+  if (t.includes("bool[][]")) return "boolean[][]";
   if (t.includes("[][]")) return "int[][]";
+  if (t.includes("string[]") || t.includes("str[]")) return "String[]";
+  if (t.includes("double[]") || t.includes("float[]")) return "double[]";
+  if (t.includes("bool[]")) return "boolean[]";
   if (t.includes("[]")) return "int[]";
   if (t.includes("string") || t.includes("str")) return "String";
   if (t.includes("bool")) return "boolean";
@@ -187,7 +258,13 @@ function mapToJavaType(type: string): string {
 function mapToCppType(type: string): string {
   const t = normalizeTypeName(type);
   if (!t || t === "auto") return "auto";
+  if (t.includes("string[][]") || t.includes("str[][]")) return "vector<vector<string>>";
+  if (t.includes("double[][]") || t.includes("float[][]")) return "vector<vector<double>>";
+  if (t.includes("bool[][]")) return "vector<vector<bool>>";
   if (t.includes("[][]")) return "vector<vector<int>>";
+  if (t.includes("string[]") || t.includes("str[]")) return "vector<string>";
+  if (t.includes("double[]") || t.includes("float[]")) return "vector<double>";
+  if (t.includes("bool[]")) return "vector<bool>";
   if (t.includes("[]")) return "vector<int>";
   if (t.includes("string") || t.includes("str")) return "string";
   if (t.includes("bool")) return "bool";
@@ -200,7 +277,13 @@ function mapToCppType(type: string): string {
 function mapToPythonType(type: string): string {
   const t = normalizeTypeName(type);
   if (!t || t === "auto") return "Any";
+  if (t.includes("string[][]") || t.includes("str[][]")) return "list[list[str]]";
+  if (t.includes("double[][]") || t.includes("float[][]")) return "list[list[float]]";
+  if (t.includes("bool[][]")) return "list[list[bool]]";
   if (t.includes("[][]")) return "list[list[int]]";
+  if (t.includes("string[]") || t.includes("str[]")) return "list[str]";
+  if (t.includes("double[]") || t.includes("float[]")) return "list[float]";
+  if (t.includes("bool[]")) return "list[bool]";
   if (t.includes("[]")) return "list[int]";
   if (t.includes("string") || t.includes("str")) return "str";
   if (t.includes("bool")) return "bool";
@@ -234,6 +317,9 @@ function defaultReturnForType(outputType: string | undefined, language: "java" |
 
   if (language === "java") {
     if (t.includes("bool")) return "false";
+    if (t.includes("string[]") || t.includes("str[]")) return "new String[0]";
+    if (t.includes("double[]") || t.includes("float[]")) return "new double[0]";
+    if (t.includes("bool[]")) return "new boolean[0]";
     if (t.includes("[]")) return "new int[0]";
     if (t.includes("string") || t.includes("str")) return "\"\"";
     if (t.includes("double") || t.includes("float")) return "0.0";
@@ -242,6 +328,9 @@ function defaultReturnForType(outputType: string | undefined, language: "java" |
   }
 
   if (t.includes("bool")) return "false";
+  if (t.includes("string[]") || t.includes("str[]")) return "{}";
+  if (t.includes("double[]") || t.includes("float[]")) return "{}";
+  if (t.includes("bool[]")) return "{}";
   if (t.includes("[]")) return "{}";
   if (t.includes("string") || t.includes("str")) return "\"\"";
   if (t.includes("double") || t.includes("float")) return "0.0";
@@ -252,54 +341,34 @@ function defaultReturnForType(outputType: string | undefined, language: "java" |
 function buildJavaStarterCode(vars: DetectedVariable[], functionName: string, inputType?: string, outputType?: string): string {
   const paramTypes = parseTypeList(inputType);
   const paramNames = buildParamNames(paramTypes.length, vars);
-
-  const params =
-    paramTypes.length > 0
-      ? paramTypes.map((type, idx) => `${mapToJavaType(type)} ${paramNames[idx]}`).join(", ")
-      : vars
-          .map((v) => {
-            const typed = javaTypeAndValue(v.rawValue);
-            return `${typed.typeName} ${v.name}`;
-          })
-          .join(", ");
-
+  const params = paramTypes.length > 0
+    ? paramTypes.map((type, idx) => `${mapToJavaType(type)} ${paramNames[idx]}`).join(", ")
+    : "";
   const returnType = mapToJavaType(outputType || "auto");
   const fallbackReturn = defaultReturnForType(outputType, "java");
-
-  return `class Solution {\n    public ${returnType} ${functionName}(${params}) {\n        // Write your solution logic here.\n        return ${fallbackReturn};\n    }\n}`;
+  return `class Solution {\n    public ${returnType} ${functionName}(${params}) {\n        \n    }\n}`;
 }
 
 function buildCppStarterCode(vars: DetectedVariable[], functionName: string, inputType?: string, outputType?: string): string {
   const paramTypes = parseTypeList(inputType);
   const paramNames = buildParamNames(paramTypes.length, vars);
-
-  const params =
-    paramTypes.length > 0
-      ? paramTypes.map((type, idx) => `${mapToCppType(type)} ${paramNames[idx]}`).join(", ")
-      : vars
-          .map((v) => {
-            const typed = cppTypeAndValue(v.rawValue);
-            return `${typed.typeName} ${v.name}`;
-          })
-          .join(", ");
-
+  const params = paramTypes.length > 0
+    ? paramTypes.map((type, idx) => `${mapToCppType(type)} ${paramNames[idx]}`).join(", ")
+    : "";
   const returnType = mapToCppType(outputType || "auto");
   const fallbackReturn = defaultReturnForType(outputType, "cpp");
-
-  return `#include <bits/stdc++.h>\nusing namespace std;\n\nclass Solution {\npublic:\n    ${returnType} ${functionName}(${params}) {\n        // Write your solution logic here.\n        return ${fallbackReturn};\n    }\n};`;
+  return `class Solution {\npublic:\n    ${returnType} ${functionName}(${params}) {\n        \n    }\n};`;
 }
 
 function buildPythonStarterCode(vars: DetectedVariable[], functionName: string, inputType?: string, outputType?: string): string {
   const paramTypes = parseTypeList(inputType);
   const paramNames = buildParamNames(paramTypes.length, vars);
-  const params =
-    paramTypes.length > 0
-      ? paramTypes.map((type, idx) => `${paramNames[idx]}: ${mapToPythonType(type)}`).join(", ")
-      : vars.map((v) => v.name).join(", ");
-  const paramHints = vars.map((v) => `${v.name}=${pythonValue(v.rawValue)}`).join(", ");
+  const params = paramTypes.length > 0
+    ? paramTypes.map((type, idx) => `${paramNames[idx]}: ${mapToPythonType(type)}`).join(", ")
+    : "";
   const returnType = mapToPythonType(outputType || "auto");
   const fallbackReturn = defaultReturnForType(outputType, "python");
-  return `from typing import Any\n\nclass Solution:\n    def ${functionName}(self${params ? `, ${params}` : ""}) -> ${returnType}:\n        # Write your solution logic here.\n${paramHints ? `        # Example values: ${paramHints}\n` : ""}        return ${fallbackReturn}\n`;
+  return `class Solution:\n    def ${functionName}(self${params ? `, ${params}` : ""}) -> ${returnType}:\n        pass\n`;
 }
 
 function buildStarterCodeFromQuestion(
@@ -308,13 +377,15 @@ function buildStarterCodeFromQuestion(
 ): string {
   const firstExample = question?.examples?.[0]?.input;
   const vars = detectVariablesFromExample(firstExample);
+  const inferredInputType = inferInputType(question?.input_type, vars);
+  const inferredOutputType = inferOutputType(question?.output_type, question?.examples?.[0]?.output);
   const baseName = question?.function_name || question?.title || "solve";
   const camelName = toCamelCase(baseName);
   const snakeName = toSnakeCase(baseName);
 
-  if (language === "java") return buildJavaStarterCode(vars, camelName, question?.input_type, question?.output_type);
-  if (language === "cpp") return buildCppStarterCode(vars, camelName, question?.input_type, question?.output_type);
-  return buildPythonStarterCode(vars, snakeName, question?.input_type, question?.output_type);
+  if (language === "java") return buildJavaStarterCode(vars, camelName, inferredInputType, inferredOutputType);
+  if (language === "cpp") return buildCppStarterCode(vars, camelName, inferredInputType, inferredOutputType);
+  return buildPythonStarterCode(vars, snakeName, inferredInputType, inferredOutputType);
 }
 
 export function getStarterCodeForQuestion(
@@ -349,9 +420,9 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
       { input: "3 2 4\n6", expectedOutput: "1 2" },
     ],
     starter_code: {
-      cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nvector<int> twoSum(vector<int>& nums, int target) {\n    unordered_map<int, int> seen;\n    for (int i = 0; i < (int)nums.size(); i++) {\n        int need = target - nums[i];\n        if (seen.count(need)) return {seen[need], i};\n        seen[nums[i]] = i;\n    }\n    return {};\n}\n\nint main() {\n    // Read nums and target, then print indices\n    return 0;\n}`,
-      java: `import java.util.*;\n\npublic class Main {\n    static int[] twoSum(int[] nums, int target) {\n        Map<Integer, Integer> seen = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            int need = target - nums[i];\n            if (seen.containsKey(need)) return new int[]{seen.get(need), i};\n            seen.put(nums[i], i);\n        }\n        return new int[0];\n    }\n\n    public static void main(String[] args) {\n        // Read nums and target, then print indices\n    }\n}`,
-      python: `def two_sum(nums, target):\n    seen = {}\n    for i, x in enumerate(nums):\n        need = target - x\n        if need in seen:\n            return [seen[need], i]\n        seen[x] = i\n    return []\n\nif __name__ == "__main__":\n    # Read nums and target, then print indices\n    pass\n`,
+      cpp: `class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        \n    }\n};`,
+      java: `class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        \n    }\n}`,
+      python: `class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        pass\n`,
     },
   },
   {
@@ -371,9 +442,9 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
       { input: "(]", expectedOutput: "false" },
     ],
     starter_code: {
-      cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nbool isValid(string s) {\n    unordered_map<char, char> closeToOpen{{')','('}, {']','['}, {'}','{'}};\n    stack<char> st;\n    for (char c : s) {\n        if (!closeToOpen.count(c)) st.push(c);\n        else {\n            if (st.empty() || st.top() != closeToOpen[c]) return false;\n            st.pop();\n        }\n    }\n    return st.empty();\n}\n\nint main() {\n    // Read string s and print true/false\n    return 0;\n}`,
-      java: `import java.util.*;\n\npublic class Main {\n    static boolean isValid(String s) {\n        Map<Character, Character> closeToOpen = Map.of(')', '(', ']', '[', '}', '{');\n        Deque<Character> st = new ArrayDeque<>();\n        for (char c : s.toCharArray()) {\n            if (!closeToOpen.containsKey(c)) st.push(c);\n            else {\n                if (st.isEmpty() || st.peek() != closeToOpen.get(c)) return false;\n                st.pop();\n            }\n        }\n        return st.isEmpty();\n    }\n\n    public static void main(String[] args) {\n        // Read string s and print true/false\n    }\n}`,
-      python: `def is_valid(s: str) -> bool:\n    close_to_open = {')': '(', ']': '[', '}': '{'}\n    st = []\n    for ch in s:\n        if ch not in close_to_open:\n            st.append(ch)\n        else:\n            if not st or st[-1] != close_to_open[ch]:\n                return False\n            st.pop()\n    return len(st) == 0\n\nif __name__ == "__main__":\n    # Read s and print true/false\n    pass\n`,
+      cpp: `class Solution {\npublic:\n    bool isValid(string s) {\n        \n    }\n};`,
+      java: `class Solution {\n    public boolean isValid(String s) {\n        \n    }\n}`,
+      python: `class Solution:\n    def isValid(self, s: str) -> bool:\n        pass\n`,
     },
   },
   {

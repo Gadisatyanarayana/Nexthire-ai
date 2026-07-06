@@ -27,6 +27,14 @@ type JobMatchApiResponse = {
   error?: string;
 };
 
+type ResumeWorkspaceSnapshot = {
+  atsScore: number | null;
+  miniSuggestions: string[];
+  matchPercentage: number | null;
+  jobDescription: string;
+  updatedAt: string;
+};
+
 function scoreToneColor(score: number, isDark: boolean): string {
   if (score < 50) return isDark ? "text-gray-300" : "text-gray-700";
   if (score <= 75) return isDark ? "text-white" : "text-black";
@@ -63,12 +71,8 @@ export default function MyResumePage() {
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [cloudResumePath, setCloudResumePath] = useState<string | null>(null);
 
-  const [atsScore, setAtsScore] = useState<number | null>(72);
-  const [miniSuggestions, setMiniSuggestions] = useState<string[]>([
-    "Add measurable impact in project bullets (e.g., performance or user growth).",
-    "Align top skills with your target role keywords.",
-    "Move strongest project above less relevant entries.",
-  ]);
+  const [atsScore, setAtsScore] = useState<number | null>(null);
+  const [miniSuggestions, setMiniSuggestions] = useState<string[]>([]);
   const [jobDescription, setJobDescription] = useState("");
   const [matchPercentage, setMatchPercentage] = useState<number | null>(null);
 
@@ -76,6 +80,7 @@ export default function MyResumePage() {
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasResume = Boolean(resumeFile || resumeUrl || cloudResumePath);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -125,6 +130,28 @@ export default function MyResumePage() {
       if (signed.data?.signedUrl && active) {
         setCloudResumePath(path);
         setResumeUrl(signed.data.signedUrl);
+        setResumeFile(new File([], String(path).split('/').pop() || 'resume.pdf'));
+      }
+
+      const { data: latestWorkspace } = await supabase
+        .from("submissions")
+        .select("code")
+        .eq("user_id", userRow.id)
+        .eq("language", "resume-workspace")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestWorkspace?.code && active) {
+        try {
+          const parsed = JSON.parse(String(latestWorkspace.code)) as ResumeWorkspaceSnapshot;
+          setAtsScore(typeof parsed.atsScore === 'number' ? parsed.atsScore : null);
+          setMiniSuggestions(Array.isArray(parsed.miniSuggestions) ? parsed.miniSuggestions.slice(0, 3) : []);
+          setMatchPercentage(typeof parsed.matchPercentage === 'number' ? parsed.matchPercentage : null);
+          setJobDescription(typeof parsed.jobDescription === 'string' ? parsed.jobDescription : '');
+        } catch {
+          // Ignore malformed persisted snapshot.
+        }
       }
     };
 
@@ -136,17 +163,17 @@ export default function MyResumePage() {
   }, [session, status]);
 
   const canMatch = useMemo(() => {
-    return Boolean(resumeFile) && jobDescription.trim().length >= 20;
-  }, [resumeFile, jobDescription]);
+    return hasResume && jobDescription.trim().length >= 20;
+  }, [hasResume, jobDescription]);
 
   const readinessScore = useMemo(() => {
     let score = 0;
-    if (resumeFile) score += 25;
+    if (hasResume) score += 25;
     if (typeof atsScore === "number") score += 25;
     if (typeof matchPercentage === "number") score += 25;
     if (miniSuggestions.length > 0) score += 25;
     return score;
-  }, [resumeFile, atsScore, matchPercentage, miniSuggestions.length]);
+  }, [hasResume, atsScore, matchPercentage, miniSuggestions.length]);
 
   const readinessLabel = useMemo(() => {
     if (readinessScore >= 85) return "Interview Ready";
@@ -157,7 +184,7 @@ export default function MyResumePage() {
 
   const actionPlan = useMemo(() => {
     const actions: string[] = [];
-    if (!resumeFile) actions.push("Upload your latest one-page resume in PDF or DOCX format.");
+    if (!hasResume) actions.push("Upload your latest one-page resume in PDF or DOCX format.");
     if (atsScore === null) actions.push("Run ATS analysis to identify formatting and keyword gaps.");
     if (miniSuggestions.length === 0) actions.push("Generate suggestions and apply at least 2 improvements.");
     if (matchPercentage === null) actions.push("Paste a target role JD and run match analysis.");
@@ -168,7 +195,7 @@ export default function MyResumePage() {
       actions.push("Keep one tailored version per target role and re-run analysis weekly.");
     }
     return actions.slice(0, 4);
-  }, [resumeFile, atsScore, miniSuggestions.length, matchPercentage]);
+  }, [hasResume, atsScore, miniSuggestions.length, matchPercentage]);
 
   const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -215,6 +242,21 @@ export default function MyResumePage() {
           feedback: file.name,
           difficulty: "easy",
           result: "Uploaded",
+        });
+        await supabase.from("submissions").insert({
+          user_id: userRow.id,
+          language: "resume-workspace",
+          code: JSON.stringify({
+            atsScore: null,
+            miniSuggestions: [],
+            matchPercentage: null,
+            jobDescription: "",
+            updatedAt: new Date().toISOString(),
+          } satisfies ResumeWorkspaceSnapshot),
+          output: "Workspace synced",
+          feedback: "Resume uploaded",
+          difficulty: "easy",
+          result: "Saved",
         });
         setSuccess("Resume uploaded and synced to cloud.");
       })();
@@ -280,7 +322,13 @@ export default function MyResumePage() {
             await supabase.from("submissions").insert({
               user_id: userRow.id,
               language: "resume-workspace",
-              code: resumeFile?.name ?? "resume",
+              code: JSON.stringify({
+                atsScore: typeof data.atsScore === 'number' ? data.atsScore : null,
+                miniSuggestions: (data.suggestions ?? []).slice(0, 3),
+                matchPercentage,
+                jobDescription,
+                updatedAt: new Date().toISOString(),
+              } satisfies ResumeWorkspaceSnapshot),
               output: `ATS ${typeof data.atsScore === "number" ? data.atsScore : "--"}`,
               feedback: (data.suggestions ?? []).slice(0, 3).join(" | "),
               difficulty: "medium",
@@ -295,7 +343,12 @@ export default function MyResumePage() {
   };
 
   const runBasicMatch = () => {
-    if (!resumeFile || !canMatch) return;
+    if (!hasResume || !canMatch) return;
+    if (!resumeFile) {
+      setError("Please upload your resume file again before running job match.");
+      return;
+    }
+    const currentResumeFile = resumeFile;
 
     setError(null);
     setSuccess(null);
@@ -303,7 +356,7 @@ export default function MyResumePage() {
 
     const formData = new FormData();
     formData.append("mode", "job-match");
-    formData.append("resumeFile", resumeFile);
+    formData.append("resumeFile", currentResumeFile);
     formData.append("jobDescription", jobDescription);
 
     fetch("/api/resume-analysis", { method: "POST", body: formData })
@@ -326,10 +379,26 @@ export default function MyResumePage() {
             await supabase.from("submissions").insert({
               user_id: userRow.id,
               language: "resume-match",
-              code: resumeFile?.name ?? "resume",
+              code: JSON.stringify({ jobDescription, matchPercentage: typeof data.matchPercentage === 'number' ? data.matchPercentage : null }),
               output: `MATCH ${typeof data.matchPercentage === "number" ? data.matchPercentage : "--"}`,
               feedback: jobDescription.slice(0, 240),
               difficulty: "medium",
+            });
+
+            await supabase.from("submissions").insert({
+              user_id: userRow.id,
+              language: "resume-workspace",
+              code: JSON.stringify({
+                atsScore,
+                miniSuggestions,
+                matchPercentage: typeof data.matchPercentage === 'number' ? data.matchPercentage : null,
+                jobDescription,
+                updatedAt: new Date().toISOString(),
+              } satisfies ResumeWorkspaceSnapshot),
+              output: "Workspace synced",
+              feedback: "Job match updated",
+              difficulty: "easy",
+              result: "Saved",
             });
           })();
         }
@@ -442,7 +511,7 @@ export default function MyResumePage() {
               <div>
                 <p className={`text-xs uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-600"}`}>Resume Status</p>
                 <p className={`mt-1 text-base font-semibold ${isDark ? "text-white" : "text-black"}`}>
-                  {resumeFile ? 'Uploaded' : 'Not Uploaded'}
+                  {hasResume ? 'Uploaded' : 'Not Uploaded'}
                 </p>
               </div>
               <div>
@@ -529,7 +598,7 @@ export default function MyResumePage() {
             </Link>
             <button
               onClick={handleDownload}
-              disabled={!resumeFile}
+                  disabled={!hasResume}
               className={`rounded-xl px-6 py-3 text-base font-semibold text-center transition disabled:opacity-50 ${
                 isDark ? "border border-white/30 bg-white/5 text-white hover:bg-white/10" : "border border-black/30 bg-black/5 text-black hover:bg-black/10"
               }`}

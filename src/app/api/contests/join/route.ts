@@ -1,21 +1,49 @@
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { getAdminClient } from "@/lib/supabaseAdmin";
+import { authOptions } from "@/lib/auth";
+import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { jsonBadRequest, jsonNotFound, jsonRateLimited, jsonUnauthorized, jsonError, jsonOk } from "../../../../lib/apiResponses";
+
+async function ensureContestParticipant(contestId: string, userId: string, joinedAt: string) {
+  const admin = getAdminClient();
+  const { data: existingRows, error: existingError } = await admin
+    .from("contest_participants")
+    .select("id")
+    .eq("contest_id", contestId)
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (existingError) return existingError;
+  if (Array.isArray(existingRows) && existingRows.length > 0) return null;
+
+  const { error: insertError } = await admin.from("contest_participants").insert({
+    contest_id: contestId,
+    user_id: userId,
+    joined_at: joinedAt,
+  });
+
+  return insertError || null;
+}
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const gate = await checkRateLimit({ key: `contest-join:${ip}`, limit: 12, windowMs: 60_000 });
+    if (!gate.allowed) {
+      return jsonRateLimited(gate.retryAfterSeconds);
+    }
+
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonUnauthorized();
     }
 
     const body = await req.json().catch(() => ({}));
     const { joinCode } = body as { joinCode?: string };
 
     if (!joinCode || typeof joinCode !== "string") {
-      return NextResponse.json({ error: "joinCode is required" }, { status: 400 });
+      return jsonBadRequest("joinCode is required");
     }
 
     const normalizedCode = joinCode.trim().toUpperCase();
@@ -29,40 +57,32 @@ export async function POST(req: Request) {
       .single();
 
     if (error || !contest) {
-      return NextResponse.json({ error: "Contest not found" }, { status: 404 });
+      return jsonNotFound("Contest not found");
     }
 
     if (contest.status === "cancelled") {
-      return NextResponse.json({ error: "Contest is cancelled" }, { status: 400 });
+      return jsonBadRequest("Contest is cancelled");
+    }
+
+    if (contest.status === "active" || contest.status === "completed") {
+      return jsonBadRequest("This contest has already started and admissions are locked by the creator.");
     }
 
     // Ensure user row exists
-    const { data: userRow } = await supabase
-      .from("users")
-      .select("id, email")
-      .eq("email", session.user.email)
-      .maybeSingle();
+    const userRow = await upsertUserAdmin({
+      name: session.user?.name ?? null,
+      email: session.user.email,
+    });
 
-    if (!userRow) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Upsert participation (user joins this contest)
-    const { error: participantError } = await supabase.from("contest_participants").upsert(
-      {
-        contest_id: contest.id,
-        user_id: userRow.id,
-      },
-      { onConflict: "contest_id,user_id" }
-    );
+    const participantError = await ensureContestParticipant(contest.id, userRow.id, new Date().toISOString());
 
     if (participantError) {
-      console.error("Error upserting contest_participants", participantError);
+      console.error("Error inserting contest_participants", participantError);
     }
 
-    return NextResponse.json({ contest });
+    return jsonOk({ contest });
   } catch (error) {
     console.error("Unexpected error in POST /api/contests/join", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonError("Internal server error", 500);
   }
 }

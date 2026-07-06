@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { CodingQuestion } from "@/lib/codingQuestions";
 import { buildLearningBlueprint } from "@/lib/studentLearning";
+import { Tag, Building2, ChevronDown, ChevronUp, BookOpen, Lightbulb } from "lucide-react";
 
 type Props = {
   question: CodingQuestion;
@@ -11,223 +12,336 @@ type Props = {
   similarQuestions?: Array<Pick<CodingQuestion, "id" | "title" | "difficulty" | "topic">>;
 };
 
+function DifficultyBadge({ difficulty }: { difficulty: string }) {
+  const d = difficulty.toLowerCase();
+  if (d === "easy") {
+    return (
+      <span className="badge-easy inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold">
+        Easy
+      </span>
+    );
+  }
+  if (d === "medium") {
+    return (
+      <span className="badge-medium inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold">
+        Medium
+      </span>
+    );
+  }
+  return (
+    <span className="badge-hard inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold">
+      Hard
+    </span>
+  );
+}
+
+function Section({ title, icon, children, defaultOpen = true }: {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mb-5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 mb-2 w-full text-left"
+        style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+      >
+        {icon}
+        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{title}</span>
+        {open ? (
+          <ChevronUp style={{ width: 14, height: 14, color: "var(--text-muted)", marginLeft: "auto" }} />
+        ) : (
+          <ChevronDown style={{ width: 14, height: 14, color: "var(--text-muted)", marginLeft: "auto" }} />
+        )}
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 export function QuestionPanel({ question, isDark, similarQuestions }: Props) {
-  const [showTopics, setShowTopics] = useState(false);
-  const [showSimilar, setShowSimilar] = useState(false);
-  const [showLearningPlan, setShowLearningPlan] = useState(true);
   const blueprint = buildLearningBlueprint(question);
 
-  const diffTone =
-    question.difficulty === "Easy"
-      ? isDark
-        ? "bg-emerald-400/15 text-emerald-200 border-emerald-300/30"
-        : "bg-emerald-100 text-emerald-800 border-emerald-300"
-      : question.difficulty === "Medium"
-      ? isDark
-        ? "bg-amber-400/15 text-amber-100 border-amber-300/30"
-        : "bg-amber-100 text-amber-900 border-amber-300"
-      : isDark
-      ? "bg-rose-400/15 text-rose-100 border-rose-300/30"
-      : "bg-rose-100 text-rose-900 border-rose-300";
+  const diffColor = question.difficulty.toLowerCase() === "easy"
+    ? "var(--color-easy)"
+    : question.difficulty.toLowerCase() === "medium"
+    ? "var(--color-medium)"
+    : "var(--color-hard)";
 
   return (
-    <div className={`h-full overflow-y-auto rounded-2xl border p-5 backdrop-blur-lg ${isDark ? "border-white/10 bg-white/5" : "border-black/10 bg-white"}`}>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className={`text-2xl font-semibold ${isDark ? "text-white" : "text-black"}`}>{question.title}</h1>
-        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${diffTone}`}>{question.difficulty}</span>
-      </div>
-
-      {(question.function_name || question.input_type || question.output_type) && (
-        <div className={`mb-4 rounded-xl border p-3 text-xs ${isDark ? "border-white/10 bg-black/25 text-white/75" : "border-black/10 bg-black/5 text-black/70"}`}>
-          {question.function_name && <p>Function: {question.function_name}</p>}
-          {question.input_type && <p>Input Type: {question.input_type}</p>}
-          {question.output_type && <p>Output Type: {question.output_type}</p>}
+    <div
+      className="h-full min-h-0 flex flex-col overflow-hidden"
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)", borderRadius: "var(--radius-lg)" }}
+    >
+      {/* Sticky Header Section */}
+      <div 
+        className="shrink-0 z-10" 
+        style={{ 
+          background: "var(--bg-card)", 
+          borderBottom: "1px solid var(--border-primary)", 
+          padding: "16px 18px 12px 18px",
+          borderTopLeftRadius: "inherit",
+          borderTopRightRadius: "inherit",
+        }}
+      >
+        <div className="flex items-start gap-3 flex-wrap mb-2">
+          <h1 className="text-base font-bold leading-tight" style={{ color: "var(--text-primary)", flex: 1 }}>
+            {question.title}
+          </h1>
+          <DifficultyBadge difficulty={question.difficulty} />
         </div>
-      )}
 
-      {(question.company_tags || []).length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {(question.company_tags || []).slice(0, 30).map((tag) => (
-            <span key={`company-${tag}`} className={`rounded-full border px-2.5 py-1 text-xs ${isDark ? "border-white/20 bg-black/45 text-white/85" : "border-black/15 bg-white text-black/80"}`}>
-              {tag}
+        {/* Meta info row */}
+        <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
+          {question.acceptance_rate > 0 && (
+            <span>Acceptance: <span style={{ color: "var(--text-secondary)" }}>{question.acceptance_rate.toFixed(1)}%</span></span>
+          )}
+          {question.section && (
+            <span>Section: <span style={{ color: "var(--text-secondary)" }}>{question.section}</span></span>
+          )}
+          {question.testcases?.length > 0 && (
+            <span style={{ color: "var(--text-muted)" }}>
+              {question.testcases.length} test cases
             </span>
-          ))}
-        </div>
-      )}
-
-      <div className={`space-y-4 text-sm leading-relaxed ${isDark ? "text-white/85" : "text-black/85"}`}>
-        <p>{question.description}</p>
-
-        <div className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-black/35" : "border-black/10 bg-black/5"}`}>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className={`text-base font-semibold ${isDark ? "text-white" : "text-black"}`}>Student Learning Plan</h2>
-            <button
-              type="button"
-              onClick={() => setShowLearningPlan((v) => !v)}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${isDark ? "border-white/20 bg-white/10 text-white hover:bg-white/20" : "border-black/20 bg-white text-black hover:bg-black/5"}`}
-            >
-              {showLearningPlan ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          {showLearningPlan && (
-            <div className="mt-3 space-y-3 text-xs">
-              <div>
-                <p className={`${isDark ? "text-white/60" : "text-black/60"}`}>Section</p>
-                <p className={`mt-1 font-semibold wrap-break-word ${isDark ? "text-white" : "text-black"}`}>{blueprint.section}</p>
-              </div>
-
-              <div>
-                <p className={`${isDark ? "text-white/60" : "text-black/60"}`}>Core Concepts</p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {blueprint.concepts.map((item) => (
-                    <span key={`concept-${item}`} className={`rounded-full border px-2 py-0.5 ${isDark ? "border-white/20 bg-white/10 text-white/90" : "border-black/15 bg-white text-black/85"}`}>
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className={`${isDark ? "text-white/60" : "text-black/60"}`}>Solve Steps</p>
-                <ol className="mt-1 space-y-1">
-                  {blueprint.solvePlan.map((step, idx) => (
-                    <li key={`solve-step-${idx}`}>{idx + 1}. {step}</li>
-                  ))}
-                </ol>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <p className={`${isDark ? "text-white/60" : "text-black/60"}`}>Prerequisites</p>
-                  <ul className="mt-1 space-y-1">
-                    {blueprint.prerequisites.map((item) => (
-                      <li key={`pre-${item}`}>- {item}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className={`${isDark ? "text-white/60" : "text-black/60"}`}>Common Mistakes</p>
-                  <ul className="mt-1 space-y-1">
-                    {blueprint.commonMistakes.map((item) => (
-                      <li key={`mistake-${item}`}>- {item}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div>
-                <p className={`${isDark ? "text-white/60" : "text-black/60"}`}>Career Signal</p>
-                <ul className="mt-1 space-y-1">
-                  {blueprint.interviewSignals.map((item) => (
-                    <li key={`signal-${item}`}>- {item}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <p className={`${isDark ? "text-white/80" : "text-black/75"}`}>{blueprint.portfolioPrompt}</p>
-            </div>
           )}
         </div>
 
-        <div>
-          <h2 className={`mb-2 text-base font-semibold ${isDark ? "text-white" : "text-black"}`}>Examples</h2>
-          <div className="space-y-3">
-            {question.examples.map((ex, idx) => (
-              <div key={`${question.id}-ex-${idx}`} className={`rounded-xl border p-3 ${isDark ? "border-white/10 bg-black/40" : "border-black/10 bg-black/5"}`}>
-                <p className={`${isDark ? "text-white/60" : "text-black/60"}`}>Input</p>
-                <pre className={`whitespace-pre-wrap text-sm ${isDark ? "text-white" : "text-black"}`}>{ex.input}</pre>
-                <p className={`mt-2 ${isDark ? "text-white/60" : "text-black/60"}`}>Output</p>
-                <pre className={`whitespace-pre-wrap text-sm ${isDark ? "text-white" : "text-black"}`}>{ex.output}</pre>
-                {ex.explanation && <p className={`mt-2 text-xs ${isDark ? "text-white/70" : "text-black/70"}`}>{ex.explanation}</p>}
-              </div>
+        {/* Company tags */}
+        {(question.company_tags || []).length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {(question.company_tags || []).slice(0, 8).map((tag) => (
+              <span
+                key={`co-${tag}`}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium"
+                style={{ background: "rgba(88,166,255,0.08)", color: "var(--brand-blue)", border: "1px solid rgba(88,166,255,0.15)" }}
+              >
+                <Building2 style={{ width: 10, height: 10 }} />
+                {tag}
+              </span>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Scrollable Content Section */}
+      <div 
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar" 
+        style={{ 
+          padding: "16px 18px",
+          borderBottomLeftRadius: "inherit",
+          borderBottomRightRadius: "inherit",
+        }}
+      >
+        {/* Description */}
+        <div className="mb-5">
+          <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)", lineHeight: 1.8 }}>
+            {question.description}
+          </p>
         </div>
 
+        {/* Examples */}
+        {question.examples.length > 0 && (
+          <Section title="Examples" defaultOpen={true}>
+            <div className="space-y-3">
+              {question.examples.map((ex, idx) => (
+                <div
+                  key={`ex-${question.id}-${idx}`}
+                  className="rounded-lg overflow-hidden"
+                  style={{ border: "1px solid var(--border-primary)" }}
+                >
+                  <div className="px-3 py-1.5" style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border-primary)" }}>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                      Example {idx + 1}
+                    </span>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-muted)" }}>Input</p>
+                      <pre
+                        className="text-xs rounded px-3 py-2 overflow-x-auto"
+                        style={{ background: "var(--surface-inset)", color: "var(--text-primary)", fontFamily: "var(--font-mono)", lineHeight: 1.6 }}
+                      >
+                        {ex.input}
+                      </pre>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-muted)" }}>Output</p>
+                      <pre
+                        className="text-xs rounded px-3 py-2 overflow-x-auto"
+                        style={{ background: "var(--surface-inset)", color: "var(--color-accepted)", fontFamily: "var(--font-mono)", lineHeight: 1.6 }}
+                      >
+                        {ex.output}
+                      </pre>
+                    </div>
+                    {ex.explanation && (
+                      <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                        <span className="font-semibold" style={{ color: "var(--text-secondary)" }}>Explanation:</span>{" "}
+                        {ex.explanation}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Constraints */}
         {Array.isArray(question.constraints) && question.constraints.length > 0 && (
-          <div>
-            <h2 className={`mb-2 text-base font-semibold ${isDark ? "text-white" : "text-black"}`}>Constraints</h2>
+          <Section title="Constraints" defaultOpen={true}>
             <ul className="space-y-1">
               {question.constraints.map((line, idx) => (
-                <li key={`constraint-${idx}`} className={`${isDark ? "text-white/80" : "text-black/80"}`}>
-                  - {line}
+                <li
+                  key={`c-${idx}`}
+                  className="flex items-start gap-2 text-xs font-mono"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <span style={{ color: "var(--brand-blue)", flexShrink: 0 }}>•</span>
+                  <span dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") }} />
                 </li>
               ))}
             </ul>
-          </div>
+          </Section>
         )}
 
-        <div className="mt-4 space-y-3">
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowTopics((v) => !v)}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${isDark ? "border-white/20 bg-white/10 text-white hover:bg-white/20" : "border-black/20 bg-black/5 text-black hover:bg-black/10"}`}
-            >
-              {showTopics ? "Hide Topics" : "Show Topics"}
-            </button>
-            {showTopics && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {question.topic.length === 0 ? (
-                  <span className={`text-xs ${isDark ? "text-white/60" : "text-black/60"}`}>No topics available</span>
-                ) : (
-                  question.topic.map((tag) => (
-                    <span key={tag} className={`rounded-full border px-2.5 py-1 text-xs ${isDark ? "border-white/20 bg-white/8 text-white/85" : "border-black/15 bg-black/5 text-black/80"}`}>
-                      {tag}
+        {/* Topics */}
+        {question.topic.length > 0 && (
+          <Section title="Topics" icon={<Tag style={{ width: 14, height: 14, color: "var(--text-muted)" }} />} defaultOpen={false}>
+            <div className="flex flex-wrap gap-1.5">
+              {question.topic.map((tag) => (
+                <span
+                  key={`tag-${tag}`}
+                  className="rounded-md px-2.5 py-1 text-xs font-medium"
+                  style={{ background: "var(--bg-hover)", color: "var(--text-secondary)", border: "1px solid var(--border-primary)" }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Similar questions */}
+        {Array.isArray(similarQuestions) && similarQuestions.length > 0 && (
+          <Section title="Similar Questions" icon={<BookOpen style={{ width: 14, height: 14, color: "var(--text-muted)" }} />} defaultOpen={false}>
+            <div className="space-y-1.5">
+              {similarQuestions.slice(0, 6).map((q) => {
+                const qDiff = q.difficulty.toLowerCase();
+                const qColor = qDiff === "easy" ? "var(--color-easy)" : qDiff === "medium" ? "var(--color-medium)" : "var(--color-hard)";
+                return (
+                  <Link
+                    key={q.id}
+                    href={`/question/${q.id}`}
+                    className="flex items-center justify-between rounded-md px-3 py-2 text-xs transition-all"
+                    style={{ background: "var(--bg-hover)", border: "1px solid var(--border-primary)", color: "var(--text-primary)", textDecoration: "none" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-active)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
+                  >
+                    <span className="truncate pr-3">{q.title}</span>
+                    <span className="text-[11px] font-semibold shrink-0" style={{ color: qColor }}>
+                      {q.difficulty}
                     </span>
-                  ))
-                )}
+                  </Link>
+                );
+              })}
+            </div>
+          </Section>
+        )}
+
+        {/* Learning Blueprint (collapsible) */}
+        <Section
+          title="Learning Guide"
+          icon={<Lightbulb style={{ width: 14, height: 14, color: "var(--text-muted)" }} />}
+          defaultOpen={false}
+        >
+          <div
+            className="rounded-lg p-3 space-y-3 text-xs"
+            style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-primary)" }}
+          >
+            <div>
+              <p className="font-semibold mb-1.5" style={{ color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: "10px" }}>
+                Core Concepts
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {blueprint.concepts.map((item) => (
+                  <span
+                    key={`concept-${item}`}
+                    className="rounded px-2 py-0.5"
+                    style={{ background: "rgba(163,113,247,0.1)", color: "var(--brand-purple)", border: "1px solid rgba(163,113,247,0.2)" }}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="font-semibold mb-1.5" style={{ color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: "10px" }}>
+                Solve Steps
+              </p>
+              <ol className="space-y-1">
+                {blueprint.solvePlan.map((step, idx) => (
+                  <li key={`step-${idx}`} className="flex gap-2" style={{ color: "var(--text-secondary)" }}>
+                    <span className="font-bold shrink-0" style={{ color: "var(--brand-blue)", minWidth: "16px" }}>{idx + 1}.</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="font-semibold mb-1" style={{ color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: "10px" }}>
+                  Prerequisites
+                </p>
+                <ul className="space-y-0.5">
+                  {blueprint.prerequisites.map((item) => (
+                    <li key={`pre-${item}`} style={{ color: "var(--text-secondary)" }}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="font-semibold mb-1" style={{ color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: "10px" }}>
+                  Common Mistakes
+                </p>
+                <ul className="space-y-0.5">
+                  {blueprint.commonMistakes.map((item) => (
+                    <li key={`mistake-${item}`} style={{ color: "var(--text-secondary)" }}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {blueprint.interviewSignals.length > 0 && (
+              <div>
+                <p className="font-semibold mb-1" style={{ color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: "10px" }}>
+                  Interview Signals
+                </p>
+                <ul className="space-y-0.5">
+                  {blueprint.interviewSignals.map((item) => (
+                    <li key={`signal-${item}`} style={{ color: "var(--text-secondary)" }}>• {item}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
+        </Section>
 
-          {Array.isArray(similarQuestions) && similarQuestions.length > 0 && (
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowSimilar((v) => !v)}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${isDark ? "border-white/20 bg-white/10 text-white hover:bg-white/20" : "border-black/20 bg-black/5 text-black hover:bg-black/10"}`}
-              >
-                {showSimilar ? "Hide Similar Questions" : "Similar Questions"}
-              </button>
-              {showSimilar && (
-                <div className="mt-2 space-y-1 text-xs">
-                  {similarQuestions.map((q) => (
-                    <Link
-                      key={q.id}
-                      href={`/question/${q.id}`}
-                      className={
-                        isDark
-                          ? "flex items-center justify-between rounded-lg border border-white/15 bg-black/40 px-3 py-1.5 text-white/85 hover:bg-black/55"
-                          : "flex items-center justify-between rounded-lg border border-black/10 bg-black/5 px-3 py-1.5 text-black/85 hover:bg-black/10"
-                      }
-                    >
-                      <span className="truncate pr-2">{q.title}</span>
-                      <span
-                        className={`ml-2 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                          q.difficulty === "Easy"
-                            ? isDark
-                              ? "border-emerald-300/40 bg-emerald-300/15 text-emerald-100"
-                              : "border-emerald-400/50 bg-emerald-50 text-emerald-700"
-                            : q.difficulty === "Medium"
-                            ? isDark
-                              ? "border-amber-300/40 bg-amber-300/15 text-amber-100"
-                              : "border-amber-400/50 bg-amber-50 text-amber-800"
-                            : isDark
-                            ? "border-rose-300/40 bg-rose-300/15 text-rose-100"
-                            : "border-rose-400/50 bg-rose-50 text-rose-800"
-                        }`}
-                      >
-                        {q.difficulty}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Follow-up */}
+        {question.followUp && (
+          <div
+            className="rounded-lg px-4 py-3 mb-4"
+            style={{ background: "rgba(255,161,22,0.06)", border: "1px solid rgba(255,161,22,0.15)" }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--color-tle)" }}>Follow-up</p>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{question.followUp}</p>
+          </div>
+        )}
+
       </div>
     </div>
   );

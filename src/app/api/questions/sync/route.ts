@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { STARTER_CODE } from "@/lib/codingQuestions";
+import { getDefaultTimeLimitMinutes } from "@/lib/questionPolicy";
 
 type LeetCodeApiItem = {
   stat: {
@@ -192,6 +193,7 @@ export async function POST(req: NextRequest) {
       description: string;
       examples: unknown[];
       testcases: unknown[];
+      time_limit_minutes: number;
       starter_code: {
         cpp: string;
         java: string;
@@ -221,6 +223,7 @@ export async function POST(req: NextRequest) {
           description: `Solve ${q.title}. Full statement can be viewed on LeetCode.`,
           examples: [],
           testcases: [],
+          time_limit_minutes: getDefaultTimeLimitMinutes(q.difficulty),
           starter_code: {
             cpp: STARTER_CODE.cpp,
             java: STARTER_CODE.java,
@@ -258,6 +261,7 @@ export async function POST(req: NextRequest) {
           description: `Solve ${item.stat.question__title}. Full statement can be viewed on LeetCode.`,
           examples: [],
           testcases: [],
+          time_limit_minutes: getDefaultTimeLimitMinutes(item.stat.question__title ? item.difficulty?.level === 1 ? "Easy" : item.difficulty?.level === 2 ? "Medium" : "Hard" : "Easy"),
           starter_code: {
             cpp: STARTER_CODE.cpp,
             java: STARTER_CODE.java,

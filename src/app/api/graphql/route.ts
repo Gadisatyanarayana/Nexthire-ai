@@ -1,31 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+
+import { authOptions } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
-// Simple GraphQL schema parser
 type GraphQLQuery = {
   query: string;
-  variables?: Record<string, any>;
+  variables?: {
+    limit?: number;
+    offset?: number;
+    [key: string]: unknown;
+  };
 };
 
-interface QueryParams {
-  userId?: string;
-  limit?: number;
-  offset?: number;
-  questionId?: string;
-}
+type SubmissionRow = {
+  id: string;
+  user_id: string;
+  question_id: string | null;
+  language: string | null;
+  code: string | null;
+  output: string | null;
+  result: string | null;
+  feedback: string | null;
+  difficulty: string | null;
+  created_at: string;
+};
 
-async function resolveQuery(
-  query: string,
-  variables: Record<string, any> = {}
-): Promise<any> {
-  // Query: submissions { id, userId, questionId, language, result, createdAt }
+type SubmissionStatsRow = {
+  result: string | null;
+  difficulty: string | null;
+  language: string | null;
+};
+
+type GraphQLResult =
+  | {
+      submissions: Array<{
+        id: string;
+        userId: string;
+        questionId: string | null;
+        language: string | null;
+        code: string | null;
+        output: string | null;
+        result: string | null;
+        feedback: string | null;
+        difficulty: string | null;
+        createdAt: string;
+      }>;
+    }
+  | {
+      stats: {
+        totalSubmissions: number;
+        passedSubmissions: number;
+        successRate: number;
+        byDifficulty: Record<string, number>;
+        byLanguage: Record<string, number>;
+      };
+    }
+  | { stats: null };
+
+async function resolveQuery(query: string, variables: GraphQLQuery['variables'] = {}): Promise<GraphQLResult> {
   if (query.includes('submissions')) {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      throw new Error('Unauthorized');
-    }
+    if (!session?.user?.email) throw new Error('Unauthorized');
 
     const { data: userData } = await supabase
       .from('users')
@@ -33,12 +69,10 @@ async function resolveQuery(
       .eq('email', session.user.email)
       .maybeSingle();
 
-    if (!userData?.id) {
-      return { submissions: [] };
-    }
+    if (!userData?.id) return { submissions: [] };
 
-    const limit = variables.limit || 50;
-    const offset = variables.offset || 0;
+    const limit = Number(variables?.limit || 50);
+    const offset = Number(variables?.offset || 0);
 
     const { data, error } = await supabase
       .from('submissions')
@@ -60,27 +94,26 @@ async function resolveQuery(
 
     if (error) throw error;
 
+    const rows = Array.isArray(data) ? (data as SubmissionRow[]) : [];
     return {
-      submissions: (data || []).map((s: any) => ({
-        id: s.id,
-        userId: s.user_id,
-        questionId: s.question_id,
-        language: s.language,
-        code: s.code,
-        output: s.output,
-        result: s.result,
-        feedback: s.feedback,
-        difficulty: s.difficulty,
-        createdAt: s.created_at,
+      submissions: rows.map((row) => ({
+        id: row.id,
+        userId: row.user_id,
+        questionId: row.question_id,
+        language: row.language,
+        code: row.code,
+        output: row.output,
+        result: row.result,
+        feedback: row.feedback,
+        difficulty: row.difficulty,
+        createdAt: row.created_at,
       })),
     };
   }
 
   if (query.includes('submissionStats')) {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      throw new Error('Unauthorized');
-    }
+    if (!session?.user?.email) throw new Error('Unauthorized');
 
     const { data: userData } = await supabase
       .from('users')
@@ -88,9 +121,7 @@ async function resolveQuery(
       .eq('email', session.user.email)
       .maybeSingle();
 
-    if (!userData?.id) {
-      return { stats: null };
-    }
+    if (!userData?.id) return { stats: null };
 
     const { data: submissions, error } = await supabase
       .from('submissions')
@@ -99,14 +130,17 @@ async function resolveQuery(
 
     if (error) throw error;
 
-    const total = submissions?.length || 0;
-    const passed = submissions?.filter((s: any) => s.result === 'All Tests Passed ✓').length || 0;
+    const rows = Array.isArray(submissions) ? (submissions as SubmissionStatsRow[]) : [];
+    const total = rows.length;
+    const passed = rows.filter((row) => row.result === 'All Tests Passed ✓').length;
     const byDifficulty: Record<string, number> = {};
     const byLanguage: Record<string, number> = {};
 
-    submissions?.forEach((s: any) => {
-      byDifficulty[s.difficulty || 'unknown'] = (byDifficulty[s.difficulty || 'unknown'] || 0) + 1;
-      byLanguage[s.language || 'unknown'] = (byLanguage[s.language || 'unknown'] || 0) + 1;
+    rows.forEach((row) => {
+      const difficulty = row.difficulty || 'unknown';
+      const language = row.language || 'unknown';
+      byDifficulty[difficulty] = (byDifficulty[difficulty] || 0) + 1;
+      byLanguage[language] = (byLanguage[language] || 0) + 1;
     });
 
     return {
@@ -126,36 +160,19 @@ async function resolveQuery(
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as GraphQLQuery;
-    const { query, variables } = body;
-
-    if (!query) {
-      return NextResponse.json(
-        { error: 'Query is required' },
-        { status: 400 }
-      );
+    if (!body.query) {
+      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    const result = await resolveQuery(query, variables);
-
-    return NextResponse.json({
-      data: result,
-    });
-  } catch (error: any) {
+    const result = await resolveQuery(body.query, body.variables);
+    return NextResponse.json({ data: result });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'GraphQL query failed';
     console.error('GraphQL error:', error);
-    return NextResponse.json(
-      {
-        errors: [
-          {
-            message: error.message || 'GraphQL query failed',
-          },
-        ],
-      },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
+    return NextResponse.json({ errors: [{ message }] }, { status: message === 'Unauthorized' ? 401 : 500 });
   }
 }
 
-// GET endpoint for exploration
 export async function GET() {
   return NextResponse.json({
     schema: {
@@ -163,18 +180,7 @@ export async function GET() {
         submissions: {
           description: 'Get user submissions',
           args: { limit: 'int', offset: 'int' },
-          fields: [
-            'id',
-            'userId',
-            'questionId',
-            'language',
-            'code',
-            'output',
-            'result',
-            'feedback',
-            'difficulty',
-            'createdAt',
-          ],
+          fields: ['id', 'userId', 'questionId', 'language', 'code', 'output', 'result', 'feedback', 'difficulty', 'createdAt'],
         },
         submissionStats: {
           description: 'Get submission statistics for current user',

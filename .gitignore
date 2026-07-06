@@ -23,6 +23,10 @@
 # misc
 .DS_Store
 *.pem
+.recovery/
+*.history
+*.current
+tmp_note_do_not_use.txt
 
 # debug
 npm-debug.log*

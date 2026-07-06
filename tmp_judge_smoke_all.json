@@ -1,0 +1,81 @@
+[
+  {
+    "language": "cpp",
+    "result": "Accepted",
+    "passed": 2,
+    "total": 2,
+    "elapsedMs": 32144,
+    "diagnostics": [],
+    "warnings": [
+      "Assessment source: smoke"
+    ],
+    "cases": [
+      {
+        "input": "2,3",
+        "output": "5",
+        "expectedOutput": "5",
+        "status": "Accepted",
+        "passed": true,
+        "isHidden": false,
+        "timeMs": 0,
+        "memoryKb": 2231
+      },
+      {
+        "input": "[Hidden Test Case]",
+        "output": "[Hidden Case Passed]",
+        "expectedOutput": "[Hidden Expected Output]",
+        "status": "Accepted",
+        "passed": true,
+        "isHidden": true,
+        "timeMs": 0,
+        "memoryKb": 2231
+      }
+    ]
+  },
+  {
+    "language": "java",
+    "result": "Accepted",
+    "passed": 1,
+    "total": 1,
+    "elapsedMs": 5433,
+    "diagnostics": [],
+    "warnings": [
+      "Assessment source: smoke"
+    ],
+    "cases": [
+      {
+        "input": "[1,2,3]",
+        "output": "[2, 4, 6]",
+        "expectedOutput": "[2,4,6]",
+        "status": "Accepted",
+        "passed": true,
+        "isHidden": false,
+        "timeMs": 0,
+        "memoryKb": 36756
+      }
+    ]
+  },
+  {
+    "language": "python",
+    "result": "Accepted",
+    "passed": 1,
+    "total": 1,
+    "elapsedMs": 363,
+    "diagnostics": [],
+    "warnings": [
+      "Assessment source: smoke"
+    ],
+    "cases": [
+      {
+        "input": "[1,2,3]",
+        "output": "[2,4,6]",
+        "expectedOutput": "[2,4,6]",
+        "status": "Accepted",
+        "passed": true,
+        "isHidden": false,
+        "timeMs": 0,
+        "memoryKb": 14393
+      }
+    ]
+  }
+]

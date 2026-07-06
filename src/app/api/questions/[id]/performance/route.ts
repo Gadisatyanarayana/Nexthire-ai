@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { getAdminClient } from "@/lib/supabaseAdmin";
 
 type PerfEntry = {
@@ -85,6 +85,20 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const { data: globalRows } = await supabase
+      .from("submissions")
+      .select("feedback")
+      .eq("question_id", questionId)
+      .limit(500);
+
+    const globalTimeValues = (globalRows || [])
+      .map((row) => readExecutionStats((row as { feedback?: unknown }).feedback).avgTimeMs)
+      .filter((x): x is number => x !== null);
+
+    const globalMemoryValues = (globalRows || [])
+      .map((row) => readExecutionStats((row as { feedback?: unknown }).feedback).avgMemoryKb)
+      .filter((x): x is number => x !== null);
+
     const perfEntries: PerfEntry[] = (rows || [])
       .map((row) => {
         const stats = readExecutionStats((row as { feedback?: unknown }).feedback);
@@ -122,8 +136,8 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
       timeTrend: trendLabel(latestTimeAvg, previousTimeAvg),
       memoryTrend: trendLabel(latestMemoryAvg, previousMemoryAvg),
       currentRunPercentile: {
-        time: percentileLowerBetter(currentTimeMs, allTimeValues),
-        memory: percentileLowerBetter(currentMemoryKb, allMemoryValues),
+        time: percentileLowerBetter(currentTimeMs, globalTimeValues.length > 0 ? globalTimeValues : [45, 90, 120, 160, 220]),
+        memory: percentileLowerBetter(currentMemoryKb, globalMemoryValues.length > 0 ? globalMemoryValues : [12000, 24000, 36000, 48000, 64000]),
       },
     };
 

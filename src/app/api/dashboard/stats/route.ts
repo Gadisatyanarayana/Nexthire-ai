@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { getAdminClient } from "@/lib/supabaseAdmin";
 import { inferDsaSection, sectionLabel } from "@/lib/dsaSections";
 
@@ -57,6 +57,7 @@ let cachedQuestionSectionMaps:
       expiresAt: number;
       questionSectionMap: Map<string, string>;
       sectionTotalMap: Map<string, number>;
+      questionTitleMap: Map<string, string>;
     }
   | null = null;
 
@@ -120,6 +121,7 @@ async function getQuestionSectionMaps() {
   const questionRows = Array.isArray(allQuestions) ? allQuestions : [];
   const questionSectionMap = new Map<string, string>();
   const sectionTotalMap = new Map<string, number>();
+  const questionTitleMap = new Map<string, string>();
 
   for (const q of questionRows) {
     const qid = String(q.id || "");
@@ -128,12 +130,14 @@ async function getQuestionSectionMaps() {
     const sectionId = inferDsaSection(topics, String(q.title || ""));
     questionSectionMap.set(qid, sectionId);
     sectionTotalMap.set(sectionId, (sectionTotalMap.get(sectionId) || 0) + 1);
+    questionTitleMap.set(qid, String(q.title || ""));
   }
 
   cachedQuestionSectionMaps = {
     expiresAt: Date.now() + QUESTION_SECTION_CACHE_TTL_MS,
     questionSectionMap,
     sectionTotalMap,
+    questionTitleMap,
   };
 
   return cachedQuestionSectionMaps;
@@ -157,7 +161,8 @@ export async function GET() {
       .maybeSingle();
 
     if (userError) {
-      return NextResponse.json({ error: userError.message }, { status: 500 });
+      console.error("Dashboard stats user lookup error:", userError);
+      return NextResponse.json({ error: "Failed to load dashboard stats" }, { status: 500 });
     }
 
     if (!userRow?.id) {
@@ -193,12 +198,13 @@ export async function GET() {
     ]);
 
     if (submissionsError) {
-      return NextResponse.json({ error: submissionsError.message }, { status: 500 });
+      console.error("Dashboard stats submission lookup error:", submissionsError);
+      return NextResponse.json({ error: "Failed to load dashboard stats" }, { status: 500 });
     }
 
     const submissions = (rows || []) as SubmissionRow[];
     const activities = (activityRows || []) as ActivityRow[];
-    const { questionSectionMap, sectionTotalMap } = questionMaps;
+    const { questionSectionMap, sectionTotalMap, questionTitleMap } = questionMaps;
 
     const byDifficulty = { easy: 0, medium: 0, hard: 0, unknown: 0 };
     const languageMap = new Map<string, number>();
@@ -382,6 +388,7 @@ export async function GET() {
       },
       activitySummary: {
         lastLoginAt,
+        lastLogoutAt: activities.find((a) => String(a.activity_type || '') === 'logout')?.created_at || null,
         totalTimeSpentMinutes: Math.round(pageTimeSeconds / 60),
         topPages,
         chatbotSearches: chatbotSearches.slice(0, 30),
@@ -395,8 +402,16 @@ export async function GET() {
       },
     };
 
+    const enrichedSubmissions = submissions.slice(0, 12).map(sub => {
+      const qid = String(sub.question_id || "");
+      return {
+        ...sub,
+        question_title: questionTitleMap.get(qid) || qid || "Practice Problem"
+      };
+    });
+
     return NextResponse.json(
-      { stats, submissions: submissions.slice(0, 12) },
+      { stats, submissions: enrichedSubmissions },
       {
         headers: {
           "Cache-Control": "private, max-age=20, stale-while-revalidate=60",
@@ -404,7 +419,7 @@ export async function GET() {
       }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load dashboard stats";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Dashboard stats route error:", error);
+    return NextResponse.json({ error: "Failed to load dashboard stats" }, { status: 500 });
   }
 }

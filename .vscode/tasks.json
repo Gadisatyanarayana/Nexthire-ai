@@ -1,0 +1,25 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "judge-api-smoke-check",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"scripts/tmp-api-run-check.mjs"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "backfill-hidden-v2-dry",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"scripts/backfill-hidden-testcases-v2.mjs",
+				"--dry-run",
+				"--limit=20"
+			],
+			"isBackground": false
+		}
+	]
+}

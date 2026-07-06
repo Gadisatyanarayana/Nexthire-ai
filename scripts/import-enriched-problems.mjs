@@ -149,21 +149,15 @@ async function main() {
   if (args.statsOnly) {
     const total = await supabase.from("questions").select("id", { count: "exact", head: true });
     const codeforces = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("source", "codeforces");
-    const aiEnriched = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("source", "ai-enriched");
-    const missingTc = await supabase.from("questions").select("id", { count: "exact", head: true }).or("testcases.is.null,testcases.eq.[]");
+    const aiEnriched = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("source", "ai_enriched");
+    const missingTc = await supabase.from("questions").select("id", { count: "exact", head: true }).is("test_cases", null);
 
-    console.log(
-      JSON.stringify(
-        {
-          totalQuestions: total.count ?? null,
-          codeforcesQuestions: codeforces.count ?? null,
-          aiEnrichedQuestions: aiEnriched.count ?? null,
-          questionsMissingTestcases: missingTc.count ?? null,
-        },
-        null,
-        2
-      )
-    );
+    console.log(JSON.stringify({
+      totalQuestions: total.count ?? null,
+      codeforcesQuestions: codeforces.count ?? null,
+      aiEnrichedQuestions: aiEnriched.count ?? null,
+      questionsMissingTestcases: missingTc.count ?? null,
+    }, null, 2));
     return;
   }
 

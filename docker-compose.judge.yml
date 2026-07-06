@@ -1,0 +1,49 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nexthire-redis-judge
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lfu"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  judge-worker:
+    build:
+      context: .
+      dockerfile: docker/judge-worker/Dockerfile
+    image: my-app-judge-worker:latest
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379
+      JUDGE_QUEUE_NAME: judge-submissions
+      JUDGE_EXECUTION_TIMEOUT_MS: 15000
+      JUDGE_EXECUTION_MEMORY_MB: 256
+      JUDGE_EXECUTION_CPU_LIMIT: 1
+      JUDGE_EXECUTION_PIDS_LIMIT: 128
+      JUDGE_WORKER_CONCURRENCY: 4
+      JUDGE_CASE_PARALLELISM: 4
+      JUDGE_CONTAINER_STARTUP_BUFFER_MS: 180000
+      JUDGE_DOCKER_RETRY_ATTEMPTS: 1
+      APP_CACHE_TTL_SECONDS: 120
+      JUDGE_IMAGE_PYTHON: python:3.12-slim
+      JUDGE_IMAGE_JAVA: eclipse-temurin:21-jdk
+      JUDGE_IMAGE_CPP: gcc:13.2
+      JUDGE_IMAGE_JAVASCRIPT: node:20-alpine
+      JUDGE_PREPULL_IMAGES: "true"
+      JUDGE_LOCAL_EXECUTION_FALLBACK: "false"
+      JUDGE_VOLUME_NAME: nexthire-judge-worker-tmp
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - nexthire-judge-worker-tmp:/tmp
+
+volumes:
+  nexthire-judge-worker-tmp:
+    name: nexthire-judge-worker-tmp

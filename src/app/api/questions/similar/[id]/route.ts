@@ -1,8 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabaseAdmin";
+import { readJsonCache, writeJsonCache, getCacheTtlSeconds } from "@/lib/appCache";
 
-export async function GET(_req: Request, context: { params: { id: string } }) {
-  const rawId = context?.params?.id;
+const SIMILAR_CACHE_TTL_SECONDS = getCacheTtlSeconds(120);
+
+async function loadQuestionsVersion(): Promise<string | null> {
+  try {
+    const admin = getAdminClient();
+    const { data } = await admin
+      .from("app_meta")
+      .select("value")
+      .eq("key", "questions_last_sync_at")
+      .maybeSingle();
+
+    return typeof data?.value === "string" && data.value.trim() ? data.value : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildSimilarCacheKey(id: string, version: string | null): string {
+  return `questions:similar:${version || "none"}:${id}`;
+}
+
+export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await context.params;
   const id = decodeURIComponent(String(rawId || "")).trim();
 
   if (!id) {
@@ -11,6 +33,16 @@ export async function GET(_req: Request, context: { params: { id: string } }) {
 
   try {
     const supabase = getAdminClient();
+    const cacheVersion = await loadQuestionsVersion();
+    const cacheKey = buildSimilarCacheKey(id, cacheVersion);
+    const cached = await readJsonCache<{ similar: Array<{ id: string; title: string; difficulty: string; topic: string[] }> }>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+        },
+      });
+    }
 
     const { data: question, error: qError } = await supabase
       .from("questions")
@@ -113,16 +145,16 @@ export async function GET(_req: Request, context: { params: { id: string } }) {
       }
     }
 
-    return NextResponse.json(
-      { similar: similar.slice(0, 8) },
-      {
-        headers: {
-          "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
-        },
-      }
-    );
+    const payload = { similar: similar.slice(0, 8) };
+    await writeJsonCache(cacheKey, payload, SIMILAR_CACHE_TTL_SECONDS);
+
+    return NextResponse.json(payload, {
+      headers: {
+        "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
-    console.error(`[similar-api] Error fetching similar for ${context?.params?.id}:`, error);
+    console.error(`[similar-api] Error fetching similar for ${id}:`, error);
     return NextResponse.json({ similar: [] }, { status: 200 });
   }
 }

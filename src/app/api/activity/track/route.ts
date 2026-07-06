@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { getAdminClient, upsertUserAdmin } from '@/lib/supabaseAdmin';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
@@ -12,6 +12,7 @@ type TrackBody = {
 
 const ALLOWED_TYPES = new Set([
   'login',
+  'logout',
   'page_view',
   'page_time',
   'chatbot_search',

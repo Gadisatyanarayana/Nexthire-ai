@@ -5,6 +5,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CodingQuestion } from '@/lib/codingQuestions';
+import { supabase } from '@/lib/supabase';
+import { useLeaderboardStream } from '@/lib/useLeaderboardStream';
 
 type Contest = {
   id: string;
@@ -19,10 +21,25 @@ type Contest = {
 
 type ContestApiPayload = {
   contest?: Contest;
+  participants?: Array<{ user_id: string; joined_at: string; finished_at: string | null; score: number | null; rank: number | null }>;
   contestQuestionIds?: string[];
   isOwner?: boolean;
+  isParticipant?: boolean;
   questionSetLocked?: boolean;
-  leaderboard?: Array<{ rank: number; userId: string; name: string | null; email: string | null; score: number; finishedAt: string | null }>;
+  leaderboard?: Array<{
+    rank: number;
+    userId: string;
+    name: string | null;
+    email: string | null;
+    score: number;
+    joinedAt: string | null;
+    finishedAt: string | null;
+    timeTakenSeconds?: number | null;
+    avgMemoryKb?: number;
+    avgRuntimeMs?: number;
+    totalCodeChars?: number;
+    timedOut?: boolean;
+  }>;
   submissionStats?: {
     attemptedCount: number;
     acceptedCount: number;
@@ -37,6 +54,14 @@ type CompletionSummary = {
   acceptanceRate: number;
   acceptedCount: number;
   attemptedCount: number;
+  timeTakenSeconds?: number | null;
+  timeTakenMinutes?: number | null;
+  questionBreakdown?: Array<{
+    questionId: string;
+    attempts: number;
+    accepted: boolean;
+    lastResult: string;
+  }>;
   suggestions: string[];
   timedOut: boolean;
 };
@@ -48,35 +73,26 @@ type AttemptState = {
   finished: boolean;
 };
 
-type ContestSettingsForm = {
-  title: string;
-  description: string;
-  durationMinutes: number;
-  startDate: string;
-  startTime: string;
-};
 
-function toLocalDateInput(value: string | null): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10);
+
+function contestGrade(points: number, totalQuestions: number): string {
+  const safeTotal = Math.max(1, totalQuestions);
+  const ratio = Math.max(0, points) / safeTotal;
+  if (ratio >= 0.9) return 'A+';
+  if (ratio >= 0.75) return 'A';
+  if (ratio >= 0.6) return 'B';
+  if (ratio >= 0.4) return 'C';
+  return 'D';
 }
 
-function toLocalTimeInput(value: string | null): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(11, 16);
-}
+const AUTO_FINALIZE_SECONDS = 0;
 
 function timerColor(seconds: number | null, isDark: boolean): string {
   if (seconds === null) return isDark ? 'text-white/75' : 'text-black/75';
   if (seconds <= 0) return isDark ? 'text-red-300' : 'text-red-700';
   if (seconds <= 5 * 60) return isDark ? 'text-red-300' : 'text-red-700';
   if (seconds <= 10 * 60) return isDark ? 'text-orange-300' : 'text-orange-700';
+  if (seconds <= 15 * 60) return isDark ? 'text-amber-300' : 'text-amber-700';
   return isDark ? 'text-emerald-300' : 'text-emerald-700';
 }
 
@@ -86,6 +102,20 @@ function formatTime(seconds: number | null): string {
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function formatDurationSeconds(totalSeconds: number | null | undefined): string {
+  if (typeof totalSeconds !== 'number' || !Number.isFinite(totalSeconds)) return '-';
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+}
+
+function remainingSecondsFromEndsAt(endsAt: string): number {
+  const endMs = Date.parse(endsAt);
+  if (!Number.isFinite(endMs)) return 0;
+  return Math.max(0, Math.ceil((endMs - Date.now()) / 1000));
 }
 
 function difficultyBadgeClass(difficulty: string, isDark: boolean): string {
@@ -100,6 +130,27 @@ function difficultyBadgeClass(difficulty: string, isDark: boolean): string {
     return isDark ? 'bg-red-500/25 text-red-200' : 'bg-red-100 text-red-700';
   }
   return isDark ? 'bg-white/15 text-white' : 'bg-black/10 text-black';
+}
+
+function evaluateQuestionReadiness(question: CodingQuestion): { ready: boolean; reason: string } {
+  if (!String(question.title || '').trim()) {
+    return { ready: false, reason: 'Missing title' };
+  }
+
+  if (!String(question.description || '').trim()) {
+    return { ready: false, reason: 'Missing description' };
+  }
+
+  if (!Array.isArray(question.testcases) || question.testcases.length === 0) {
+    return { ready: false, reason: 'Missing test cases' };
+  }
+
+  const hasBadCase = question.testcases.some((tc) => !String(tc.input || '').trim() || !String(tc.expectedOutput || '').trim());
+  if (hasBadCase) {
+    return { ready: false, reason: 'Invalid test case data' };
+  }
+
+  return { ready: true, reason: 'Ready' };
 }
 
 export default function ContestWorkspacePage() {
@@ -122,24 +173,18 @@ export default function ContestWorkspacePage() {
   const [completionSummary, setCompletionSummary] = useState<CompletionSummary | null>(null);
   const [acceptedQuestionIds, setAcceptedQuestionIds] = useState<string[]>([]);
   const [attemptedCount, setAttemptedCount] = useState(0);
-  const [leaderboard, setLeaderboard] = useState<Array<{ rank: number; userId: string; name: string | null; email: string | null; score: number; finishedAt: string | null }>>([]);
   const [isOwner, setIsOwner] = useState(false);
+  const [isLeaderboardFrozen, setIsLeaderboardFrozen] = useState(false);
   const [questionSetLocked, setQuestionSetLocked] = useState(false);
   const [creatorDraftQuestionIds, setCreatorDraftQuestionIds] = useState<string[]>([]);
   const [savingCreatorQuestions, setSavingCreatorQuestions] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [settingsSaving, setSettingsSaving] = useState(false);
-  const [settingsForm, setSettingsForm] = useState<ContestSettingsForm>({
-    title: '',
-    description: '',
-    durationMinutes: 90,
-    startDate: '',
-    startTime: '',
-  });
   const [librarySearch, setLibrarySearch] = useState('');
   const [libraryDifficulty, setLibraryDifficulty] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
-  const [libraryTopic, setLibraryTopic] = useState('all');
+  const [libraryCodingPattern, setLibraryCodingPattern] = useState('all');
+  const [libraryAptitudeTopic, setLibraryAptitudeTopic] = useState('all');
+  const [libraryReasoningTopic, setLibraryReasoningTopic] = useState('all');
   const [libraryCompany, setLibraryCompany] = useState('all');
   const [creatingQuestion, setCreatingQuestion] = useState(false);
   const [createFormErrors, setCreateFormErrors] = useState<Record<string, string>>({});
@@ -152,8 +197,29 @@ export default function ContestWorkspacePage() {
     testcases: [{ input: '', expectedOutput: '' }],
   });
   const leaderboardRef = useRef<HTMLDivElement | null>(null);
+  const autoFinalizeTriggeredRef = useRef(false);
+
+  // Use SSE for real-time leaderboard updates
+  const { leaderboard, isConnected: leaderboardConnected } = useLeaderboardStream(contestId);
 
   const storageKey = contestId ? `contest-attempt:${contestId}` : null;
+  const safeDurationMinutes = useMemo(() => {
+    const raw = Number(contest?.duration_minutes || 0);
+    if (!Number.isFinite(raw) || raw <= 0) return 90;
+    return Math.floor(raw);
+  }, [contest?.duration_minutes]);
+
+  const contestCategory = useMemo(() => {
+    const desc = contest?.description || '';
+    const match = desc.match(/^\[(coding|sql|aptitude|combined)\]/i);
+    return match ? match[1].toLowerCase() : 'coding';
+  }, [contest?.description]);
+
+  const cleanDescription = useMemo(() => {
+    const desc = contest?.description || '';
+    const match = desc.match(/^\[(coding|sql|aptitude|combined)\]\s*(.*)/i);
+    return match ? match[2] : desc;
+  }, [contest?.description]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -184,7 +250,13 @@ export default function ContestWorkspacePage() {
         setContest(contestData.contest ?? null);
         setQuestionSetLocked(Boolean(contestData.questionSetLocked));
         const fixedQuestionIds = Array.isArray(contestData.contestQuestionIds) ? contestData.contestQuestionIds : [];
-        setIsOwner(Boolean(contestData.isOwner));
+        const canManageContest = Boolean(contestData.isOwner);
+        setIsOwner(canManageContest);
+
+        if (contestData.contest?.mode === 'public' && !canManageContest) {
+          void fetch(`/api/contests/${contestId}/join`, { method: 'POST' });
+        }
+
         if (fixedQuestionIds.length > 0) {
           setFixedContestQuestionIds(fixedQuestionIds);
           setSelectedQuestionIds(fixedQuestionIds);
@@ -193,7 +265,7 @@ export default function ContestWorkspacePage() {
           setFixedContestQuestionIds([]);
           setCreatorDraftQuestionIds([]);
         }
-        setLeaderboard(Array.isArray(contestData.leaderboard) ? contestData.leaderboard : []);
+        // Leaderboard now loaded via SSE stream in useLeaderboardStream hook
         setAcceptedQuestionIds(contestData.submissionStats?.acceptedQuestionIds || []);
         setAttemptedCount(contestData.submissionStats?.attemptedCount || 0);
 
@@ -201,12 +273,30 @@ export default function ContestWorkspacePage() {
 
         if (storageKey) {
           const raw = localStorage.getItem(storageKey);
+          const contestStatus = String(contestData.contest?.status || "").toLowerCase();
+          if (contestStatus === "completed" || contestStatus === "ended" || contestStatus === "cancelled") {
+            localStorage.removeItem(storageKey);
+            setAttemptState(null);
+            setTimeRemaining(null);
+            setCompletionSummary(null);
+          }
           if (raw) {
             try {
               const parsed = JSON.parse(raw) as AttemptState;
               if (parsed && parsed.startedAt && parsed.endsAt && Array.isArray(parsed.selectedQuestionIds)) {
-                setAttemptState(parsed);
-                setSelectedQuestionIds(parsed.selectedQuestionIds);
+                const endMs = Date.parse(parsed.endsAt);
+                const expired = !Number.isFinite(endMs) || endMs <= Date.now();
+                if (parsed.finished || expired) {
+                  localStorage.removeItem(storageKey);
+                  setAttemptState(null);
+                  if (fixedQuestionIds.length > 0) {
+                    setSelectedQuestionIds(fixedQuestionIds);
+                  }
+                } else {
+                  setAttemptState(parsed);
+                  setTimeRemaining(remainingSecondsFromEndsAt(parsed.endsAt));
+                  setSelectedQuestionIds(parsed.selectedQuestionIds);
+                }
               }
             } catch {
               // Ignore malformed local storage
@@ -215,12 +305,23 @@ export default function ContestWorkspacePage() {
         }
 
         setQuestionsLoading(true);
-        const questionsRes = await fetch('/api/questions?limit=30');
+        const questionsRes = await fetch('/api/questions?limit=300');
         const questionsData = await questionsRes.json().catch(() => ({}));
         if (cancelled) return;
         if (questionsRes.ok) {
           const qs = Array.isArray(questionsData.questions) ? (questionsData.questions as CodingQuestion[]) : [];
-          setQuestions(qs);
+          const questionMap = new Map(qs.map((q) => [q.id, q]));
+          const requiredIds = fixedQuestionIds.length > 0 ? fixedQuestionIds : [];
+
+          for (const qid of requiredIds) {
+            if (questionMap.has(qid)) continue;
+            const byIdRes = await fetch(`/api/questions/${qid}`);
+            const byIdData = await byIdRes.json().catch(() => ({}));
+            const byIdQuestion = (byIdData as { question?: CodingQuestion }).question;
+            if (byIdRes.ok && byIdQuestion?.id) questionMap.set(byIdQuestion.id, byIdQuestion);
+          }
+
+          setQuestions(Array.from(questionMap.values()));
         }
       } catch (err: unknown) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load contest workspace');
@@ -245,15 +346,13 @@ export default function ContestWorkspacePage() {
   }, [contestId, storageKey]);
 
   useEffect(() => {
-    if (!attemptState) {
+    if (!attemptState || attemptState.finished) {
       setTimeRemaining(null);
       return;
     }
 
     const tick = () => {
-      const nowMs = Date.now();
-      const endMs = new Date(attemptState.endsAt).getTime();
-      const seconds = Math.max(0, Math.ceil((endMs - nowMs) / 1000));
+      const seconds = remainingSecondsFromEndsAt(attemptState.endsAt);
       setTimeRemaining(seconds);
     };
 
@@ -287,6 +386,10 @@ export default function ContestWorkspacePage() {
     return () => window.clearTimeout(timer);
   }, [successToast]);
 
+
+
+
+
   useEffect(() => {
     if (!attemptState || attemptState.finished) return;
 
@@ -301,24 +404,88 @@ export default function ContestWorkspacePage() {
     };
   }, [attemptState]);
 
-  useEffect(() => {
-    if (!contest) return;
-    setSettingsForm({
-      title: contest.title,
-      description: contest.description || '',
-      durationMinutes: contest.duration_minutes,
-      startDate: toLocalDateInput(contest.starts_at),
-      startTime: toLocalTimeInput(contest.starts_at),
-    });
-  }, [contest]);
+
 
   const isContestStarted = Boolean(attemptState) && !attemptState?.finished;
-  const isTimeOver = isContestStarted && (timeRemaining ?? 0) <= 0;
+  const isTimeOver =
+    isContestStarted &&
+    Number.isFinite(Date.parse(attemptState?.endsAt || '')) &&
+    Date.now() >= Date.parse(attemptState?.endsAt || '') &&
+    timeRemaining !== null &&
+    timeRemaining <= AUTO_FINALIZE_SECONDS;
+  const isReadOnly =
+    contest?.status === 'completed' ||
+    contest?.status === 'ended' ||
+    (attemptState ? attemptState.finished : false) ||
+    isTimeOver;
+  const effectiveSelectedQuestionIds = useMemo(() => {
+    if (Array.isArray(attemptState?.selectedQuestionIds) && attemptState.selectedQuestionIds.length > 0) {
+      return attemptState.selectedQuestionIds;
+    }
+    if (fixedContestQuestionIds.length > 0) return fixedContestQuestionIds;
+    return selectedQuestionIds;
+  }, [attemptState?.selectedQuestionIds, fixedContestQuestionIds, selectedQuestionIds]);
 
-  const topicOptions = useMemo(() => {
+  const contestEndAt = useMemo(() => {
+    if (!attemptState?.startedAt) return null;
+    const startedMs = Date.parse(attemptState.startedAt);
+    if (!Number.isFinite(startedMs)) return null;
+    return new Date(startedMs + safeDurationMinutes * 60 * 1000);
+  }, [attemptState?.startedAt, safeDurationMinutes]);
+
+  const joinedParticipants = useMemo(() => {
+    const seen = new Set<string>();
+    return leaderboard
+      .filter((row) => {
+        if (!row.userId || seen.has(row.userId)) return false;
+        seen.add(row.userId);
+        return true;
+      })
+      .sort((a, b) => {
+        const aTime = a.joinedAt ? Date.parse(a.joinedAt) : Number.MAX_SAFE_INTEGER;
+        const bTime = b.joinedAt ? Date.parse(b.joinedAt) : Number.MAX_SAFE_INTEGER;
+        return aTime - bTime;
+      });
+  }, [leaderboard]);
+
+
+
+  const codingPatternOptions = useMemo(() => {
     const set = new Set<string>();
     for (const q of questions) {
-      for (const t of q.topic || []) set.add(String(t || '').toLowerCase());
+      if (q.input_type !== 'aptitude') {
+        for (const t of q.topic || []) set.add(String(t || '').toLowerCase());
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [questions]);
+
+  const aptitudeTopicOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const q of questions) {
+      if (q.input_type === 'aptitude') {
+        for (const t of q.topic || []) {
+          const lower = String(t || '').toLowerCase();
+          if (!lower.includes('reasoning') && !lower.includes('logic') && lower !== 'aptitude') {
+            set.add(lower);
+          }
+        }
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [questions]);
+
+  const reasoningTopicOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const q of questions) {
+      if (q.input_type === 'aptitude') {
+        for (const t of q.topic || []) {
+          const lower = String(t || '').toLowerCase();
+          if (lower.includes('reasoning') || lower.includes('logic')) {
+            set.add(lower);
+          }
+        }
+      }
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [questions]);
@@ -335,11 +502,16 @@ export default function ContestWorkspacePage() {
     return questions.filter((q) => {
       const bySearch = !librarySearch || q.title.toLowerCase().includes(librarySearch.toLowerCase());
       const byDifficulty = libraryDifficulty === 'all' || q.difficulty.toLowerCase() === libraryDifficulty;
-      const byTopic = libraryTopic === 'all' || (q.topic || []).map((x) => x.toLowerCase()).includes(libraryTopic);
       const byCompany = libraryCompany === 'all' || (q.company_tags || []).map((x) => x.toLowerCase()).includes(libraryCompany);
-      return bySearch && byDifficulty && byTopic && byCompany;
+      
+      const qTopics = (q.topic || []).map((x) => x.toLowerCase());
+      const matchCoding = libraryCodingPattern === 'all' || qTopics.includes(libraryCodingPattern);
+      const matchAptitude = libraryAptitudeTopic === 'all' || qTopics.includes(libraryAptitudeTopic);
+      const matchReasoning = libraryReasoningTopic === 'all' || qTopics.includes(libraryReasoningTopic);
+
+      return bySearch && byDifficulty && byCompany && matchCoding && matchAptitude && matchReasoning;
     });
-  }, [questions, librarySearch, libraryDifficulty, libraryTopic, libraryCompany]);
+  }, [questions, librarySearch, libraryDifficulty, libraryCodingPattern, libraryAptitudeTopic, libraryReasoningTopic, libraryCompany]);
 
   const creatorPreviewQuestions = useMemo(
     () => questions.filter((q) => creatorDraftQuestionIds.includes(q.id)),
@@ -351,6 +523,22 @@ export default function ContestWorkspacePage() {
     return questions.filter((q) => ids.includes(q.id));
   }, [creatorDraftQuestionIds, fixedContestQuestionIds, questions]);
 
+  useEffect(() => {
+    if (!attemptState || attemptState.finished) return;
+    if (attemptState.selectedQuestionIds.length > 0) return;
+    if (fixedContestQuestionIds.length === 0) return;
+
+    const repairedAttempt: AttemptState = {
+      ...attemptState,
+      selectedQuestionIds: fixedContestQuestionIds,
+    };
+
+    setAttemptState(repairedAttempt);
+    if (storageKey) {
+      localStorage.setItem(storageKey, JSON.stringify(repairedAttempt));
+    }
+  }, [attemptState, fixedContestQuestionIds, storageKey]);
+
   function toggleQuestionSelection(questionId: string) {
     if (isContestStarted) return;
     setSelectedQuestionIds((prev) =>
@@ -361,25 +549,31 @@ export default function ContestWorkspacePage() {
   function startContestNow() {
     if (!contest || !storageKey) return;
     if (fixedContestQuestionIds.length === 0) {
-      setError('Contest creator must add contest questions in workspace before starting.');
+      setError(isOwner
+        ? 'Contest creator/admin must add contest questions in workspace before starting.'
+        : 'Contest question set is not published yet. Wait for creator/admin to save the set.');
       return;
     }
-    if (selectedQuestionIds.length === 0) {
+    const startSelection = fixedContestQuestionIds.length > 0 ? fixedContestQuestionIds : selectedQuestionIds;
+    if (startSelection.length === 0) {
       setError('Select at least one question to start the contest.');
       return;
     }
 
     const startedAt = new Date().toISOString();
-    const endsAt = new Date(Date.now() + contest.duration_minutes * 60 * 1000).toISOString();
+    const endsAt = new Date(Date.now() + safeDurationMinutes * 60 * 1000).toISOString();
     const nextAttempt: AttemptState = {
       startedAt,
       endsAt,
-      selectedQuestionIds,
+      selectedQuestionIds: startSelection,
       finished: false,
     };
 
     localStorage.setItem(storageKey, JSON.stringify(nextAttempt));
+    setSelectedQuestionIds(startSelection);
+    setTimeRemaining(remainingSecondsFromEndsAt(endsAt));
     setAttemptState(nextAttempt);
+    autoFinalizeTriggeredRef.current = false;
     setCompletionSummary(null);
     setError(null);
   }
@@ -396,9 +590,10 @@ export default function ContestWorkspacePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            selectedQuestionIds: attemptState.selectedQuestionIds,
+            selectedQuestionIds: effectiveSelectedQuestionIds,
             attemptedCount,
             acceptedCount: acceptedQuestionIds.length,
+            acceptedQuestionIds,
             startedAt: attemptState.startedAt,
             endedAt: new Date().toISOString(),
             timedOut,
@@ -423,13 +618,20 @@ export default function ContestWorkspacePage() {
         setSubmittingSummary(false);
       }
     },
-    [acceptedQuestionIds.length, attemptState, attemptedCount, contestId, storageKey, submittingSummary]
+    [acceptedQuestionIds, attemptState, attemptedCount, contestId, effectiveSelectedQuestionIds, storageKey, submittingSummary]
   );
 
   useEffect(() => {
-    if (!isTimeOver || !attemptState || completionSummary) return;
+    if (!isTimeOver || !attemptState || completionSummary || autoFinalizeTriggeredRef.current) return;
+    autoFinalizeTriggeredRef.current = true;
     void handleComplete(true);
   }, [attemptState, completionSummary, handleComplete, isTimeOver]);
+
+  useEffect(() => {
+    if (!attemptState || attemptState.finished) {
+      autoFinalizeTriggeredRef.current = false;
+    }
+  }, [attemptState]);
 
   useEffect(() => {
     const viewParam = searchParams?.get('view');
@@ -444,8 +646,8 @@ export default function ContestWorkspacePage() {
   }, [attemptState?.finished, completionSummary, searchParams]);
 
   function openQuestion(q: CodingQuestion) {
-    if (!contestId || !attemptState || isTimeOver || attemptState.finished) return;
-    if (!attemptState.selectedQuestionIds.includes(q.id)) return;
+    if (!contestId || !attemptState || isReadOnly) return;
+    if (!effectiveSelectedQuestionIds.includes(q.id)) return;
 
     router.push(
       `/question/${q.id}?contestId=${contestId}&contestEndsAt=${encodeURIComponent(attemptState.endsAt)}&contestStartedAt=${encodeURIComponent(attemptState.startedAt)}`
@@ -479,60 +681,9 @@ export default function ContestWorkspacePage() {
     }
   }
 
-  async function updateContestSettings() {
-    if (!contestId || !isOwner || attemptState) return;
-
-    const title = settingsForm.title.trim();
-    if (title.length < 3) {
-      setError('Title must be at least 3 characters.');
-      return;
-    }
-    if (!Number.isFinite(settingsForm.durationMinutes) || settingsForm.durationMinutes < 15 || settingsForm.durationMinutes > 300) {
-      setError('Duration must be between 15 and 300 minutes.');
-      return;
-    }
-
-    let startsAt: string | null = null;
-    if (settingsForm.startDate && settingsForm.startTime) {
-      const parsed = new Date(`${settingsForm.startDate}T${settingsForm.startTime}`);
-      if (Number.isNaN(parsed.getTime())) {
-        setError('Invalid start date/time.');
-        return;
-      }
-      startsAt = parsed.toISOString();
-    }
-
-    try {
-      setSettingsSaving(true);
-      setError(null);
-
-      const res = await fetch(`/api/contests/${contestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          description: settingsForm.description,
-          durationMinutes: settingsForm.durationMinutes,
-          startsAt,
-        }),
-      });
-      const data = (await res.json().catch(() => ({}))) as ContestApiPayload;
-      if (!res.ok) throw new Error(data.error || 'Failed to update contest settings');
-
-      if (data.contest) {
-        setContest(data.contest);
-      }
-      setSuccessToast('Contest settings updated.');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update contest settings');
-    } finally {
-      setSettingsSaving(false);
-    }
-  }
-
   const reloadQuestionCatalog = useCallback(async () => {
     try {
-      const qRes = await fetch('/api/questions?limit=100');
+      const qRes = await fetch('/api/questions?limit=300');
       const qData = await qRes.json().catch(() => ({}));
       if (!qRes.ok) throw new Error(qData.error || 'Failed to reload questions');
       const qs = Array.isArray(qData.questions) ? (qData.questions as CodingQuestion[]) : [];
@@ -594,7 +745,8 @@ export default function ContestWorkspacePage() {
         setCreatorDraftQuestionIds((prev) => (prev.includes(data.question.id) ? prev : [...prev, data.question.id]));
       }
       setShowCreateModal(false);
-      setSuccessToast('Question created and added to your contest draft.');
+      const validationNote = data.validation?.aiSummary ? ` AI: ${data.validation.aiSummary}` : '';
+      setSuccessToast(`Question created and added to your contest draft.${validationNote}`);
       setCreateQuestionForm({
         title: '',
         difficulty: 'easy',
@@ -627,27 +779,47 @@ export default function ContestWorkspacePage() {
         {error && <p className={`text-sm ${isDark ? 'text-white/80' : 'text-black/75'}`}>{error}</p>}
 
         {!loading && !error && contest && (
-          <section className={`space-y-4 rounded-3xl border p-6 md:p-7 ${isDark ? 'border-white/10 bg-white/5' : 'border-black/10 bg-white'}`}>
+          <section className={`space-y-5 rounded-3xl border p-6 md:p-7 ${isDark ? 'border-white/10 bg-white/5' : 'border-black/10 bg-white'}`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className={`text-xs uppercase tracking-[0.2em] ${isDark ? 'text-white/60' : 'text-black/60'}`}>Contest Workspace</p>
+                <p className={`text-xs uppercase tracking-[0.2em] ${isDark ? 'text-white/60' : 'text-black/60'}`}>
+                  Contest Workspace • <span className="text-cyan-400 font-bold">{contestCategory.toUpperCase()} ROUND</span>
+                </p>
                 <h1 className="mt-1 text-2xl font-semibold md:text-3xl">{contest.title}</h1>
-                {contest.description && (
-                  <p className={`mt-2 text-sm ${isDark ? 'text-white/75' : 'text-black/70'}`}>{contest.description}</p>
+                {cleanDescription && (
+                  <p className={`mt-2 text-sm ${isDark ? 'text-white/75' : 'text-black/70'}`}>{cleanDescription}</p>
                 )}
               </div>
-              <div className={`rounded-2xl border px-4 py-3 text-center ${isDark ? 'border-white/10 bg-black/40' : 'border-black/10 bg-white'}`}>
-                <p className={`text-xs uppercase tracking-wide font-semibold ${timerColor(timeRemaining, isDark)}`}>
-                  {attemptState ? (attemptState.finished ? 'Finalized' : (isTimeOver ? 'Time Exceeded' : 'Time Left')) : 'Start Required'}
-                </p>
-                <p className={`mt-2 font-mono text-3xl font-bold ${timerColor(timeRemaining, isDark)}`}>
-                  {attemptState ? (attemptState.finished ? formatTime(0) : formatTime(timeRemaining)) : formatTime(contest.duration_minutes * 60)}
-                </p>
-                {!attemptState && (
-                  <p className={`mt-1 text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>
-                    Timer starts only after clicking Start Now.
+              <div className="flex items-center gap-3">
+                <div className={`rounded-2xl border px-4 py-3 text-center ${isDark ? 'border-white/10 bg-black/40' : 'border-black/10 bg-white'}`}>
+                  <p className={`text-xs uppercase tracking-wide font-semibold ${timerColor(timeRemaining, isDark)}`}>
+                    {attemptState ? (attemptState.finished ? 'Finalized' : (isTimeOver ? 'Time Exceeded' : 'Time Left')) : 'Duration'}
                   </p>
-                )}
+                  <p className={`mt-2 font-mono text-3xl font-bold ${timerColor(timeRemaining, isDark)}`}>
+                    {attemptState ? (attemptState.finished ? formatTime(0) : formatTime(timeRemaining)) : formatTime(safeDurationMinutes * 60)}
+                  </p>
+                </div>
+
+
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className={`rounded-xl border px-4 py-3 ${isDark ? 'border-white/10 bg-black/35' : 'border-black/10 bg-white'}`}>
+                <p className={`text-[11px] uppercase tracking-wide ${isDark ? 'text-white/60' : 'text-black/60'}`}>Selected</p>
+                <p className="mt-1 text-lg font-semibold">{effectiveSelectedQuestionIds.length}</p>
+              </div>
+              <div className={`rounded-xl border px-4 py-3 ${isDark ? 'border-white/10 bg-black/35' : 'border-black/10 bg-white'}`}>
+                <p className={`text-[11px] uppercase tracking-wide ${isDark ? 'text-white/60' : 'text-black/60'}`}>Accepted</p>
+                <p className="mt-1 text-lg font-semibold">{acceptedQuestionIds.length}</p>
+              </div>
+              <div className={`rounded-xl border px-4 py-3 ${isDark ? 'border-white/10 bg-black/35' : 'border-black/10 bg-white'}`}>
+                <p className={`text-[11px] uppercase tracking-wide ${isDark ? 'text-white/60' : 'text-black/60'}`}>Attempts</p>
+                <p className="mt-1 text-lg font-semibold">{attemptedCount}</p>
+              </div>
+              <div className={`rounded-xl border px-4 py-3 ${isDark ? 'border-white/10 bg-black/35' : 'border-black/10 bg-white'}`}>
+                <p className={`text-[11px] uppercase tracking-wide ${isDark ? 'text-white/60' : 'text-black/60'}`}>Participants</p>
+                <p className="mt-1 text-lg font-semibold">{joinedParticipants.length}</p>
               </div>
             </div>
 
@@ -655,7 +827,19 @@ export default function ContestWorkspacePage() {
               <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/20 bg-white/5' : 'border-black/15 bg-black/5'}`}>
                 <p className="text-sm font-semibold">{completionSummary.timedOut ? 'Your time exceeded.' : 'Contest completed successfully.'}</p>
                 <p className="mt-1 text-sm">Rating: <strong>{completionSummary.rating}</strong> | Accuracy: <strong>{completionSummary.acceptanceRate}%</strong></p>
+                <p className="mt-1 text-sm">Time To Finish: <strong>{formatDurationSeconds(completionSummary.timeTakenSeconds)}</strong>{typeof completionSummary.timeTakenMinutes === 'number' ? ` (${completionSummary.timeTakenMinutes} min)` : ''}</p>
                 <p className="mt-1 text-sm">Accepted: {completionSummary.acceptedCount} / Attempted: {completionSummary.attemptedCount}</p>
+                {completionSummary.questionBreakdown && completionSummary.questionBreakdown.length > 0 && (
+                  <div className="mt-3 space-y-1 text-sm">
+                    <p className="font-semibold">Question-by-question analysis</p>
+                    {completionSummary.questionBreakdown.map((item) => (
+                      <div key={`qa-${item.questionId}`} className={`rounded-lg border px-3 py-2 ${isDark ? 'border-white/10 bg-black/30' : 'border-black/10 bg-white'}`}>
+                        <p>Question: {item.questionId}</p>
+                        <p>Attempts: {item.attempts} | Last Result: {item.lastResult} | Passed: {item.accepted ? 'Yes' : 'No'}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
                   {completionSummary.suggestions.map((tip) => (
                     <li key={tip}>{tip}</li>
@@ -664,12 +848,12 @@ export default function ContestWorkspacePage() {
               </div>
             )}
 
-            <div className="grid gap-4 md:grid-cols-[1.6fr_1fr]">
-              <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-black/30' : 'border-black/10 bg-black/5'}`}>
+            <div className="grid gap-4 md:grid-cols-[1.75fr_1fr]">
+              <div className={`rounded-2xl border p-4 lg:p-5 ${isDark ? 'border-white/10 bg-black/30' : 'border-black/10 bg-black/5'}`}>
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-base font-semibold">Curated Contest Set</h2>
                   <span className={`text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>
-                    {isOwner && !attemptState ? ownerPrimaryQuestions.length : selectedQuestionIds.length} selected
+                    {isOwner && !attemptState ? ownerPrimaryQuestions.length : effectiveSelectedQuestionIds.length} selected
                   </span>
                 </div>
 
@@ -679,17 +863,27 @@ export default function ContestWorkspacePage() {
                       No curated questions yet. Open Question Library below and add questions to build your contest set.
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {ownerPrimaryQuestions.map((q) => (
                         <div
                           key={`owner-primary-${q.id}`}
                           className={
                             isDark
-                              ? 'rounded-xl border border-white/15 bg-black/40 px-3 py-2'
-                              : 'rounded-xl border border-black/10 bg-white px-3 py-2'
+                              ? 'rounded-xl border border-white/15 bg-black/40 px-3 py-2.5'
+                              : 'rounded-xl border border-black/10 bg-white px-3 py-2.5'
                           }
                         >
-                          <p className="text-sm font-semibold">{q.title}</p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold">{q.title}</p>
+                            {(() => {
+                              const readiness = evaluateQuestionReadiness(q);
+                              return (
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${readiness.ready ? (isDark ? 'bg-emerald-500/20 text-emerald-200' : 'bg-emerald-100 text-emerald-700') : (isDark ? 'bg-rose-500/20 text-rose-200' : 'bg-rose-100 text-rose-700')}`} title={readiness.reason}>
+                                  {readiness.ready ? 'Ready' : 'Invalid'}
+                                </span>
+                              );
+                            })()}
+                          </div>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${difficultyBadgeClass(q.difficulty, isDark)}`}>
                               {q.difficulty}
@@ -709,14 +903,15 @@ export default function ContestWorkspacePage() {
                 ) : questions.length === 0 ? (
                   <p className={`text-sm ${isDark ? 'text-white/70' : 'text-black/70'}`}>No questions available yet.</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {(fixedContestQuestionIds.length > 0
                       ? questions.filter((q) => fixedContestQuestionIds.includes(q.id))
                       : questions
                     ).map((q) => {
-                      const checked = selectedQuestionIds.includes(q.id);
+                      const checked = effectiveSelectedQuestionIds.includes(q.id);
                       const isAccepted = acceptedQuestionIds.includes(q.id);
                       const fixedSelection = fixedContestQuestionIds.length > 0;
+                      const canChangeQuestionSelection = isOwner && !attemptState && !fixedSelection;
                       const disabledBySelection = attemptState && !checked;
 
                       return (
@@ -724,8 +919,8 @@ export default function ContestWorkspacePage() {
                           key={q.id}
                           className={
                             isDark
-                              ? 'rounded-xl border border-white/15 bg-black/40 px-3 py-2'
-                              : 'rounded-xl border border-black/10 bg-white px-3 py-2'
+                              ? 'rounded-xl border border-white/15 bg-black/40 px-3 py-2.5'
+                              : 'rounded-xl border border-black/10 bg-white px-3 py-2.5'
                           }
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -733,7 +928,7 @@ export default function ContestWorkspacePage() {
                               <input
                                 type="checkbox"
                                 checked={checked}
-                                disabled={Boolean(attemptState) || fixedSelection}
+                                disabled={!canChangeQuestionSelection}
                                 onChange={() => toggleQuestionSelection(q.id)}
                                 className="mt-1"
                               />
@@ -742,14 +937,24 @@ export default function ContestWorkspacePage() {
                                 <span className={`ml-2 text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>{q.difficulty}</span>
                               </span>
                             </label>
-                            {isAccepted && <span className={`text-xs font-semibold ${isDark ? 'text-white/80' : 'text-black/80'}`}>Accepted</span>}
+                            <div className="flex flex-col items-end gap-1">
+                              {isAccepted && <span className={`text-xs font-semibold ${isDark ? 'text-white/80' : 'text-black/80'}`}>Accepted</span>}
+                              {(() => {
+                                const readiness = evaluateQuestionReadiness(q);
+                                return (
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${readiness.ready ? (isDark ? 'bg-emerald-500/20 text-emerald-200' : 'bg-emerald-100 text-emerald-700') : (isDark ? 'bg-rose-500/20 text-rose-200' : 'bg-rose-100 text-rose-700')}`} title={readiness.reason}>
+                                    {readiness.ready ? 'Ready' : 'Invalid'}
+                                  </span>
+                                );
+                              })()}
+                            </div>
                           </div>
 
                           {attemptState && checked && (
                             <div className="mt-2">
                               <button
                                 type="button"
-                                disabled={isTimeOver || attemptState.finished || submittingSummary}
+                                disabled={isReadOnly || submittingSummary}
                                 onClick={() => openQuestion(q)}
                                 className={
                                   isDark
@@ -774,18 +979,33 @@ export default function ContestWorkspacePage() {
                 )}
               </div>
 
-              <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-black/30' : 'border-black/10 bg-black/5'}`}>
+              <div className={`rounded-2xl border p-4 lg:sticky lg:top-4 lg:self-start ${isDark ? 'border-white/10 bg-black/30' : 'border-black/10 bg-black/5'}`}>
                 <h2 className="text-base font-semibold">Contest Control</h2>
                 <p className={`mt-2 text-xs ${isDark ? 'text-white/70' : 'text-black/70'}`}>
                   Select questions first, then click Start Now. After time ends, submissions are locked and result is finalized.
                 </p>
+                {!isOwner && fixedContestQuestionIds.length === 0 && !attemptState && (
+                  <p className={`mt-2 text-xs ${isDark ? 'text-amber-200' : 'text-amber-700'}`}>
+                    You cannot edit this contest. Waiting for creator/admin to publish the contest question set.
+                  </p>
+                )}
                 <p className={`mt-2 text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>
-                  Duration: {contest.duration_minutes} minutes
+                  Duration: {safeDurationMinutes} minutes
                 </p>
+                {attemptState?.startedAt && (
+                  <p className={`mt-1 text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>
+                    Started: {new Date(attemptState.startedAt).toLocaleString()}
+                  </p>
+                )}
+                {contestEndAt && (
+                  <p className={`mt-1 text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>
+                    Contest Stops At: {contestEndAt.toLocaleString()}
+                  </p>
+                )}
                 <p className={`mt-1 text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>
                   Accepted: {acceptedQuestionIds.length} | Attempts logged: {attemptedCount}
                 </p>
-                {attemptState && !attemptState.finished && (
+                {attemptState && !isReadOnly && (
                   <p className={`mt-1 text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>
                     Contest timer runs continuously after Start. Leaving this page will not pause time.
                   </p>
@@ -795,7 +1015,7 @@ export default function ContestWorkspacePage() {
                   <button
                     type="button"
                     onClick={startContestNow}
-                    disabled={selectedQuestionIds.length === 0}
+                    disabled={(fixedContestQuestionIds.length > 0 ? fixedContestQuestionIds.length : selectedQuestionIds.length) === 0 || (!isOwner && fixedContestQuestionIds.length === 0)}
                     className={
                       isDark
                         ? 'mt-4 w-full rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 disabled:opacity-50'
@@ -807,20 +1027,20 @@ export default function ContestWorkspacePage() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => void handleComplete(isTimeOver)}
-                    disabled={attemptState.finished || submittingSummary}
+                    onClick={() => void handleComplete(isReadOnly)}
+                    disabled={isReadOnly || submittingSummary}
                     className={
                       isDark
                         ? 'mt-4 w-full rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 disabled:opacity-50'
                         : 'mt-4 w-full rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-black/90 disabled:opacity-50'
                     }
                   >
-                    {attemptState.finished ? 'Contest Finalized' : submittingSummary ? 'Finalizing...' : 'Finish Contest'}
+                    {isReadOnly ? 'Contest Finalized' : submittingSummary ? 'Finalizing...' : 'Finish Contest'}
                   </button>
                 )}
 
                 {isTimeOver && !completionSummary && (
-                  <p className={`mt-2 text-xs ${isDark ? 'text-white/75' : 'text-black/70'}`}>Your time exceeded. Finalizing your contest result...</p>
+                  <p className={`mt-2 text-xs ${isDark ? 'text-white/75' : 'text-black/70'}`}>Time is over. Auto-submitting and preparing full analysis...</p>
                 )}
                 {attemptState?.finished && (
                   <p className={`mt-2 text-xs ${isDark ? 'text-white/70' : 'text-black/70'}`}>
@@ -828,88 +1048,26 @@ export default function ContestWorkspacePage() {
                   </p>
                 )}
 
-                {isOwner && !attemptState && (
-                  <div className={`mt-4 rounded-xl border p-3 ${isDark ? 'border-white/15 bg-black/40' : 'border-black/10 bg-white'}`}>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em]">Settings</p>
-                    <p className={`mt-1 text-[11px] ${isDark ? 'text-white/65' : 'text-black/65'}`}>
-                      Update contest title, details and timer before participants join.
-                    </p>
-
-                    <div className="mt-3 space-y-2">
-                      <input
-                        value={settingsForm.title}
-                        onChange={(e) => setSettingsForm((prev) => ({ ...prev, title: e.target.value }))}
-                        placeholder="Contest title"
-                        className={`w-full rounded-lg border px-3 py-2 text-xs outline-none ${isDark ? 'border-white/20 bg-black/40' : 'border-black/15 bg-white'}`}
-                      />
-                      <textarea
-                        value={settingsForm.description}
-                        onChange={(e) => setSettingsForm((prev) => ({ ...prev, description: e.target.value }))}
-                        rows={2}
-                        placeholder="Contest description"
-                        className={`w-full rounded-lg border px-3 py-2 text-xs outline-none ${isDark ? 'border-white/20 bg-black/40' : 'border-black/15 bg-white'}`}
-                      />
-
-                      <div>
-                        <p className={`mb-1 text-[11px] ${isDark ? 'text-white/70' : 'text-black/65'}`}>Timer duration (minutes)</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {[30, 45, 60, 90, 120, 180].map((mins) => {
-                            const active = settingsForm.durationMinutes === mins;
-                            return (
-                              <button
-                                key={`dur-${mins}`}
-                                type="button"
-                                onClick={() => setSettingsForm((prev) => ({ ...prev, durationMinutes: mins }))}
-                                className={active
-                                  ? (isDark ? 'rounded-md border border-white bg-white px-2 py-1 text-[11px] font-semibold text-black' : 'rounded-md border border-black bg-black px-2 py-1 text-[11px] font-semibold text-white')
-                                  : (isDark ? 'rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/20' : 'rounded-md border border-black/20 bg-white px-2 py-1 text-[11px] font-semibold text-black hover:bg-black/5')
-                                }
-                              >
-                                {mins}m
-                              </button>
-                            );
-                          })}
-                          <input
-                            type="number"
-                            min={15}
-                            max={300}
-                            value={settingsForm.durationMinutes}
-                            onChange={(e) => setSettingsForm((prev) => ({ ...prev, durationMinutes: Number(e.target.value || 0) }))}
-                            className={`w-20 rounded-md border px-2 py-1 text-[11px] outline-none ${isDark ? 'border-white/20 bg-black/40' : 'border-black/20 bg-white'}`}
-                          />
+                <div className={`mt-4 rounded-xl border p-3 ${isDark ? 'border-white/15 bg-black/40' : 'border-black/10 bg-white'}`}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]">Joined Users</p>
+                  <p className={`mt-1 text-[11px] ${isDark ? 'text-white/65' : 'text-black/65'}`}>
+                    {joinedParticipants.length} participant{joinedParticipants.length === 1 ? '' : 's'} joined this contest.
+                  </p>
+                  {joinedParticipants.length === 0 ? (
+                    <p className={`mt-2 text-xs ${isDark ? 'text-white/70' : 'text-black/70'}`}>No one has joined yet.</p>
+                  ) : (
+                    <div className="mt-2 max-h-36 space-y-1 overflow-y-auto pr-1">
+                      {joinedParticipants.slice(0, 30).map((row) => (
+                        <div key={`joined-${row.userId}`} className={`flex items-center justify-between rounded-md px-2 py-1 text-xs ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
+                          <span className="truncate pr-2">{row.name || row.email || 'Participant'}</span>
+                          <span className={isDark ? 'text-white/60' : 'text-black/60'}>{row.joinedAt ? new Date(row.joinedAt).toLocaleTimeString() : '-'}</span>
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="date"
-                          value={settingsForm.startDate}
-                          onChange={(e) => setSettingsForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                          className={`rounded-lg border px-3 py-2 text-xs outline-none ${isDark ? 'border-white/20 bg-black/40' : 'border-black/15 bg-white'}`}
-                        />
-                        <input
-                          type="time"
-                          value={settingsForm.startTime}
-                          onChange={(e) => setSettingsForm((prev) => ({ ...prev, startTime: e.target.value }))}
-                          className={`rounded-lg border px-3 py-2 text-xs outline-none ${isDark ? 'border-white/20 bg-black/40' : 'border-black/15 bg-white'}`}
-                        />
-                      </div>
+                      ))}
                     </div>
+                  )}
+                </div>
 
-                    <button
-                      type="button"
-                      onClick={() => void updateContestSettings()}
-                      disabled={settingsSaving || questionSetLocked}
-                      className={
-                        isDark
-                          ? 'mt-3 w-full rounded-lg bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-white/90 disabled:opacity-50'
-                          : 'mt-3 w-full rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white hover:bg-black/90 disabled:opacity-50'
-                      }
-                    >
-                      {settingsSaving ? 'Updating...' : 'Update Contest Settings'}
-                    </button>
-                  </div>
-                )}
+
               </div>
             </div>
 
@@ -990,29 +1148,50 @@ export default function ContestWorkspacePage() {
             )}
 
             {showLibraryModal && (
-              <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 p-4 md:p-6 backdrop-blur-[1px]">
+              <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 md:p-6 backdrop-blur-[1px]">
                 <div className={`no-scrollbar max-h-[86vh] w-full max-w-3xl overflow-y-auto rounded-3xl border p-4 shadow-2xl ${isDark ? 'border-white/20 bg-black' : 'border-black/15 bg-white'}`}>
                   <div className="mb-3 flex items-center justify-between">
                     <div>
                       <p className={`text-[10px] font-semibold uppercase tracking-[0.22em] ${isDark ? 'text-white/70' : 'text-black/60'}`}>Curate Set</p>
                       <h3 className="text-lg font-semibold">Question Library</h3>
+                      <p className={`mt-1 text-xs ${isDark ? 'text-white/65' : 'text-black/65'}`}>{creatorDraftQuestionIds.length} selected</p>
                     </div>
-                    <button type="button" onClick={() => setShowLibraryModal(false)} className={isDark ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black'}>✕</button>
+                    <button
+                      type="button"
+                      onClick={() => setShowLibraryModal(false)}
+                      className={isDark ? 'rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20' : 'rounded-lg border border-black/20 bg-white px-3 py-1 text-xs font-semibold text-black hover:bg-black/5'}
+                    >
+                      Back
+                    </button>
                   </div>
 
-                  <div className="mb-3 grid gap-2 md:grid-cols-2">
+                  <div className="mb-3 flex flex-wrap gap-2 items-center justify-between">
                     <input
                       value={librarySearch}
                       onChange={(e) => setLibrarySearch(e.target.value)}
                       placeholder="Search questions..."
-                      className={`rounded-lg border px-3 py-2 text-sm outline-none ${isDark ? 'border-white/20 bg-black/40' : 'border-black/15 bg-white'}`}
+                      className={`flex-1 min-w-[200px] rounded-lg border px-3 py-2 text-sm outline-none ${isDark ? 'border-white/20 bg-black/40' : 'border-black/15 bg-white'}`}
                     />
-                    <select value={libraryTopic} onChange={(e) => setLibraryTopic(e.target.value)} className={`rounded-xl border px-3 py-2 text-sm outline-none backdrop-blur-xl ${isDark ? 'border-white/20 bg-white/10 text-white' : 'border-black/15 bg-white/85 text-black'}`}>
-                      <option value="all">All Topics</option>
-                      {topicOptions.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-wrap gap-2">
+                      <select value={libraryCodingPattern} onChange={(e) => setLibraryCodingPattern(e.target.value)} className={`rounded-xl border px-3 py-2 text-xs outline-none backdrop-blur-xl ${isDark ? 'border-white/20 bg-white/10 text-white' : 'border-black/15 bg-white/85 text-black'}`}>
+                        <option value="all">All Coding Patterns</option>
+                        {codingPatternOptions.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <select value={libraryAptitudeTopic} onChange={(e) => setLibraryAptitudeTopic(e.target.value)} className={`rounded-xl border px-3 py-2 text-xs outline-none backdrop-blur-xl ${isDark ? 'border-white/20 bg-white/10 text-white' : 'border-black/15 bg-white/85 text-black'}`}>
+                        <option value="all">All Aptitude</option>
+                        {aptitudeTopicOptions.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <select value={libraryReasoningTopic} onChange={(e) => setLibraryReasoningTopic(e.target.value)} className={`rounded-xl border px-3 py-2 text-xs outline-none backdrop-blur-xl ${isDark ? 'border-white/20 bg-white/10 text-white' : 'border-black/15 bg-white/85 text-black'}`}>
+                        <option value="all">All Reasoning</option>
+                        {reasoningTopicOptions.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="mb-3 grid gap-2 md:grid-cols-2">
                     <select value={libraryDifficulty} onChange={(e) => setLibraryDifficulty(e.target.value as 'all' | 'easy' | 'medium' | 'hard')} className={`rounded-xl border px-3 py-2 text-sm outline-none backdrop-blur-xl ${isDark ? 'border-white/20 bg-white/10 text-white' : 'border-black/15 bg-white/85 text-black'}`}>
@@ -1064,12 +1243,23 @@ export default function ContestWorkspacePage() {
                     })}
                     {libraryQuestions.length === 0 && <p className={`text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>No questions match these filters.</p>}
                   </div>
+
+                  <div className={`mt-4 flex items-center justify-between border-t pt-3 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
+                    <p className={`text-xs ${isDark ? 'text-white/65' : 'text-black/65'}`}>Selected Questions: {creatorDraftQuestionIds.length}</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowLibraryModal(false)}
+                      className={isDark ? 'rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-white/90' : 'rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white hover:bg-black/90'}
+                    >
+                      Done And Back
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
             {showCreateModal && (
-              <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 p-4 md:p-6 backdrop-blur-[1px]">
+              <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 md:p-6 backdrop-blur-[1px]">
                 <div className={`max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-4 shadow-2xl ${isDark ? 'border-white/20 bg-black' : 'border-black/15 bg-white'}`}>
                   <div className="mb-3 flex items-center justify-between">
                     <div>
@@ -1144,27 +1334,74 @@ export default function ContestWorkspacePage() {
             )}
 
             <div ref={leaderboardRef} className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-black/30' : 'border-black/10 bg-black/5'}`}>
-              <h2 className="text-base font-semibold">Leaderboard</h2>
-              {leaderboard.length === 0 ? (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold">Leaderboard</h2>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setIsLeaderboardFrozen(prev => !prev)}
+                      className={`ml-2 rounded-lg border px-2 py-0.5 text-[10px] font-bold transition ${isLeaderboardFrozen ? 'border-amber-500 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' : 'border-cyan-500 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20'}`}
+                    >
+                      {isLeaderboardFrozen ? 'Unfreeze' : 'Freeze'}
+                    </button>
+                  )}
+                  {isLeaderboardFrozen && (
+                    <span className="rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] px-2 py-0.5 font-bold animate-pulse">
+                      FROZEN
+                    </span>
+                  )}
+                </div>
+                <span className={`flex items-center gap-1.5 text-xs ${leaderboardConnected ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : (isDark ? 'text-amber-400' : 'text-amber-600')}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${leaderboardConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                  {leaderboardConnected ? 'Live' : 'Reconnecting...'}
+                </span>
+              </div>
+
+              {isLeaderboardFrozen && !isOwner ? (
+                <div className="mt-4 p-6 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center">
+                  <p className="text-xs text-amber-500 font-semibold italic">
+                    The leaderboard is currently frozen by the administrator. Rankings are locked and final scores will be revealed after completion.
+                  </p>
+                </div>
+              ) : leaderboard.length === 0 ? (
                 <p className={`mt-2 text-xs ${isDark ? 'text-white/60' : 'text-black/60'}`}>No participants scored yet.</p>
               ) : (
                 <div className="mt-3 overflow-x-auto">
-                  <table className="w-full min-w-120 text-left text-xs">
+                  <table className="w-full min-w-160 text-left text-xs">
                     <thead>
                       <tr className={isDark ? 'text-white/60' : 'text-black/60'}>
-                        <th className="py-1 pr-2">Rank</th>
-                        <th className="py-1 pr-2">Participant</th>
-                        <th className="py-1 pr-2">Score</th>
-                        <th className="py-1 pr-2">Finished</th>
+                        <th className="py-2 pr-3">Rank</th>
+                        <th className="py-2 pr-3">Participant</th>
+                        <th className="py-2 pr-3">Points</th>
+                        <th className="py-2 pr-3">Grade</th>
+                        <th className="py-2 pr-3">Avg Runtime</th>
+                        <th className="py-2 pr-3">Avg Memory</th>
+                        <th className="py-2 pr-3">Code Size</th>
+                        <th className="py-2 pr-3">Time To Finish</th>
                       </tr>
                     </thead>
                     <tbody>
                       {leaderboard.slice(0, 20).map((row) => (
                         <tr key={`${row.userId}-${row.rank}`} className={`border-t ${isDark ? 'border-white/10' : 'border-black/10'}`}>
-                          <td className="py-1 pr-2">#{row.rank}</td>
-                          <td className="py-1 pr-2">{row.name || row.email || 'Participant'}</td>
-                          <td className="py-1 pr-2 font-semibold">{row.score}</td>
-                          <td className="py-1 pr-2">{row.finishedAt ? new Date(row.finishedAt).toLocaleString() : '-'}</td>
+                          <td className="py-2 pr-3">#{row.rank}</td>
+                          <td className="py-2 pr-3">{row.name || row.email || 'Participant'}</td>
+                          <td className="py-2 pr-3 font-semibold">{row.score}</td>
+                          <td className="py-2 pr-3 font-semibold">{contestGrade(row.score, Math.max(1, fixedContestQuestionIds.length || effectiveSelectedQuestionIds.length || 1))}</td>
+                          <td className="py-2 pr-3">{row.avgRuntimeMs ? `${row.avgRuntimeMs} ms` : '-'}</td>
+                          <td className="py-2 pr-3">{row.avgMemoryKb ? `${row.avgMemoryKb} KB` : '-'}</td>
+                          <td className="py-2 pr-3">{row.totalCodeChars ? `${row.totalCodeChars} chars` : '-'}</td>
+                          <td className="py-2 pr-3">
+                            {row.timedOut ? (
+                              <span className="text-red-400 font-semibold">DNF / Over Limit</span>
+                            ) : row.finishedAt && row.joinedAt ? (
+                              formatDurationSeconds(Math.max(0, Math.round((Date.parse(row.finishedAt) - Date.parse(row.joinedAt)) / 1000)))
+                            ) : row.finishedAt ? (
+                              new Date(row.finishedAt).toLocaleTimeString()
+                            ) : (
+                              '-'
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

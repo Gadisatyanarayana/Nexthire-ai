@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { jsonBadRequest, jsonError, jsonOk, jsonRateLimited } from "../../../lib/apiResponses";
 
 export const runtime = "nodejs";
 
@@ -136,6 +136,19 @@ function keywordHits(text: string, keywords: string[]): string[] {
   return keywords.filter((keyword) => lower.includes(keyword));
 }
 
+async function parsePdfText(buffer: Buffer): Promise<string> {
+  try {
+    const pdfParseLib = (await import("pdf-parse")) as unknown;
+    const parser = ((pdfParseLib as { default?: unknown }).default ?? pdfParseLib) as (bytes: Buffer) => Promise<{ text?: string }>;
+    if (typeof parser !== "function") return "";
+    const parsed = await parser(buffer);
+    return cleanText(parsed?.text ?? "");
+  } catch (error) {
+    console.error("Resume PDF parse failed:", error);
+    return "";
+  }
+}
+
 async function extractResumeText(file: File | null): Promise<string> {
   if (!file) return "";
 
@@ -145,10 +158,7 @@ async function extractResumeText(file: File | null): Promise<string> {
     const lowerName = file.name.toLowerCase();
 
     if (lowerName.endsWith(".pdf")) {
-      const parser = new PDFParse({ data: buffer });
-      const parsed = await parser.getText();
-      await parser.destroy();
-      return cleanText(parsed.text ?? "");
+      return await parsePdfText(buffer);
     }
 
     if (lowerName.endsWith(".docx")) {
@@ -357,7 +367,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
     const gate = await checkRateLimit({ key: `resume-analysis:${ip}`, limit: 12, windowMs: 60_000 });
     if (!gate.allowed) {
-      return NextResponse.json({ error: `Too many requests. Retry in ${gate.retryAfterSeconds}s.` }, { status: 429 });
+      return jsonRateLimited(gate.retryAfterSeconds);
     }
 
     const session = await getServerSession(authOptions);
@@ -367,7 +377,7 @@ export async function POST(req: NextRequest) {
     const { mode, resumeText, resumeFileName, jobDescription } = await parseRequest(req);
 
     if (!["resume", "job-match", "fix-resume"].includes(mode)) {
-      return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
+      return jsonBadRequest("Invalid mode");
     }
 
     const normalizedResume = cleanText(resumeText ?? "").slice(0, 9000);
@@ -416,7 +426,7 @@ Focus on professional recruiter-style feedback. Resume file: ${resumeFileName ??
         resumeFileName: resumeFileName ?? null,
       });
 
-      return NextResponse.json(responsePayload);
+      return jsonOk(responsePayload);
     }
 
     if (mode === "fix-resume") {
@@ -436,11 +446,11 @@ Focus on professional recruiter-style feedback. Resume file: ${resumeFileName ??
         resumeFileName: resumeFileName ?? null,
       });
 
-      return NextResponse.json(responsePayload);
+      return jsonOk(responsePayload);
     }
 
     if (!jobDescription || jobDescription.trim().length < 20) {
-      return NextResponse.json({ error: "Job description is required" }, { status: 400 });
+      return jsonBadRequest("Job description is required");
     }
 
     const fallback = heuristicJobMatch(normalizedResume, jobDescription);
@@ -470,9 +480,9 @@ Job description: ${jobDescription}`;
       resumeFileName: resumeFileName ?? null,
     });
 
-    return NextResponse.json(responsePayload);
+    return jsonOk(responsePayload);
   } catch (error) {
     console.error("Resume analysis error:", error);
-    return NextResponse.json({ error: "Failed to analyze resume" }, { status: 500 });
+    return jsonError("Failed to analyze resume", 500);
   }
 }

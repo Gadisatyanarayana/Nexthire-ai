@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
+import { getMasterSystemPrompt } from "@/lib/aiMasterPrompt";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
@@ -20,24 +21,51 @@ type GroqResponse = {
   error?: { message?: string };
 };
 
-const ASSISTANT_SYSTEM_PROMPT = `You are NextHire AI, a fast and natural chat assistant.
+const ASSISTANT_SYSTEM_PROMPT = `${getMasterSystemPrompt("coding-assistant")}
 
-Behavior:
-- Respond conversationally like a modern general AI assistant.
-- Do not force numbered templates unless the user asks for them.
-- Give direct, useful answers for coding, debugging, interviews, resumes, and career prep.
-- If user asks for code, provide complete runnable code.
-- If user asks for explanation, keep it clear and practical.
-- Preserve conversation context across turns.
+You are the NextHire AI Global Productivity and Placement Coach.
+Your primary role is to help students plan their coding practice, structure study schedules, optimize task managers, prepare roadmap milestones, recommend daily topics, and maintain motivation.
 
-Style:
-- Natural language first, not robotic script.
-- Keep answers concise by default, expand when asked.
-- No hardcoded section format unless explicitly requested.
+If the user asks for roadmaps, daily schedules, topic priority, study plans, or productivity advice, structure your response as follows:
+1) Placement Strategy: Insights on the specific topic or company target.
+2) Actionable Steps: Clear daily tasks or study schedules.
+3) Motivation Boost: A short, high-energy summary to keep them going.
 
-Safety:
-- Refuse harmful or unsafe requests.
-- If the user asks for JSON, return valid JSON only.`;
+Ensure your answers are concise, structured, and focused on placement success.`;
+
+function detectMode(userText: string): "full" | "hints" | "explain" | "code" {
+  const text = userText.toLowerCase();
+  if (/\b(hint|hints only|only hints|step hint)\b/.test(text) && !/\b(full code|complete code|solution code|final code)\b/.test(text)) {
+    return "hints";
+  }
+  if (/\b(explain only|only explain|just explain|intuition only)\b/.test(text)) {
+    return "explain";
+  }
+  if (/\b(full code|complete code|solution code|just code|only code)\b/.test(text)) {
+    return "code";
+  }
+  return "full";
+}
+
+function sanitizeAssistantResponse(raw: string): string {
+  const cleaned = raw
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (/^[@*#]{2,}$/.test(trimmed)) return "";
+      if (/^@+\s+/.test(trimmed)) return `- ${trimmed.replace(/^@+\s+/, "")}`;
+      return line;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return cleaned;
+}
+
+function stripCodeBlocks(text: string): string {
+  return text.replace(/```[\s\S]*?```/g, "").trim();
+}
 
 async function callGroqAPI(messages: Array<{ role: "system" | "user" | "assistant"; content: string }>): Promise<string> {
   if (!GROQ_API_KEY) {
@@ -88,13 +116,14 @@ async function callGroqAPI(messages: Array<{ role: "system" | "user" | "assistan
 export async function POST(req: Request) {
   try {
     const ip = getClientIp(req);
-    const gate = checkRateLimit({ key: `chatbot:${ip}`, limit: 45, windowMs: 60_000 });
+    const gate = await checkRateLimit({ key: `chatbot:${ip}`, limit: 45, windowMs: 60_000 });
     if (!gate.allowed) {
       return NextResponse.json({ error: `Too many requests. Retry in ${gate.retryAfterSeconds}s.` }, { status: 429 });
     }
 
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const userEmail = session?.user?.email;
+    if (!userEmail) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -119,13 +148,33 @@ export async function POST(req: Request) {
       .filter((msg) => msg.content.length > 0)
       .slice(-16);
 
-    const responseText = await callGroqAPI([{ role: "system", content: ASSISTANT_SYSTEM_PROMPT }, ...cleanedHistory]);
+    const mode = detectMode(lastMessage.content);
+    const modePrompt =
+      mode === "hints"
+        ? "User asked for hints only. Give only progressive hints. Do not provide full code or final full solution."
+        : mode === "explain"
+        ? "User asked for explanation only. Explain clearly with intuition and examples. Do not provide full code."
+        : mode === "code"
+        ? "User asked for code. Provide optimal working code with short explanation."
+        : "Use the full structured mentor format.";
+
+    const rawResponse = await callGroqAPI([
+      { role: "system", content: `${ASSISTANT_SYSTEM_PROMPT}\n\nMode instruction: ${modePrompt}` },
+      ...cleanedHistory,
+    ]);
+
+    const responseText = mode === "hints" || mode === "explain"
+      ? sanitizeAssistantResponse(stripCodeBlocks(rawResponse))
+      : sanitizeAssistantResponse(rawResponse);
 
     const last = body.messages[body.messages.length - 1];
     void (async () => {
       try {
         const admin = getAdminClient();
-        const user = await upsertUserAdmin({ name: session.user?.name || null, email: session.user.email });
+        const user = await upsertUserAdmin({
+          name: typeof session?.user?.name === "string" ? session.user.name : null,
+          email: userEmail,
+        });
         await Promise.race([
           admin.from("user_activity").insert({
             user_id: user.id,
@@ -137,9 +186,9 @@ export async function POST(req: Request) {
               responseLength: responseText.length,
             },
             created_at: new Date().toISOString(),
-          }),
+          }), 
           new Promise((resolve) => setTimeout(resolve, 1500)),
-        ]);
+        ]); 
       } catch {
         // Analytics should never block chatbot responses
       }

@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createClient } from "@supabase/supabase-js";
 
 type SyncUserInput = {
@@ -12,8 +10,12 @@ function normalizeEmail(value: unknown): string {
 }
 
 export function isAdminEmail(email: string | null | undefined): boolean {
-  const allowlist = String(process.env.ADMIN_EMAILS || "")
-    .split(",")
+  const rawAllowlist = [process.env.ADMIN_EMAILS, process.env.ADMIN_EMAIL]
+    .filter(Boolean)
+    .join(",");
+
+  const allowlist = String(rawAllowlist || "")
+    .split(/[\n,;]+/)
     .map((item) => normalizeEmail(item))
     .filter(Boolean);
 

@@ -4,110 +4,70 @@ import {
   buildJavaInvocationPlan,
   buildJavascriptInvocationPlan,
   buildPythonInvocationPlan,
+  detectCppVoidReturn,
+  detectJavaVoidReturn,
 } from "./wrappers";
 
 function indentLines(lines: string[], indentation: string): string[] {
   return lines.map((line) => `${indentation}${line}`);
 }
 
-function escapeJson(value: string): string {
-  return String(value || "")
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/\r/g, "\\r")
-    .replace(/\n/g, "\\n")
-    .replace(/\t/g, "\\t")
-    .replace(/\b/g, "\\b")
-    .replace(/\f/g, "\\f");
-}
-
 function buildJavaBatchWrapper(userCode: string, functionName: string, cases: JudgeCase[], inputType?: string): string {
+  // Ensure standard utilities are available for the generated wrapper
+  const importLine = 'import java.util.*;';
+  const userCodeWithImport = userCode.includes(importLine) ? userCode : `${importLine}\n${userCode}`;
+  const isVoid = detectJavaVoidReturn(userCodeWithImport, functionName);
   const casesCode = cases
     .map((testcase, caseIndex) => {
-      const plan = buildJavaInvocationPlan(userCode, testcase.input || "", inputType);
+      const plan = buildJavaInvocationPlan(userCodeWithImport, testcase.input || "", inputType, functionName);
       const prelude = indentLines(plan.preludeLines, "            ");
       const args = plan.args;
 
       return `        {
 ${prelude.length > 0 ? `${prelude.join("\n")}\n` : ""}            long __caseStart = System.nanoTime();
-            String __output = "";
-            String __error = null;
-            try {
-                Object result = obj.${functionName}(${args});
-                __output = formatResult(result);
-            } catch (Throwable throwable) {
+              String __output = "";
+              String __error = null;
+              try {
+                  ${
+                    isVoid
+                      ? `obj.${functionName}(${args});
+                __output = "void";`
+                      : `Object result = obj.${functionName}(${args});
+                __output = formatResult(result);`
+                  }
+                } catch (Throwable throwable) {
                 __error = throwable.getMessage();
                 if (__error == null || __error.isEmpty()) {
-                    __error = throwable.getClass().getSimpleName();
+                  __error = throwable.getClass().getSimpleName();
                 }
-            }
-            long __caseTimeMs = (System.nanoTime() - __caseStart) / 1000000L;
-            StringBuilder __line = new StringBuilder();
-            __line.append('{');
-            __line.append("\"index\":").append(${caseIndex});
-            __line.append(",\"output\":\"").append(escapeJson(__output)).append("\"");
-            if (__error == null) {
-                __line.append(",\"error\":null");
-            } else {
-                __line.append(",\"error\":\"").append(escapeJson(__error)).append("\"");
-            }
-            __line.append(",\"timeMs\":").append(__caseTimeMs);
-            __line.append(",\"memoryKb\":null");
-            __line.append('}');
-            System.out.println(__line.toString());
-        }`;
+              }
+              long __caseTimeMs = (System.nanoTime() - __caseStart) / 1000000L;
+              StringBuilder __line = new StringBuilder();
+              __line.append('{');
+              __line.append('"').append("index").append('"').append(':').append(${caseIndex});
+              __line.append(',').append('"').append("output").append('"').append(':').append('"').append(escapeJson(__output)).append('"');
+              if (__error == null) {
+                __line.append(',').append('"').append("error").append('"').append(':').append("null");
+              } else {
+                __line.append(',').append('"').append("error").append('"').append(':').append('"').append(escapeJson(__error)).append('"');
+              }
+              __line.append(',').append('"').append("timeMs").append('"').append(':').append(__caseTimeMs);
+              __line.append(',').append('"').append("memoryKb").append('"').append(':').append("null");
+              __line.append('}');
+              System.out.println(__line.toString());
+          }`;
     })
     .join("\n");
 
-  return `${userCode}
-
-public class Main {
-    static String formatResult(Object value) {
-        if (value == null) return "null";
-        if (value instanceof int[]) return java.util.Arrays.toString((int[]) value).replace(" ", "");
-        if (value instanceof long[]) return java.util.Arrays.toString((long[]) value).replace(" ", "");
-        if (value instanceof double[]) return java.util.Arrays.toString((double[]) value).replace(" ", "");
-        if (value instanceof boolean[]) return java.util.Arrays.toString((boolean[]) value).replace(" ", "").toLowerCase();
-        if (value instanceof Object[]) return java.util.Arrays.deepToString((Object[]) value).replace(" ", "");
-        return String.valueOf(value);
-    }
-
-    static String escapeJson(String value) {
-        if (value == null) return "";
-        StringBuilder escaped = new StringBuilder();
-        for (int i = 0; i < value.length(); i++) {
-            char ch = value.charAt(i);
-            switch (ch) {
-                case '\\': escaped.append("\\\\"); break;
-                case '"': escaped.append("\\\""); break;
-                case '\n': escaped.append("\\n"); break;
-                case '\r': escaped.append("\\r"); break;
-                case '\t': escaped.append("\\t"); break;
-                case '\b': escaped.append("\\b"); break;
-                case '\f': escaped.append("\\f"); break;
-                default:
-                    if (ch < 0x20) {
-                        escaped.append(String.format("\\u%04x", (int) ch));
-                    } else {
-                        escaped.append(ch);
-                    }
-            }
-        }
-        return escaped.toString();
-    }
-
-    public static void main(String[] args) {
-        Solution obj = new Solution();
-${casesCode}
-    }
+  return `${userCodeWithImport}\n\npublic class Main {\n    static String formatResult(Object value) {\n        if (value == null) return "null";\n        if (value instanceof int[]) return java.util.Arrays.toString((int[]) value).replace(" ", "");\n        if (value instanceof long[]) return java.util.Arrays.toString((long[]) value).replace(" ", "");\n        if (value instanceof double[]) return java.util.Arrays.toString((double[]) value).replace(" ", "");\n        if (value instanceof boolean[]) return java.util.Arrays.toString((boolean[]) value).replace(" ", "").toLowerCase();\n        if (value instanceof Object[]) return java.util.Arrays.deepToString((Object[]) value).replace(" ", "");\n        return String.valueOf(value);\n    }\n\n    static String escapeJson(String value) {\n        if (value == null) return "";\n        StringBuilder escaped = new StringBuilder();\n        for (int i = 0; i < value.length(); i++) {\n            char ch = value.charAt(i);\n            int code = (int) ch;\n            if (code == 92) {\n                escaped.append((char) 92).append((char) 92);\n            } else if (code == 34) {\n                escaped.append((char) 92).append('"');\n            } else if (code == 10) {\n                escaped.append((char) 92).append('n');\n            } else if (code == 13) {\n                escaped.append((char) 92).append('r');\n            } else if (code == 9) {\n                escaped.append((char) 92).append('t');\n            } else {\n                escaped.append(ch);\n            }\n        }\n        return escaped.toString();\n    }\n\n    public static void main(String[] args) {\n        Solution obj = new Solution();\n${casesCode}\n    }\n}\n`;
 }
-`;
-}
+
 
 function buildCppBatchWrapper(userCode: string, functionName: string, cases: JudgeCase[], inputType?: string): string {
+  const isVoid = detectCppVoidReturn(userCode, functionName);
   const casesCode = cases
     .map((testcase, caseIndex) => {
-      const plan = buildCppInvocationPlan(userCode, testcase.input || "", inputType);
+      const plan = buildCppInvocationPlan(userCode, testcase.input || "", inputType, functionName);
       const prelude = indentLines(plan.preludeLines, "        ");
       const args = plan.args;
 
@@ -116,8 +76,13 @@ ${prelude.length > 0 ? `${prelude.join("\n")}\n` : ""}        auto __caseStart =
         string __output;
         string __error;
         try {
-            auto result = obj.${functionName}(${args});
-            __output = formatValue(result);
+            ${
+              isVoid
+                ? `obj.${functionName}(${args});
+            __output = "void";`
+                : `auto result = obj.${functionName}(${args});
+            __output = formatValue(result);`
+            }
         } catch (const exception& ex) {
             __error = ex.what();
         } catch (...) {
@@ -126,20 +91,29 @@ ${prelude.length > 0 ? `${prelude.join("\n")}\n` : ""}        auto __caseStart =
         auto __caseEnd = chrono::steady_clock::now();
         long long __caseTimeMs = chrono::duration_cast<chrono::milliseconds>(__caseEnd - __caseStart).count();
         cout << '{'
-             << "\"index\":" << ${caseIndex}
-             << ",\"output\":\"" << escapeJson(__output) << "\""
-             << ",\"error\":";
+             << '"' << "index" << '"' << ':' << ${caseIndex}
+             << ',' << '"' << "output" << '"' << ':' << '"' << escapeJson(__output) << '"'
+             << ',' << '"' << "error" << '"' << ':';
         if (__error.empty()) {
             cout << "null";
         } else {
-            cout << "\"" << escapeJson(__error) << "\"";
+            cout << '"' << escapeJson(__error) << '"';
         }
-        cout << ",\"timeMs\":" << __caseTimeMs << ",\"memoryKb\":null}" << '\n';
+        cout << ',' << '"' << "timeMs" << '"' << ':' << __caseTimeMs
+             << ',' << '"' << "memoryKb" << '"' << ':' << "null"
+             << '}' << std::endl;
     }`;
     })
     .join("\n");
 
-  return `#include <bits/stdc++.h>
+  return `#include <chrono>
+#include <exception>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+
 using namespace std;
 
 ${userCode}
@@ -148,22 +122,24 @@ string escapeJson(const string& value) {
     string escaped;
     escaped.reserve(value.size() + 8);
     for (char ch : value) {
-        switch (ch) {
-            case '\\': escaped += "\\\\"; break;
-            case '"': escaped += "\\\""; break;
-            case '\n': escaped += "\\n"; break;
-            case '\r': escaped += "\\r"; break;
-            case '\t': escaped += "\\t"; break;
-            case '\b': escaped += "\\b"; break;
-            case '\f': escaped += "\\f"; break;
-            default:
-                if (static_cast<unsigned char>(ch) < 0x20) {
-                    char buffer[7];
-                    snprintf(buffer, sizeof(buffer), "\\u%04x", static_cast<unsigned char>(ch));
-                    escaped += buffer;
-                } else {
-                    escaped += ch;
-                }
+    int code = static_cast<unsigned char>(ch);
+    if (code == 92) {
+      escaped.push_back(static_cast<char>(92));
+      escaped.push_back(static_cast<char>(92));
+    } else if (code == 34) {
+      escaped.push_back(static_cast<char>(92));
+      escaped.push_back('"');
+    } else if (code == 10) {
+      escaped.push_back(static_cast<char>(92));
+      escaped.push_back('n');
+    } else if (code == 13) {
+      escaped.push_back(static_cast<char>(92));
+      escaped.push_back('r');
+    } else if (code == 9) {
+      escaped.push_back(static_cast<char>(92));
+      escaped.push_back('t');
+        } else {
+      escaped.push_back(ch);
         }
     }
     return escaped;
@@ -201,7 +177,7 @@ ${casesCode}
 function buildPythonBatchWrapper(userCode: string, functionName: string, cases: JudgeCase[], inputType?: string): string {
   const casesCode = cases
     .map((testcase, caseIndex) => {
-      const plan = buildPythonInvocationPlan(userCode, testcase.input || "", inputType);
+      const plan = buildPythonInvocationPlan(userCode, testcase.input || "", inputType, functionName);
       const prelude = plan.preludeLines;
       const args = plan.args;
 
@@ -246,7 +222,7 @@ ${casesCode}
 function buildJavascriptBatchWrapper(userCode: string, functionName: string, cases: JudgeCase[], inputType?: string): string {
   const casesCode = cases
     .map((testcase, caseIndex) => {
-      const plan = buildJavascriptInvocationPlan(userCode, testcase.input || "", inputType);
+      const plan = buildJavascriptInvocationPlan(userCode, testcase.input || "", inputType, functionName);
       const prelude = indentLines(plan.preludeLines, "  ");
       const args = plan.args;
 
@@ -261,7 +237,7 @@ ${prelude.length > 0 ? `${prelude.join("\n")}\n` : ""}    const __caseStart = Da
       __error = error && error.message ? error.message : String(error);
     }
     const __caseTimeMs = Date.now() - __caseStart;
-    process.stdout.write(JSON.stringify({ index: ${caseIndex}, output: __output, error: __error, timeMs: __caseTimeMs, memoryKb: null }) + "\n");
+    process.stdout.write(JSON.stringify({ index: ${caseIndex}, output: __output, error: __error, timeMs: __caseTimeMs, memoryKb: null }) + "\\n");
   }`;
     })
     .join("\n");

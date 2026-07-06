@@ -1,18 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { SessionWrapper } from "@/components/SessionWrapper";
 import { AppHeader } from "@/components/AppHeader";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "NEXTHIRE AI",
@@ -26,20 +18,38 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
     children: React.ReactNode;
   }>) {
+  const session = await getServerSession(authOptions);
+
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className="h-full antialiased"
     >
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(() => {
+  try {
+    const root = document.documentElement;
+    const saved = localStorage.getItem('theme');
+    const theme = saved === 'dark' || saved === 'light'
+      ? saved
+      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.setAttribute('data-theme', theme);
+    root.style.colorScheme = theme;
+  } catch {}
+})();`}
+        </Script>
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <SessionWrapper>
+        <SessionWrapper session={session}>
           <AppHeader />
-          <main className="flex-1 flex flex-col pt-24">
+          <main className="flex-1 flex flex-col">
             {children}
           </main>
         </SessionWrapper>

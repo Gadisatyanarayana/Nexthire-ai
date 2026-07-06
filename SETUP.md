@@ -6,7 +6,7 @@ A premium black & white platform for learning to code with real-time AI feedback
 
 - **🔐 Google OAuth Authentication** - Secure login with Google
 - **💻 Live Code Editor** - Monaco Editor with multiple language support
-- **⚙️ Code Execution** - Run code instantly with Judge0 API
+- **⚙️ Code Execution** - Run code in a self-hosted Docker sandbox
 - **🤖 AI Feedback** - Real-time code analysis with OpenRouter
 - **📊 Dashboard** - Track progress and recent submissions
 - **🎨 Premium UI** - Black & white glassmorphism design
@@ -16,7 +16,7 @@ A premium black & white platform for learning to code with real-time AI feedback
 - **Frontend**: Next.js 16 + TypeScript + Tailwind CSS
 - **Auth**: NextAuth.js + Google OAuth
 - **Database**: Supabase (PostgreSQL)
-- **Code Execution**: Judge0 API
+- **Code Execution**: Self-hosted Docker + Redis worker queue
 - **AI Analysis**: OpenRouter API (Llama 2)
 - **Editor**: Monaco Editor
 
@@ -46,9 +46,20 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 
-# External APIs
-JUDGE0_API_KEY=your_judge0_key
-JUDGE0_BASE_URL=https://judge0-ce.p.rapidapi.com
+# Self-hosted judge queue
+REDIS_URL=redis://127.0.0.1:6379
+
+# Self-hosted judge limits
+JUDGE_QUEUE_NAME=judge-submissions
+JUDGE_EXECUTION_TIMEOUT_MS=15000
+JUDGE_EXECUTION_MEMORY_MB=256
+JUDGE_EXECUTION_CPU_LIMIT=1
+JUDGE_EXECUTION_PIDS_LIMIT=128
+JUDGE_WORKER_CONCURRENCY=4
+JUDGE_CASE_PARALLELISM=4
+JUDGE_CONTAINER_STARTUP_BUFFER_MS=45000
+JUDGE_DOCKER_RETRY_ATTEMPTS=1
+JUDGE_IMAGE_PYTHON=python:3.10-slim
 
 OPENROUTER_API_KEY=your_openrouter_key
 
@@ -93,12 +104,17 @@ The app middleware now enforces:
 5. Add redirect URL: `http://localhost:3000/api/auth/callback/google`
 6. Copy Client ID and Secret to `.env.local`
 
-### 5. Get API Keys
+### 5. Start Self-Hosted Judge Services
 
-- **Judge0**: Sign up at [RapidAPI Judge0](https://rapidapi.com/judge0-official/api/judge0)
+```bash
+docker compose -f docker-compose.judge.yml up --build
+```
+
+### 6. Get API Keys
+
 - **OpenRouter**: Get free key at [openrouter.io](https://openrouter.io)
 
-### 6. Run Locally
+### 7. Run Locally
 
 ```bash
 npm run dev
@@ -106,7 +122,7 @@ npm run dev
 
 Visit `http://localhost:3000`
 
-### 7. Load Test (Heavy Traffic Baseline)
+### 8. Load Test (Heavy Traffic Baseline)
 
 Use the built-in script to stress-test a route locally:
 
@@ -127,7 +143,7 @@ src/
 ├── app/
 │   ├── api/
 │   │   ├── auth/[...nextauth]/     # NextAuth config
-│   │   ├── execute/                # Judge0 execution
+│   │   ├── execute/                # Queue-backed judge execution API
 │   │   └── ai-feedback/           # OpenRouter AI
 │   ├── auth/signin/                # Login page
 │   ├── dashboard/                  # User dashboard
@@ -162,7 +178,7 @@ git push origin main
 - [x] Supabase user storage
 - [x] Code editor with Monaco
 - [x] Multi-language support (JavaScript, Python, C++, Java)
-- [x] Code execution with Judge0
+- [x] Self-hosted code execution with Docker sandbox
 - [x] AI feedback with OpenRouter
 - [x] Dashboard with stats
 - [x] Premium glassmorphism UI
@@ -186,10 +202,11 @@ Run: `openssl rand -base64 32` and add to `.env.local`
 - Check `.env.local` has correct URL and key
 - Make sure tables are created (run database.sql)
 
-### `Judge0 API errors`
-- Verify API key in `.env.local`
-- Check the base URL is correct
-- Some languages may not be supported
+### `Self-hosted judge errors`
+- Confirm Docker Desktop is running.
+- Confirm Redis is healthy: `docker compose -f docker-compose.judge.yml ps`.
+- Confirm worker logs are clean: `docker compose -f docker-compose.judge.yml logs -f judge-worker`.
+- Ensure `/var/run/docker.sock` is mounted for the worker service.
 
 ### `Monaco Editor not loading`
 - Clear node_modules: `rm -rf node_modules && npm install`
@@ -201,7 +218,7 @@ For issues, check:
 1. `.env.local` has all required variables
 2. Supabase tables are created
 3. Google OAuth credentials are correct
-4. API keys are active
+4. Judge worker and Redis are running
 
 ---
 

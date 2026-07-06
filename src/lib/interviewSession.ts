@@ -2,12 +2,24 @@ export type InterviewDifficulty = "easy" | "medium" | "hard";
 export type InterviewPhase = "setup" | "intro" | "dsa-question" | "coding" | "submitted" | "completed";
 export type InterviewLanguage = "javascript" | "python" | "java" | "cpp";
 
+export type VoiceDsaQuestion = {
+  id: string;
+  title: string;
+  description: string;
+  functionName: string;
+  inputType: string;
+  outputType: string;
+  examples: Array<{ input: string; output: string; explanation?: string }>;
+  constraints: string[];
+};
+
 export type InterviewSessionConfig = {
+  candidateName?: string;
   language: InterviewLanguage;
   difficulty: InterviewDifficulty;
   selfIntroduction: string;
   dsaTopic: string;
-  totalDurationMinutes: 15;
+  totalDurationMinutes: number;
 };
 
 export type InterviewTimeline = {
@@ -27,6 +39,16 @@ export type CodingSubmission = {
 export type InterviewAnalysis = {
   selfIntroQuality: number;
   codeQuality: number;
+  communicationClarity?: number;
+  fillerWordScore?: number;
+  confidenceScore?: number;
+  introTranscriptLength?: number;
+  transcript?: string;
+  codeFindings?: Array<{
+    line: number | null;
+    severity: 'low' | 'medium' | 'high';
+    message: string;
+  }>;
   complexity: {
     time: string;
     space: string;
@@ -41,14 +63,9 @@ export type VoiceInterviewSession = {
   id: string;
   email: string;
   config: InterviewSessionConfig;
+  introTranscript?: string;
   timeline: InterviewTimeline;
-  dsaQuestion?: {
-    id: string;
-    title: string;
-    description: string;
-    examples: Array<{ input: string; output: string; explanation?: string }>;
-    constraints: string[];
-  };
+  dsaQuestion?: VoiceDsaQuestion;
   submission?: CodingSubmission;
   analysis?: InterviewAnalysis;
   createdAt: number;
@@ -66,17 +83,16 @@ export function getPhaseTimings(_difficulty: InterviewDifficulty): {
   coding: number;
   total: number;
 } {
-  // All DSA interviews: 15 minutes mandatory
-  // 2 minutes intro, remaining for DSA
-  const introMs = 2 * 60 * 1000;
-  const dsaQuestionMs = 1 * 60 * 1000; // 1 min to ask question
-  const codingMs = 12 * 60 * 1000; // 12 minutes for coding
+  // 20-minute interview flow: calm warmup + intro + guided coding.
+  const introMs = 3 * 60 * 1000;
+  const dsaQuestionMs = 2 * 60 * 1000;
+  const codingMs = 15 * 60 * 1000;
 
   return {
     intro: introMs,
     dsaQuestion: dsaQuestionMs,
     coding: codingMs,
-    total: 15 * 60 * 1000,
+    total: 20 * 60 * 1000,
   };
 }
 

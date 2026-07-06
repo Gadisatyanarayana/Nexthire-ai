@@ -2,25 +2,55 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useRef, useEffect } from 'react';
+
+const ACTIVITY_SESSION_KEY = 'nexthire:activity-session-id';
+const LOGOUT_SENT_PREFIX = 'nexthire:activity-logout-sent:';
+
+function getActivitySessionId() {
+  if (typeof window === 'undefined') return null;
+  return window.sessionStorage.getItem(ACTIVITY_SESSION_KEY);
+}
+
+function logoutSentKey(sessionId: string) {
+  return `${LOGOUT_SENT_PREFIX}${sessionId}`;
+}
+
+async function trackLogout(pathname: string | null) {
+  const sessionId = getActivitySessionId();
+  if (!sessionId || sessionStorage.getItem(logoutSentKey(sessionId))) return;
+
+  sessionStorage.setItem(logoutSentKey(sessionId), '1');
+
+  try {
+    await fetch('/api/activity/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        activityType: 'logout',
+        source: 'user-avatar-dropdown',
+        payload: {
+          path: pathname || '/',
+          at: new Date().toISOString(),
+          sessionId,
+        },
+      }),
+      keepalive: true,
+    });
+  } catch {
+    // Logout telemetry is best-effort only.
+  }
+}
 
 export function UserAvatarDropdown() {
 
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isAdmin = session?.user?.email === 'satyanarayanag904@gmail.com';
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const syncTheme = () => setIsDark(root.getAttribute('data-theme') === 'dark');
-    syncTheme();
-    const observer = new MutationObserver(syncTheme);
-    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -35,6 +65,15 @@ export function UserAvatarDropdown() {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [open]);
+
 
   if (!session || !session.user) {
     return null;
@@ -45,7 +84,7 @@ export function UserAvatarDropdown() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className={`h-11 w-11 overflow-hidden rounded-full border-2 shadow-sm transition focus:outline-none ${isDark ? 'border-white/30 hover:border-white/50' : 'border-black/30 hover:border-black/50'}`}
+        className="h-11 w-11 overflow-hidden rounded-full border-2 border-foreground/25 shadow-sm transition focus:outline-none hover:border-foreground/45"
         onClick={() => setOpen((v) => !v)}
         aria-label="User menu"
         type="button"
@@ -60,8 +99,11 @@ export function UserAvatarDropdown() {
         />
       </button>
       {open && (
-        <div className={`absolute right-0 z-140 mt-3 w-84 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${isDark ? 'border-white/25 bg-black/96' : 'border-black/20 bg-white/96'}`}>
-          <div className={`px-4 py-4 ${isDark ? 'border-b border-white/15' : 'border-b border-black/10'}`}>
+        <div
+          className="absolute right-0 z-[200] mt-3 w-84 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 border-foreground/15 shadow-2xl"
+          style={{ background: 'var(--bg-secondary)' }}
+        >
+          <div className="border-b border-foreground/10 px-4 py-4">
             <div className="flex items-center gap-3 min-w-0">
               <Image
                 src={avatarSrc}
@@ -69,12 +111,12 @@ export function UserAvatarDropdown() {
                 width={40}
                 height={40}
                 unoptimized
-                className={`h-10 w-10 shrink-0 rounded-full object-cover ${isDark ? 'border border-white/25' : 'border border-black/15'}`}
+                className="h-10 w-10 shrink-0 rounded-full border border-foreground/15 object-cover"
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="font-semibold text-foreground text-sm truncate">{session.user.name || 'User'}</div>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${isAdmin ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/40' : 'bg-slate-500/10 text-slate-300 border border-slate-500/40'}`}>
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${isAdmin ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500' : 'border-foreground/15 bg-foreground/5 text-foreground/70'}`}>
                     {isAdmin ? 'Admin' : 'User'}
                   </span>
                 </div>
@@ -83,19 +125,24 @@ export function UserAvatarDropdown() {
             </div>
           </div>
           <div className="flex flex-col py-2">
-            <Link href="/profile" className="px-4 py-2.5 text-sm text-foreground/90 hover:bg-foreground/10 transition-colors">Profile</Link>
-            <Link href="/settings" className="px-4 py-2.5 text-sm text-foreground/90 hover:bg-foreground/10 transition-colors">Settings</Link>
-            <Link href="/dashboard" className="px-4 py-2.5 text-sm text-foreground/90 hover:bg-foreground/10 transition-colors">Dashboard</Link>
-            <Link href="/resume-analyzer" className="px-4 py-2.5 text-sm text-foreground/90 hover:bg-foreground/10 transition-colors">Resume Analyzer</Link>
-            <Link href="/resume-builder" className="px-4 py-2.5 text-sm text-foreground/90 hover:bg-foreground/10 transition-colors">Resume Builder</Link>
+            <Link href="/profile" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Profile</Link>
+            <Link href="/settings" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Settings</Link>
+            <Link href="/dashboard" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Dashboard</Link>
+            <Link href="/resume-analyzer" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Resume Analyzer</Link>
+            <Link href="/resume-builder" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Resume Builder</Link>
             {isAdmin && (
-              <Link href="/admin" className="px-4 py-2.5 text-sm text-foreground/90 hover:bg-foreground/10 transition-colors">
+              <Link href="/admin" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">
                 Admin Dashboard
               </Link>
             )}
             <button
-              onClick={async () => { setOpen(false); await signOut({ redirect: true, callbackUrl: "/" }); }}
-              className={`mt-1 px-4 py-2.5 text-left text-sm text-foreground/90 transition-colors hover:bg-foreground/10 ${isDark ? 'border-t border-white/15' : 'border-t border-black/10'}`}
+              onClick={async () => {
+                setOpen(false);
+                await trackLogout(pathname);
+                sessionStorage.removeItem(ACTIVITY_SESSION_KEY);
+                await signOut({ redirect: true, callbackUrl: "/" });
+              }}
+              className="mt-1 border-t border-foreground/10 px-4 py-2.5 text-left text-sm text-foreground/90 transition-colors hover:bg-foreground/5"
             >Logout</button>
           </div>
         </div>

@@ -51,6 +51,28 @@ type FixResponse = {
   error?: string;
 };
 
+type AnalyzerWorkspaceSnapshot = {
+  atsScore: number | null;
+  label: "Excellent" | "Good" | "Needs Improvement" | null;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
+  includedKeywords: string[];
+  missingKeywords: string[];
+  sectionScores: SectionScores;
+  matchPercentage: number | null;
+  matchSummary: string;
+  matchedKeywords: string[];
+  jobMissing: string[];
+  jobSuggestions: string[];
+  improvedBullets: string[];
+  originalBullets: string[];
+  jobDescription: string;
+  recruiterNotes: string;
+  updatedAt: string;
+};
+
 function scoreClass(score: number, isDark: boolean): string {
   if (score < 50) return isDark ? "text-gray-300" : "text-gray-700";
   if (score <= 75) return isDark ? "text-white" : "text-black";
@@ -138,19 +160,11 @@ export default function ResumeAnalyzerPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState("");
 
-  const [atsScore, setAtsScore] = useState(72);
-  const [label, setLabel] = useState<"Excellent" | "Good" | "Needs Improvement">("Good");
-  const [summary, setSummary] = useState("Your resume shows a strong baseline. Improve quantified outcomes and role-specific keyword alignment to raise shortlist probability.");
-  const [strengths, setStrengths] = useState<string[]>([
-    "Clear project structure and technical stack visibility.",
-    "Education and core skills are ATS-readable.",
-    "Good baseline keyword coverage for student roles.",
-  ]);
-  const [weaknesses, setWeaknesses] = useState<string[]>([
-    "Experience bullets need more measurable impact.",
-    "Some role-specific keywords are missing from top sections.",
-    "Summary can be more targeted to the intended role.",
-  ]);
+  const [atsScore, setAtsScore] = useState<number | null>(null);
+  const [label, setLabel] = useState<"Excellent" | "Good" | "Needs Improvement" | null>(null);
+  const [summary, setSummary] = useState("Upload a resume and run analysis to get a complete recruiter-style assessment.");
+  const [strengths, setStrengths] = useState<string[]>([]);
+  const [weaknesses, setWeaknesses] = useState<string[]>([]);
   const [includedKeywords, setIncludedKeywords] = useState<string[]>([]);
   const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
   const [sectionScores, setSectionScores] = useState<SectionScores>({ skills: 0, projects: 0, experience: 0, education: 0 });
@@ -180,14 +194,104 @@ export default function ResumeAnalyzerPage() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const email = session?.user?.email;
+    if (status !== "authenticated" || !email) return;
+
+    let active = true;
+
+    const restoreAnalyzerWorkspace = async () => {
+      await saveUserData({ name: session.user?.name ?? null, email });
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+      if (!userRow?.id || !active) return;
+
+      const { data: latestWorkspace } = await supabase
+        .from("submissions")
+        .select("code")
+        .eq("user_id", userRow.id)
+        .eq("language", "resume-workspace")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!latestWorkspace?.code || !active) return;
+
+      try {
+        const parsed = JSON.parse(String(latestWorkspace.code)) as Partial<AnalyzerWorkspaceSnapshot>;
+        setAtsScore(typeof parsed.atsScore === "number" ? parsed.atsScore : null);
+        setLabel(parsed.label === "Excellent" || parsed.label === "Good" || parsed.label === "Needs Improvement" ? parsed.label : null);
+        setSummary(typeof parsed.summary === "string" && parsed.summary.trim() ? parsed.summary : "Upload a resume and run analysis to get a complete recruiter-style assessment.");
+        setStrengths(Array.isArray(parsed.strengths) ? parsed.strengths : []);
+        setWeaknesses(Array.isArray(parsed.weaknesses) ? parsed.weaknesses : []);
+        setSuggestions(Array.isArray(parsed.suggestions) ? parsed.suggestions : []);
+        setIncludedKeywords(Array.isArray(parsed.includedKeywords) ? parsed.includedKeywords : []);
+        setMissingKeywords(Array.isArray(parsed.missingKeywords) ? parsed.missingKeywords : []);
+        setSectionScores(parsed.sectionScores && typeof parsed.sectionScores === "object"
+          ? {
+              skills: Number(parsed.sectionScores.skills || 0),
+              projects: Number(parsed.sectionScores.projects || 0),
+              experience: Number(parsed.sectionScores.experience || 0),
+              education: Number(parsed.sectionScores.education || 0),
+            }
+          : { skills: 0, projects: 0, experience: 0, education: 0 });
+        setMatchPercentage(typeof parsed.matchPercentage === "number" ? parsed.matchPercentage : null);
+        setMatchSummary(typeof parsed.matchSummary === "string" && parsed.matchSummary.trim() ? parsed.matchSummary : "Paste a job description to evaluate role fit.");
+        setMatchedKeywords(Array.isArray(parsed.matchedKeywords) ? parsed.matchedKeywords : []);
+        setJobMissing(Array.isArray(parsed.jobMissing) ? parsed.jobMissing : []);
+        setJobSuggestions(Array.isArray(parsed.jobSuggestions) ? parsed.jobSuggestions : []);
+        setImprovedBullets(Array.isArray(parsed.improvedBullets) ? parsed.improvedBullets : []);
+        setOriginalBullets(Array.isArray(parsed.originalBullets) ? parsed.originalBullets : []);
+        setJobDescription(typeof parsed.jobDescription === "string" ? parsed.jobDescription : "");
+        setRecruiterNotes(typeof parsed.recruiterNotes === "string" ? parsed.recruiterNotes : "");
+      } catch {
+        // Ignore malformed persisted workspace snapshot.
+      }
+    };
+
+    void restoreAnalyzerWorkspace();
+
+    return () => {
+      active = false;
+    };
+  }, [session, status]);
+
   const canAnalyze = useMemo(() => Boolean(resumeFile), [resumeFile]);
 
   const interviewReadiness = useMemo(() => {
     const sectionAvg = Math.round((sectionScores.skills + sectionScores.projects + sectionScores.experience + sectionScores.education) / 4);
     const match = typeof matchPercentage === "number" ? matchPercentage : 0;
-    const blended = Math.round(atsScore * 0.5 + sectionAvg * 0.25 + match * 0.25);
+    const blended = Math.round((atsScore ?? 0) * 0.5 + sectionAvg * 0.25 + match * 0.25);
     return Math.max(0, Math.min(100, blended));
   }, [atsScore, sectionScores, matchPercentage]);
+
+  const persistWorkspace = useMemo(() => {
+    return async (snapshot: AnalyzerWorkspaceSnapshot) => {
+      const email = session?.user?.email;
+      if (status !== "authenticated" || !email) return;
+
+      await saveUserData({ name: session.user?.name ?? null, email });
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+      if (!userRow?.id) return;
+
+      await supabase.from("submissions").insert({
+        user_id: userRow.id,
+        language: "resume-workspace",
+        code: JSON.stringify(snapshot),
+        output: "Analyzer workspace synced",
+        feedback: "Resume analyzer state saved",
+        difficulty: "easy",
+        result: "Saved",
+      });
+    };
+  }, [session, status]);
 
   const interviewVerdict = useMemo(() => {
     if (interviewReadiness >= 80) return "Strong shortlist probability";
@@ -251,9 +355,9 @@ export default function ResumeAnalyzerPage() {
       }),
     ])
       .then(([resumeData, matchData]) => {
-        const score = typeof resumeData.atsScore === "number" ? resumeData.atsScore : 0;
+        const score = typeof resumeData.atsScore === "number" ? resumeData.atsScore : null;
         setAtsScore(score);
-        setLabel(resumeData.label ?? "Needs Improvement");
+        setLabel(resumeData.label ?? null);
         setSummary(resumeData.aiSummary ?? "Analysis completed.");
         setStrengths(resumeData.strengths ?? []);
         setWeaknesses(resumeData.weaknesses ?? []);
@@ -268,6 +372,29 @@ export default function ResumeAnalyzerPage() {
         setJobMissing(matchData.jobMissingKeywords ?? []);
         setJobSuggestions(matchData.jobSuggestions ?? []);
         setSuccess("Resume analyzed successfully.");
+
+        const nextSnapshot: AnalyzerWorkspaceSnapshot = {
+          atsScore: score,
+          label: resumeData.label ?? null,
+          summary: resumeData.aiSummary ?? "Analysis completed.",
+          strengths: resumeData.strengths ?? [],
+          weaknesses: resumeData.weaknesses ?? [],
+          suggestions: resumeData.suggestions ?? [],
+          includedKeywords: resumeData.includedKeywords ?? [],
+          missingKeywords: resumeData.missingKeywords ?? [],
+          sectionScores: resumeData.sectionScores ?? { skills: 0, projects: 0, experience: 0, education: 0 },
+          matchPercentage: typeof matchData.matchPercentage === "number" ? matchData.matchPercentage : null,
+          matchSummary: matchData.matchSummary ?? "Match analysis completed.",
+          matchedKeywords: matchData.matchedKeywords ?? [],
+          jobMissing: matchData.jobMissingKeywords ?? [],
+          jobSuggestions: matchData.jobSuggestions ?? [],
+          improvedBullets,
+          originalBullets,
+          jobDescription,
+          recruiterNotes,
+          updatedAt: new Date().toISOString(),
+        };
+        void persistWorkspace(nextSnapshot);
 
         const email = session?.user?.email;
         if (status === "authenticated" && email) {
@@ -312,13 +439,31 @@ export default function ResumeAnalyzerPage() {
         if (!res.ok) throw new Error(data.error || "Failed to fix resume");
         setImprovedBullets(data.improvedBullets ?? []);
         // Generate original bullets from weaknesses for before/after comparison
-        setOriginalBullets([
-          "Worked on frontend projects",
-          "Developed backend APIs",
-          "Managed database operations",
-          "Participated in team development"
-        ]);
+        setOriginalBullets([]);
         setSuccess("Resume improvement generated.");
+
+        const nextSnapshot: AnalyzerWorkspaceSnapshot = {
+          atsScore,
+          label,
+          summary,
+          strengths,
+          weaknesses,
+          suggestions,
+          includedKeywords,
+          missingKeywords,
+          sectionScores,
+          matchPercentage,
+          matchSummary,
+          matchedKeywords,
+          jobMissing,
+          jobSuggestions,
+          improvedBullets: data.improvedBullets ?? [],
+          originalBullets: [],
+          jobDescription,
+          recruiterNotes,
+          updatedAt: new Date().toISOString(),
+        };
+        void persistWorkspace(nextSnapshot);
 
         const email = session?.user?.email;
         if (status === "authenticated" && email) {
@@ -427,7 +572,7 @@ export default function ResumeAnalyzerPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <Glass isDark={isDark} className="p-6 lg:col-span-4">
             <h2 className={`mb-4 text-xl font-semibold ${isDark ? "text-white" : "text-black"}`}>ATS Score</h2>
-            {atsScore === 0 ? (
+            {atsScore === null ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className={`text-6xl font-light opacity-30 ${isDark ? "text-white" : "text-black"}`}>--</div>
                 <p className={`mt-3 text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>Upload a resume to analyze</p>
@@ -435,9 +580,9 @@ export default function ResumeAnalyzerPage() {
             ) : (
               <>
                 <div className="mb-3 flex justify-center">
-                  <Ring score={atsScore} isDark={isDark} />
+                  <Ring score={atsScore ?? 0} isDark={isDark} />
                 </div>
-                <p className={`text-center text-sm font-semibold ${scoreClass(atsScore, isDark)}`}>{label}</p>
+                <p className={`text-center text-sm font-semibold ${scoreClass(atsScore ?? 0, isDark)}`}>{label ?? "--"}</p>
               </>
             )}
           </Glass>

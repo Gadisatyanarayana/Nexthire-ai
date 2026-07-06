@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
@@ -27,6 +27,7 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
       .select("code, language, created_at, result")
       .eq("user_id", user.id)
       .eq("question_id", questionId)
+      .is("contest_id", null)
       .in("result", ["Accepted", "accepted", "Passed", "passed"])
       .order("created_at", { ascending: false })
       .limit(1);

@@ -19,6 +19,10 @@ type Bucket = {
 const buckets = new Map<string, Bucket>();
 const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL || "";
 const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || "";
+const REDIS_RATE_LIMIT_TIMEOUT_MS = Math.max(
+  500,
+  Math.min(5000, Number(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || 1500))
+);
 
 function hasRedisRateLimitConfig() {
   return Boolean(UPSTASH_REDIS_REST_URL && UPSTASH_REDIS_REST_TOKEN);
@@ -84,6 +88,8 @@ async function checkRateLimitRedis(config: RateLimitConfig): Promise<RateLimitRe
   const now = Date.now();
   const windowSeconds = Math.max(1, Math.ceil(config.windowMs / 1000));
   const bucketKey = `rl:${config.key}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REDIS_RATE_LIMIT_TIMEOUT_MS);
 
   const script = [
     "local current = redis.call('INCR', KEYS[1])",
@@ -94,19 +100,25 @@ async function checkRateLimitRedis(config: RateLimitConfig): Promise<RateLimitRe
     "return { current, ttl }",
   ].join("\n");
 
-  const response = await fetch(`${UPSTASH_REDIS_REST_URL}/eval`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      script,
-      keys: [bucketKey],
-      args: [String(windowSeconds)],
-    }),
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${UPSTASH_REDIS_REST_URL}/eval`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        script,
+        keys: [bucketKey],
+        args: [String(windowSeconds)],
+      }),
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     throw new Error(`Redis limiter request failed: ${response.status}`);

@@ -4,6 +4,12 @@ export type ResilientFetchOptions = {
 	retryDelayMs?: number;
 };
 
+function isAbortError(error: unknown): boolean {
+	if (!error || typeof error !== "object") return false;
+	const maybeError = error as { name?: string };
+	return maybeError.name === "AbortError";
+}
+
 function wait(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -21,7 +27,20 @@ export async function resilientFetch(
 
 	for (let attempt = 0; attempt <= retries; attempt++) {
 		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), timeoutMs);
+		let timedOut = false;
+		const timeout = setTimeout(() => {
+			timedOut = true;
+			controller.abort();
+		}, timeoutMs);
+
+		if (init.signal) {
+			const onAbort = () => controller.abort();
+			if (init.signal.aborted) {
+				controller.abort();
+			} else {
+				init.signal.addEventListener("abort", onAbort, { once: true });
+			}
+		}
 
 		try {
 			const response = await fetch(input, {
@@ -38,7 +57,13 @@ export async function resilientFetch(
 			clearTimeout(timeout);
 			return response;
 		} catch (error) {
-			lastError = error;
+			if (isAbortError(error)) {
+				lastError = timedOut
+					? new Error(`Request timed out after ${timeoutMs}ms`)
+					: new Error("Request was cancelled");
+			} else {
+				lastError = error;
+			}
 			clearTimeout(timeout);
 			if (attempt < retries) {
 				await wait(retryDelayMs * (attempt + 1));

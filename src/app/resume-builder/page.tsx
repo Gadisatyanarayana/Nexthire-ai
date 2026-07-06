@@ -243,6 +243,46 @@ export default function ResumeBuilderPage() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const email = session?.user?.email;
+    if (status !== "authenticated" || !email) return;
+
+    let active = true;
+
+    const restoreBuilder = async () => {
+      await saveUserData({ name: session.user?.name ?? null, email });
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+      if (!userRow?.id || !active) return;
+
+      const { data: latest } = await supabase
+        .from("submissions")
+        .select("code")
+        .eq("user_id", userRow.id)
+        .eq("language", "resume-builder")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!latest?.code || !active) return;
+
+      try {
+        const parsed = JSON.parse(String(latest.code)) as Partial<FormState>;
+        setForm((prev) => ({ ...prev, ...parsed }));
+      } catch {
+        // Ignore malformed saved builder state.
+      }
+    };
+
+    void restoreBuilder();
+    return () => {
+      active = false;
+    };
+  }, [session, status]);
+
   const updateField = (key: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -260,8 +300,16 @@ export default function ResumeBuilderPage() {
       body: JSON.stringify({ mode: "improve", section, text }),
     })
       .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text().catch(() => "Unknown error");
+          try {
+            const err = JSON.parse(text);
+            throw new Error(err.error || "Failed to improve text");
+          } catch {
+            throw new Error("Failed to improve text");
+          }
+        }
         const data = (await res.json()) as ImproveResponse;
-        if (!res.ok) throw new Error(data.error || "Failed to improve text");
         updateField(key, data.improvedText ?? text);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to improve section"))
@@ -283,8 +331,16 @@ export default function ResumeBuilderPage() {
 
     fetch("/api/resume-builder", { method: "POST", body: formData })
       .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text().catch(() => "Unknown error");
+          try {
+            const err = JSON.parse(text);
+            throw new Error(err.error || `Upload failed (${res.status})`);
+          } catch {
+            throw new Error(text || `Upload failed (${res.status})`);
+          }
+        }
         const data = (await res.json()) as AutofillResponse;
-        if (!res.ok) throw new Error(data.error || "Failed to autofill");
 
         setForm((prev) => ({
           ...prev,
@@ -329,8 +385,16 @@ export default function ResumeBuilderPage() {
       }),
     })
       .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text().catch(() => "Unknown error");
+          try {
+            const err = JSON.parse(text);
+            throw new Error(err.error || "Failed to fill missing fields");
+          } catch {
+            throw new Error("Failed to fill missing fields");
+          }
+        }
         const data = (await res.json()) as { generated?: Record<string, string>; missingFields?: string[]; error?: string };
-        if (!res.ok) throw new Error(data.error || "Failed to fill missing fields");
 
         const generated = data.generated || {};
         setForm((prev) => {
@@ -622,9 +686,47 @@ export default function ResumeBuilderPage() {
               >
                 ATS Friendly: {atsFriendly ? "On" : "Off"}
               </button>
-              <div className={`rounded-xl px-4 py-2 text-sm font-semibold ${isDark ? "bg-white/10 text-white" : "bg-black/10 text-black"}`}>
-                Template: {selectedTemplate.name}
-              </div>
+              <details className={`rounded-xl px-4 py-2 text-sm font-semibold cursor-pointer group ${
+                isDark ? "bg-white/10 text-white hover:bg-white/20" : "bg-black/10 text-black hover:bg-black/20"
+              }`}>
+                <summary className="select-none list-none">
+                  Template: <span className="font-bold">{selectedTemplate.name}</span> ▼
+                </summary>
+                <div className={`absolute top-full mt-2 left-0 right-0 z-50 rounded-xl border ${
+                  isDark ? "border-white/20 bg-black/95" : "border-black/20 bg-white/95"
+                } shadow-lg`}>
+                  {(["professional", "friendly", "ats"] as TemplateSection[]).map((section) => (
+                    <div key={section} className={`border-b last:border-b-0 ${isDark ? "border-white/10" : "border-black/10"}`}>
+                      <div className={`px-4 py-2 text-xs font-bold uppercase tracking-wide ${isDark ? "text-white/60" : "text-black/60"}`}>
+                        {section.toUpperCase()} TEMPLATES
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {TEMPLATE_LIBRARY[section].map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              setTemplateSection(section);
+                              applyTemplatePreset(section, t.id);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm transition ${
+                              selectedTemplateId === t.id
+                                ? isDark ? "bg-white/20 text-white font-semibold" : "bg-black/10 text-black font-semibold"
+                                : isDark ? "text-white/80 hover:bg-white/10" : "text-black/80 hover:bg-black/5"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{t.name}</span>
+                              {selectedTemplateId === t.id && <span>✓</span>}
+                            </div>
+                            <div className={`text-xs mt-0.5 ${isDark ? "text-white/50" : "text-black/50"}`}>{t.tone}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
             </div>
           </div>
         </Glass>

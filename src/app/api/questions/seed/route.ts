@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { STARTER_CODE } from "@/lib/codingQuestions";
+import { APTITUDE_QUESTIONS } from "@/lib/aptitudeQuestions";
+import { buildMandatoryCaseSet, getDefaultHiddenCaseCount, getDefaultTimeLimitMinutes } from "@/lib/questionPolicy";
 
 type SeedQuestion = {
   id: string;
@@ -127,8 +129,14 @@ export async function POST() {
       pattern_tags: [],
       acceptance_rate: 0,
       description: q.description,
-      examples: q.examples,
-      testcases: q.testcases,
+      examples: buildMandatoryCaseSet(q.testcases, 2).map((tc) => ({ input: tc.input, output: tc.expectedOutput })),
+      sample_test_cases: buildMandatoryCaseSet(q.testcases, 2),
+      hidden_test_cases: buildMandatoryCaseSet(q.testcases, getDefaultHiddenCaseCount(q.difficulty)),
+      testcases: [
+        ...buildMandatoryCaseSet(q.testcases, 2),
+        ...buildMandatoryCaseSet(q.testcases, getDefaultHiddenCaseCount(q.difficulty)),
+      ],
+      time_limit_minutes: getDefaultTimeLimitMinutes(q.difficulty),
       starter_code: {
         cpp: STARTER_CODE.cpp,
         java: STARTER_CODE.java,
@@ -136,12 +144,99 @@ export async function POST() {
       },
     }));
 
-    const { error } = await supabase.from("questions").upsert(payload, { onConflict: "id" });
+    const aptPayload = APTITUDE_QUESTIONS.map((q) => ({
+      id: q.id,
+      title: q.title,
+      difficulty: q.difficulty,
+      function_name: "solve",
+      input_type: "aptitude",
+      output_type: "aptitude",
+      topic: ["aptitude", q.category.toLowerCase().replace(" ", "-")],
+      company_tags: q.companyTags,
+      pattern_tags: [String(q.year)],
+      acceptance_rate: 0,
+      description: q.questionText,
+      examples: q.options.map((opt, idx) => ({ input: `Option ${String.fromCharCode(65 + idx)}`, output: opt })),
+      testcases: [{ input: "choice", expectedOutput: String(q.correctOptionIndex) }],
+      time_limit_minutes: 1,
+      starter_code: {
+        options: q.options,
+        explanation: q.explanation,
+      },
+    }));
+
+    const finalPayload = [...payload, ...aptPayload];
+
+    const { error } = await supabase.from("questions").upsert(finalPayload, { onConflict: "id" });
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, seeded: payload.length });
+    return NextResponse.json({ success: true, seeded: finalPayload.length });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to seed questions";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const payload = PROJECT_SEED_QUESTIONS.map((q) => ({
+      id: q.id,
+      title: q.title,
+      difficulty: q.difficulty,
+      function_name: "solve",
+      input_type: "auto",
+      output_type: "auto",
+      topic: q.topic,
+      company_tags: [],
+      pattern_tags: [],
+      acceptance_rate: 0,
+      description: q.description,
+      examples: buildMandatoryCaseSet(q.testcases, 2).map((tc) => ({ input: tc.input, output: tc.expectedOutput })),
+      sample_test_cases: buildMandatoryCaseSet(q.testcases, 2),
+      hidden_test_cases: buildMandatoryCaseSet(q.testcases, getDefaultHiddenCaseCount(q.difficulty)),
+      testcases: [
+        ...buildMandatoryCaseSet(q.testcases, 2),
+        ...buildMandatoryCaseSet(q.testcases, getDefaultHiddenCaseCount(q.difficulty)),
+      ],
+      time_limit_minutes: getDefaultTimeLimitMinutes(q.difficulty),
+      starter_code: {
+        cpp: STARTER_CODE.cpp,
+        java: STARTER_CODE.java,
+        python: STARTER_CODE.python,
+      },
+    }));
+
+    const aptPayload = APTITUDE_QUESTIONS.map((q) => ({
+      id: q.id,
+      title: q.title,
+      difficulty: q.difficulty,
+      function_name: "solve",
+      input_type: "aptitude",
+      output_type: "aptitude",
+      topic: ["aptitude", q.category.toLowerCase().replace(" ", "-")],
+      company_tags: q.companyTags,
+      pattern_tags: [String(q.year)],
+      acceptance_rate: 0,
+      description: q.questionText,
+      examples: q.options.map((opt, idx) => ({ input: `Option ${String.fromCharCode(65 + idx)}`, output: opt })),
+      testcases: [{ input: "choice", expectedOutput: String(q.correctOptionIndex) }],
+      time_limit_minutes: 1,
+      starter_code: {
+        options: q.options,
+        explanation: q.explanation,
+      },
+    }));
+
+    const finalPayload = [...payload, ...aptPayload];
+
+    const { error } = await supabase.from("questions").upsert(finalPayload, { onConflict: "id" });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, seeded: finalPayload.length });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to seed questions";
     return NextResponse.json({ error: message }, { status: 500 });

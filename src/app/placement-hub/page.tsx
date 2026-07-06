@@ -61,7 +61,7 @@ export default function PlacementHubPage() {
         bullets: [
           "Filter by difficulty, topic, acceptance",
           "Programiz-style output console",
-          "Monaco editor + Judge0 execution",
+          "Monaco editor + self-hosted sandbox execution",
         ],
       },
       {
@@ -75,13 +75,53 @@ export default function PlacementHubPage() {
         ],
       },
       {
-        title: "AI Interviewer",
+        title: "Live Voice AI Assistant",
         href: "/voice-interviewer",
-        subtitle: "Run a timed voice interview with setup, coding, and feedback.",
+        subtitle: "Talk naturally and get instant spoken answers for interview, coding, or general questions.",
         bullets: [
-          "15-minute structured interview flow",
-          "Voice prompts and coding phase",
-          "Post-interview score and suggestions",
+          "Ask anything by voice in real time",
+          "Smart duplicate filter and mic/speaker loop control",
+          "Fast natural responses with live speak-back",
+        ],
+      },
+      {
+        title: "Aptitude Preparation",
+        href: "/aptitude",
+        subtitle: "Timed practice tests and pattern-wise quantitative math questions.",
+        bullets: [
+          "Pattern-wise and company-specific targets",
+          "Interactive quiz runner with step explanations",
+          "Score reports and speed stats",
+        ],
+      },
+      {
+        title: "Reasoning Practice",
+        href: "/reasoning",
+        subtitle: "Verbal, logical, and analytical reasoning puzzles for assessments.",
+        bullets: [
+          "Timed test metrics for speed audit",
+          "Blood relations, syllogisms, and seating puzzles",
+          "Detailed logic walkthrough steps",
+        ],
+      },
+      {
+        title: "SQL Practice Playground",
+        href: "/sql-practice",
+        subtitle: "Write queries against mock database schemas inside Monaco Editor.",
+        bullets: [
+          "Dialect support: MySQL, PostgreSQL, MongoDB",
+          "Live Database Schema Viewer",
+          "Verification against expected output sheets",
+        ],
+      },
+      {
+        title: "System Design Workspace",
+        href: "/system-design",
+        subtitle: "Learn scaling, CAP theorem, load balancing, and read detailed case studies.",
+        bullets: [
+          "Embedded SVG architecture flowcharts",
+          "Real-world case studies (TinyURL, Youtube)",
+          "Interview cheatsheets and pro tips",
         ],
       },
     ],
@@ -212,7 +252,7 @@ export default function PlacementHubPage() {
             <li>2. Run Resume Analyzer to find skill gaps and missing role keywords.</li>
             <li>3. Apply improvements and verify ATS and match scores.</li>
             <li>4. Use Coding Platform daily for online assessment preparation.</li>
-            <li>5. Use AI Interviewer for timed mock interviews and voice practice.</li>
+            <li>5. Use Live Voice AI Assistant for real-time speaking practice and question solving.</li>
             <li>6. Track progress in Dashboard and improve weekly.</li>
           </ol>
         </section>
