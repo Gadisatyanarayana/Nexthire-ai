@@ -521,3 +521,91 @@ create policy "notes_self_access" on system_design_notes for all using (auth.rol
 -- Contest config updates
 alter table contests add column if not exists config jsonb default '{}'::jsonb;
 
+-- ══════════════════════════════════════════════════════════
+-- Voice Interview Module v2 — Database Migration
+-- Strategy: Additive only, backward compatible
+-- ══════════════════════════════════════════════════════════
+
+-- 1. Resume columns on users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_path text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_filename text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_size integer;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_uploaded_at timestamp;
+
+-- 2. Structured interview history (replaces ad-hoc submissions-based history)
+CREATE TABLE IF NOT EXISTS voice_interview_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  session_id text REFERENCES voice_interview_sessions(session_id) ON DELETE SET NULL,
+  interview_type text NOT NULL DEFAULT 'Technical',
+  company_mode text,
+  persona text,
+  difficulty text NOT NULL DEFAULT 'medium',
+  duration_seconds integer NOT NULL DEFAULT 0,
+  questions_count integer NOT NULL DEFAULT 0,
+  overall_score integer NOT NULL DEFAULT 0,
+  category_scores jsonb NOT NULL DEFAULT '{}'::jsonb,
+  transcript jsonb NOT NULL DEFAULT '[]'::jsonb,
+  feedback jsonb NOT NULL DEFAULT '{}'::jsonb,
+  learning_recommendations jsonb NOT NULL DEFAULT '[]'::jsonb,
+  resume_used text,
+  job_description text,
+  status text NOT NULL DEFAULT 'completed',
+  created_at timestamp DEFAULT now()
+);
+
+-- 3. Gamification: XP, badges, streaks
+CREATE TABLE IF NOT EXISTS voice_interview_gamification (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+  total_xp integer NOT NULL DEFAULT 0,
+  current_streak integer NOT NULL DEFAULT 0,
+  longest_streak integer NOT NULL DEFAULT 0,
+  last_interview_date date,
+  badges jsonb NOT NULL DEFAULT '[]'::jsonb,
+  level integer NOT NULL DEFAULT 1,
+  updated_at timestamp DEFAULT now()
+);
+
+-- 4. Weekly/monthly analytics snapshots
+CREATE TABLE IF NOT EXISTS voice_interview_analytics (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  period_type text NOT NULL CHECK (period_type IN ('weekly', 'monthly')),
+  period_start date NOT NULL,
+  period_end date NOT NULL,
+  interviews_count integer NOT NULL DEFAULT 0,
+  avg_score integer NOT NULL DEFAULT 0,
+  category_averages jsonb NOT NULL DEFAULT '{}'::jsonb,
+  placement_readiness_score integer NOT NULL DEFAULT 0,
+  strengths jsonb NOT NULL DEFAULT '[]'::jsonb,
+  weaknesses jsonb NOT NULL DEFAULT '[]'::jsonb,
+  created_at timestamp DEFAULT now(),
+  UNIQUE(user_id, period_type, period_start)
+);
+
+-- 5. Indexes for new tables
+CREATE INDEX IF NOT EXISTS idx_vi_history_user_id ON voice_interview_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_vi_history_user_created ON voice_interview_history(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_vi_history_company ON voice_interview_history(company_mode);
+CREATE INDEX IF NOT EXISTS idx_vi_gamification_user ON voice_interview_gamification(user_id);
+CREATE INDEX IF NOT EXISTS idx_vi_analytics_user_period ON voice_interview_analytics(user_id, period_type, period_start DESC);
+
+-- 6. RLS policies for new tables
+ALTER TABLE voice_interview_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE voice_interview_gamification ENABLE ROW LEVEL SECURITY;
+ALTER TABLE voice_interview_analytics ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "vi_history_auth_access" ON voice_interview_history;
+CREATE POLICY "vi_history_auth_access" ON voice_interview_history
+  FOR ALL USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "vi_gamification_auth_access" ON voice_interview_gamification;
+CREATE POLICY "vi_gamification_auth_access" ON voice_interview_gamification
+  FOR ALL USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "vi_analytics_auth_access" ON voice_interview_analytics;
+CREATE POLICY "vi_analytics_auth_access" ON voice_interview_analytics
+  FOR ALL USING (auth.role() = 'authenticated');
+
+

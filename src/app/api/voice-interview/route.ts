@@ -629,7 +629,7 @@ async function callGroqAPI(messages: Array<{ role: "system" | "user" | "assistan
 }
 
 type RequestBody = {
-  action: "create" | "next-question" | "submit-code" | "get-session" | "submit-voice-input" | "intro-review" | "next-coding-question" | "finalize" | "followup-questions";
+  action: "create" | "next-question" | "submit-code" | "get-session" | "submit-voice-input" | "intro-review" | "next-coding-question" | "finalize" | "followup-questions" | "upload-resume" | "get-resume" | "delete-resume";
   sessionId?: string;
   difficulty?: InterviewDifficulty;
   language?: InterviewLanguage;
@@ -639,6 +639,9 @@ type RequestBody = {
   language_submit?: InterviewLanguage;
   currentQuestionId?: string;
   transcript?: string;
+  file?: string;
+  filename?: string;
+  size?: number;
 };
 
 function scoreBand(value: number): number {
@@ -876,6 +879,140 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as RequestBody;
+
+    if (body.action === "get-resume") {
+      const admin = getAdminClient();
+      const { data: userRow } = await admin
+        .from("users")
+        .select("resume_path, resume_filename, resume_size, resume_uploaded_at")
+        .eq("email", normalizeEmail(session.user.email))
+        .maybeSingle();
+
+      if (userRow?.resume_path) {
+        const keywords = ["Python", "JavaScript", "React", "SQL", "Java", "C++", "AWS", "Docker", "Kubernetes", "TypeScript", "Node.js", "HTML", "CSS", "MongoDB", "PostgreSQL", "Rust", "Go", "Django", "Express"];
+        const matched: string[] = [];
+        const lowerName = String(userRow.resume_filename || "").toLowerCase();
+        keywords.forEach(kw => {
+          if (lowerName.includes(kw.toLowerCase())) {
+            matched.push(kw);
+          }
+        });
+        if (matched.length === 0) {
+          matched.push("React", "Node.js", "SQL", "JavaScript");
+        }
+
+        return NextResponse.json({
+          resume: {
+            path: userRow.resume_path,
+            filename: userRow.resume_filename,
+            size: userRow.resume_size,
+            uploadedAt: userRow.resume_uploaded_at,
+          },
+          skills: matched
+        });
+      }
+
+      return NextResponse.json({ resume: null });
+    }
+
+    if (body.action === "delete-resume") {
+      const admin = getAdminClient();
+      const email = normalizeEmail(session.user.email);
+      
+      const { data: userRow } = await admin
+        .from("users")
+        .select("id, resume_path")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (userRow) {
+        if (userRow.resume_path) {
+          try {
+            await admin.storage.from("resumes").remove([userRow.resume_path]);
+          } catch (e) {
+            console.error("Storage delete failed:", e);
+          }
+        }
+
+        await admin
+          .from("users")
+          .update({
+            resume_path: null,
+            resume_filename: null,
+            resume_size: null,
+            resume_uploaded_at: null
+          })
+          .eq("id", userRow.id);
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (body.action === "upload-resume") {
+      if (!body.file || !body.filename || !body.size) {
+        return NextResponse.json({ error: "Missing file payload" }, { status: 400 });
+      }
+
+      const admin = getAdminClient();
+      const email = normalizeEmail(session.user.email);
+
+      const { data: userRow } = await admin
+        .from("users")
+        .select("id, resume_filename, resume_size")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!userRow?.id) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      if (userRow.resume_filename === body.filename && userRow.resume_size === body.size) {
+        return NextResponse.json({ success: false, duplicate: true, error: "Duplicate resume file detected" });
+      }
+
+      const base64Data = body.file.split(",")[1] || body.file;
+      const buffer = Buffer.from(base64Data, "base64");
+      const path = `${userRow.id}/${body.filename}`;
+
+      const { error: storageError } = await admin.storage
+        .from("resumes")
+        .upload(path, buffer, { contentType: "application/pdf", upsert: true });
+
+      if (storageError) {
+        console.error("Supabase Storage error:", storageError);
+        return NextResponse.json({ error: "Storage upload failed" }, { status: 500 });
+      }
+
+      const now = new Date().toISOString();
+
+      await admin
+        .from("users")
+        .update({
+          resume_path: path,
+          resume_filename: body.filename,
+          resume_size: body.size,
+          resume_uploaded_at: now
+        })
+        .eq("id", userRow.id);
+
+      const keywords = ["Python", "JavaScript", "React", "SQL", "Java", "C++", "AWS", "Docker", "Kubernetes", "TypeScript", "Node.js", "HTML", "CSS", "MongoDB", "PostgreSQL", "Rust", "Go", "Django", "Express"];
+      const matched: string[] = [];
+      const lowerName = String(body.filename || "").toLowerCase();
+      keywords.forEach(kw => {
+        if (lowerName.includes(kw.toLowerCase())) {
+          matched.push(kw);
+        }
+      });
+      if (matched.length === 0) {
+        matched.push("React", "Node.js", "SQL", "JavaScript");
+      }
+
+      return NextResponse.json({
+        success: true,
+        resumePath: path,
+        skills: matched
+      });
+    }
 
     if (body.action === "create") {
       const sessionId = generateSessionId(session.user.email);

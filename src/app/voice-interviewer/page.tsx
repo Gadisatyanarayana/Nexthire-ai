@@ -15,6 +15,9 @@ import { supabase } from "@/lib/supabase";
 import { ToastProvider } from "@/components/voice-interview/ToastProvider";
 import { ErrorBoundary } from "@/components/voice-interview/ErrorBoundary";
 import { ConnectionIndicator } from "@/components/voice-interview/ConnectionIndicator";
+import { PermissionFlow } from "@/components/voice-interview/PermissionFlow";
+import { ResumeFlow } from "@/components/voice-interview/ResumeFlow";
+import { ResumeManager } from "@/components/voice-interview/ResumeManager";
 
 type ChatRole = "user" | "assistant";
 
@@ -61,9 +64,14 @@ function createMessage(role: ChatRole, content: string): ChatMessage {
 function VoiceInterviewerWorkspace() {
   const { data: session, status } = useSession();
   const [isDark, setIsDark] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
-  // Flow State: 'checklist' | 'active' | 'scorecard' | 'history'
-  const [step, setStep] = useState<"checklist" | "active" | "scorecard" | "history">("checklist");
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Flow State: 'permissions' | 'resume' | 'settings' | 'active' | 'scorecard' | 'history'
+  const [step, setStep] = useState<"permissions" | "resume" | "settings" | "active" | "scorecard" | "history">("permissions");
   
   // Configurations
   const [interviewType, setInterviewType] = useState<"Technical" | "Coding" | "SQL" | "HR" | "Mixed">("Technical");
@@ -929,7 +937,7 @@ function VoiceInterviewerWorkspace() {
     };
   }, []);
 
-  if (status === "loading") {
+  if (!mounted || status === "loading") {
     return (
       <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-black text-white" : "bg-slate-50 text-black"}`}>
         <div className="flex items-center gap-3">
@@ -965,8 +973,8 @@ function VoiceInterviewerWorkspace() {
             <ConnectionIndicator />
             <button
               onClick={() => {
-                if (step === "checklist") fetchHistory();
-                else setStep("checklist");
+                if (step !== "history") fetchHistory();
+                else setStep("permissions");
               }}
               className={`rounded-xl border px-4 py-2.5 text-xs font-bold transition flex items-center gap-1.5 ${isDark ? "border-white/10 bg-zinc-950/40 text-white hover:bg-white/5" : "border-black/10 bg-white text-black hover:bg-slate-100"}`}
             >
@@ -982,177 +990,64 @@ function VoiceInterviewerWorkspace() {
           </div>
         </header>
 
-        {/* STEP 1: PRE-INTERVIEW CHECKLIST & CONFIG */}
-        {step === "checklist" && (
+        {/* STEP 1: PERMISSIONS CONFIGURATION */}
+        {step === "permissions" && (
+          <div className="py-12 flex items-center justify-center">
+            <PermissionFlow
+              onAllPermissionsGranted={(streams) => {
+                setWebcamGranted(true);
+                setMicGranted(true);
+                setSpeakerChecked(true);
+                setNoiseCheckPassed(true);
+                setStep("resume");
+                
+                if (videoPreviewRef.current) {
+                  videoPreviewRef.current.srcObject = streams.video;
+                }
+                webcamStreamRef.current = streams.video;
+              }}
+            />
+          </div>
+        )}
+
+        {/* STEP 2: RESUME SYNCHRONIZATION */}
+        {step === "resume" && (
+          <div className="py-12 flex items-center justify-center">
+            <ResumeFlow
+              userEmail={session?.user?.email || ""}
+              onResumeVerified={(path, detectedSkills) => {
+                setResumeUploaded(true);
+                setResumeFileName(path.split("/").pop() || "Synced_Resume.pdf");
+                setSkillsDetected(detectedSkills);
+                setStep("settings");
+              }}
+              onBack={() => setStep("permissions")}
+            />
+          </div>
+        )}
+
+        {/* STEP 3: INTERVIEW SETTINGS & CONFIG */}
+        {step === "settings" && (
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8">
             
-            {/* Checklist items */}
-            <div className={`rounded-3xl border p-8 space-y-6 ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
-              <div>
-                <h2 className="text-xl font-bold mb-1.5 flex items-center gap-2">
-                  <ShieldAlert className="h-5.5 w-5.5 text-cyan-400" />
-                  Pre-Interview Readiness Check
-                </h2>
-                <p className="text-xs text-foreground/60 leading-relaxed">
-                  To simulate a genuine placement portal, we verify client capabilities and enforce strict evaluation rules.
-                </p>
-              </div>
-
-              {/* Warnings alert */}
-              <div className={`p-4 rounded-2xl border text-xs leading-relaxed space-y-1.5 ${isDark ? "border-yellow-500/10 bg-yellow-500/5 text-yellow-200" : "border-yellow-500/20 bg-yellow-50/70 text-yellow-800"}`}>
-                <p className="font-bold flex items-center gap-1">
-                  <AlertCircle className="h-4 w-4" /> Placement Sandbox Policy:
-                </p>
-                <ul className="list-disc pl-4 space-y-1">
-                  <li>Keep camera active. Turning off camera triggers immediate warnings.</li>
-                  <li>Do NOT exit fullscreen or change browser tabs. Switching tabs will trigger auto-warnings.</li>
-                  <li>3 warnings will terminate the session early with a failing result.</li>
-                </ul>
-              </div>
-
-              {/* Hardware verification panel */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                {/* Camera preview box */}
-                <div className={`rounded-2xl border relative overflow-hidden flex flex-col justify-between h-44 ${isDark ? "border-white/10 bg-zinc-950/30" : "border-black/10 bg-slate-50"}`}>
-                  <video
-                    ref={videoPreviewRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover z-0 opacity-80"
-                  />
-                  <div className="absolute inset-0 flex flex-col justify-between p-3.5 z-10 bg-gradient-to-t from-black/80 via-transparent to-black/30">
-                    <span className="text-[10px] uppercase font-bold text-white bg-black/60 px-2 py-0.5 rounded-md self-start flex items-center gap-1">
-                      <Camera className="h-3.5 w-3.5 text-cyan-400" /> Webcam Stream
-                    </span>
-                    
-                    {webcamGranted ? (
-                      <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 mt-auto">
-                        <CheckCircle2 className="h-4 w-4" /> Camera Active
-                      </span>
-                    ) : (
-                      <button
-                        onClick={checkHardwareAndPermissions}
-                        className="text-xs text-cyan-400 hover:underline font-bold text-left"
-                      >
-                        Request Camera Permission
-                      </button>
-                    )}
+            <div className="space-y-6">
+              {/* Profile Resume Manager */}
+              <ResumeManager />
+              
+              {/* Hardware Device Summary */}
+              <div className={`rounded-3xl border p-6 space-y-4 ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
+                <h3 className="font-extrabold text-sm text-cyan-400 uppercase tracking-wider">Device Verification Overview</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 text-xs font-bold flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Camera Configured
                   </div>
-                </div>
-
-                {/* Mic, Speaker, Noise & Internet checks */}
-                <div className="space-y-3">
-                  <div className={`rounded-2xl border p-4 flex items-center justify-between ${isDark ? "border-white/5 bg-zinc-900/10" : "border-black/5 bg-slate-50"}`}>
-                    <div className="flex items-center gap-2">
-                      <Mic className="h-4 w-4 text-cyan-400" />
-                      <span className="text-xs font-bold">Microphone access</span>
-                    </div>
-                    {micGranted ? (
-                      <span className="text-xs font-semibold text-emerald-400">Granted</span>
-                    ) : (
-                      <button onClick={checkHardwareAndPermissions} className="text-xs text-cyan-400 font-bold hover:underline">
-                        Request Mic
-                      </button>
-                    )}
-                  </div>
-
-                  <div className={`rounded-2xl border p-4 flex items-center justify-between ${isDark ? "border-white/5 bg-zinc-900/10" : "border-black/5 bg-slate-50"}`}>
-                    <div className="flex items-center gap-2">
-                      <Volume2 className="h-4 w-4 text-cyan-400" />
-                      <span className="text-xs font-bold">Speaker Output</span>
-                    </div>
-                    {speakerChecked === true ? (
-                      <span className="text-xs font-semibold text-emerald-400">Verified ✓</span>
-                    ) : (
-                      <div className="flex gap-2 items-center">
-                        <button onClick={playTestTone} className="text-[10px] bg-cyan-500 text-black px-2 py-1 rounded font-bold hover:bg-cyan-400">
-                          Play Tone
-                        </button>
-                        <button onClick={() => setSpeakerChecked(true)} className="text-[10px] border border-emerald-500/30 text-emerald-400 px-1.5 py-1 rounded hover:bg-emerald-500/10 font-bold">
-                          Yes
-                        </button>
-                        <button onClick={() => setSpeakerChecked(false)} className="text-[10px] border border-red-500/30 text-red-400 px-1.5 py-1 rounded hover:bg-red-500/10 font-bold">
-                          No
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={`rounded-2xl border p-4 flex items-center justify-between ${isDark ? "border-white/5 bg-zinc-900/10" : "border-black/5 bg-slate-50"}`}>
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-cyan-400" />
-                      <span className="text-xs font-bold">Ambient Noise Level</span>
-                    </div>
-                    <span className={`text-xs font-semibold ${ambientNoiseLevel === "Low" ? "text-emerald-400" : ambientNoiseLevel === "Measuring..." ? "text-yellow-400" : "text-red-400"}`}>
-                      {ambientNoiseLevel} {ambientNoiseLevel === "Low" && "✓"}
-                    </span>
-                  </div>
-
-                  <div className={`rounded-2xl border p-4 flex items-center justify-between ${isDark ? "border-white/5 bg-zinc-900/10" : "border-black/5 bg-slate-50"}`}>
-                    <div className="flex items-center gap-2">
-                      <Wifi className="h-4 w-4 text-cyan-400" />
-                      <span className="text-xs font-bold">Connection status</span>
-                    </div>
-                    <span className={`text-xs font-semibold ${internetStatus ? "text-emerald-400" : "text-red-400"}`}>
-                      {internetStatus ? "Stable" : "Offline"}
-                    </span>
+                  <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 text-xs font-bold flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Microphone Enabled
                   </div>
                 </div>
               </div>
-
-              {/* Resume Personalized drag & drop portal scanner */}
-              <div className={`rounded-2xl border p-5 ${isDark ? "border-white/5 bg-zinc-950/10" : "border-black/5 bg-slate-50"}`}>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400">Resume Personalization</h4>
-                    <p className="text-xs text-foreground/60 leading-relaxed">
-                      Upload your SDE resume or drag and drop below to trigger tailored questions matching your tech stack.
-                    </p>
-                  </div>
-                  
-                  <div
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const file = e.dataTransfer.files?.[0];
-                      if (file) void handleResumeUpload(file);
-                    }}
-                    className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center space-y-2 ${
-                      isDark ? "border-white/10 hover:border-cyan-500/50 bg-white/5" : "border-black/10 hover:border-cyan-500/50 bg-slate-100/50"
-                    }`}
-                    onClick={() => {
-                      const input = document.createElement("input");
-                      input.type = "file";
-                      input.accept = ".pdf,.txt,.docx";
-                      input.onchange = (e) => {
-                        const file = (e.target as HTMLInputElement).files?.[0];
-                        if (file) void handleResumeUpload(file);
-                      };
-                      input.click();
-                    }}
-                  >
-                    <FileText className="h-8 w-8 text-cyan-400/80 animate-pulse" />
-                    <span className="text-xs font-semibold text-foreground/75">
-                      {resumeUploaded ? `Uploaded: ${resumeFileName}` : "Drag & drop resume here, or click to browse"}
-                    </span>
-                    <span className="text-[10px] text-foreground/50">Supports PDF, TXT, DOCX</span>
-                  </div>
-
-                  {resumeUploaded && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      <span className="text-[10px] text-foreground/60 font-semibold self-center">Matched Skills:</span>
-                      {skillsDetected.map((skill, i) => (
-                        <span key={i} className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
             </div>
 
             {/* Config setup panel */}
@@ -1171,6 +1066,7 @@ function VoiceInterviewerWorkspace() {
                     {(["Technical", "Coding", "SQL", "HR", "Mixed"] as const).map(type => (
                       <button
                         key={type}
+                        type="button"
                         onClick={() => setInterviewType(type)}
                         className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${interviewType === type ? "bg-cyan-500 border-cyan-500 text-black" : isDark ? "border-white/10 bg-zinc-900 text-white" : "border-black/10 bg-white text-black"}`}
                       >
@@ -1187,6 +1083,7 @@ function VoiceInterviewerWorkspace() {
                     {(["easy", "medium", "hard"] as const).map(diff => (
                       <button
                         key={diff}
+                        type="button"
                         onClick={() => setDifficulty(diff)}
                         className={`px-3 py-2 text-xs font-bold rounded-xl border transition capitalize ${difficulty === diff ? "bg-cyan-500 border-cyan-500 text-black" : isDark ? "border-white/10 bg-zinc-900 text-white" : "border-black/10 bg-white text-black"}`}
                       >
@@ -1266,8 +1163,7 @@ function VoiceInterviewerWorkspace() {
               <button
                 type="button"
                 onClick={launchInterview}
-                disabled={webcamGranted !== true || micGranted !== true || speakerChecked !== true || noiseCheckPassed !== true}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-black py-4 text-sm font-extrabold transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-black py-4 text-sm font-extrabold transition shadow-lg"
               >
                 Launch Interview Workspace
               </button>
@@ -1619,7 +1515,7 @@ function VoiceInterviewerWorkspace() {
             {/* Action buttons scorecard */}
             <div className="flex gap-4 items-center justify-center">
               <button
-                onClick={() => setStep("checklist")}
+                onClick={() => setStep("permissions")}
                 className="bg-cyan-500 hover:bg-cyan-400 text-black px-6 py-3 rounded-2xl text-xs font-bold transition flex items-center gap-1.5"
               >
                 <RefreshCw className="h-4 w-4" /> Start Another Mock Round
@@ -1678,7 +1574,7 @@ function VoiceInterviewerWorkspace() {
             )}
 
             <button
-              onClick={() => setStep("checklist")}
+              onClick={() => setStep("permissions")}
               className="bg-cyan-500 hover:bg-cyan-400 text-black px-6 py-2.5 rounded-2xl text-xs font-bold transition mx-auto block"
             >
               Return to Workspace Setup
