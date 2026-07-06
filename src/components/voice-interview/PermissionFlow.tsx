@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Camera, Mic, RefreshCw, AlertTriangle, ShieldCheck, CheckCircle } from "lucide-react";
+import { Camera, Mic, RefreshCw, ShieldCheck } from "lucide-react";
 import { useToast } from "./hooks";
 import { PermissionRecoveryDialog } from "./PermissionRecoveryDialog";
 
@@ -20,7 +20,28 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
   const requestPermissions = useCallback(async () => {
     setRequesting(true);
     setShowRecovery(false);
-    
+    console.log("----------------------------------------");
+    console.log("getUserMedia started");
+
+    // 1. Log Permissions API status
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        const cam = await navigator.permissions.query({ name: "camera" as any });
+        console.log(`Permission API status: camera = ${cam.state}`);
+      } catch (e) {
+        console.log("Permission API status: camera = unsupported/error querying");
+      }
+
+      try {
+        const mic = await navigator.permissions.query({ name: "microphone" as any });
+        console.log(`Permission API status: microphone = ${mic.state}`);
+      } catch (e) {
+        console.log("Permission API status: microphone = unsupported/error querying");
+      }
+    } else {
+      console.log("Permission API status: Permissions API not supported by browser");
+    }
+
     let cameraStream: MediaStream | null = null;
     let micStream: MediaStream | null = null;
 
@@ -29,16 +50,22 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       addToast("Requesting camera and microphone access...", "info", 2000);
       const combinedStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       
-      setCameraState("granted");
-      setMicState("granted");
-      addToast("Camera access granted", "success");
-      addToast("Microphone access granted", "success");
-      addToast("All permissions granted", "success");
+      console.log("getUserMedia success");
+      console.log("Stream received:", combinedStream.id);
       
-      // Split stream tracks
       const videoTracks = combinedStream.getVideoTracks();
       const audioTracks = combinedStream.getAudioTracks();
+      console.log(`Video tracks: ${videoTracks.length} tracks found`);
+      videoTracks.forEach(t => console.log(`- ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
+      console.log(`Audio tracks: ${audioTracks.length} tracks found`);
+      audioTracks.forEach(t => console.log(`- ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
       
+      setCameraState("granted");
+      setMicState("granted");
+      addToast("Camera and microphone access granted", "success");
+      addToast("All permissions granted", "success");
+      
+      // Split stream tracks into separate MediaStreams
       cameraStream = new MediaStream(videoTracks);
       micStream = new MediaStream(audioTracks);
 
@@ -46,46 +73,98 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       onAllPermissionsGranted({ video: cameraStream, audio: micStream });
       return;
     } catch (combinedErr: any) {
-      console.warn("Combined permission request failed, fallback to separate requests...", combinedErr);
-      
-      // Fallback to checking individually to isolate which hardware failed
-      // 1. Camera check
+      console.warn("Combined permission request failed, fallback to separate isolated checks:", combinedErr);
+      console.log("Recovery dialog reason: check failed, analyzing hardware components separately...");
+
+      let camPassed = false;
+      let micPassed = false;
+
+      // Fallback: Check Camera in isolation
       try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log("Fallback: Requesting camera only...");
+        const camTest = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log("Camera test success");
         setCameraState("granted");
-        addToast("Camera access granted", "success");
+        camPassed = true;
+        
+        // Stop the tracks immediately to release hardware locks
+        camTest.getTracks().forEach((t) => {
+          t.stop();
+          console.log(`Stopped camera track: ${t.label}`);
+        });
       } catch (err: any) {
-        console.warn("Camera permission failed:", err);
-        const isBlocked = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
+        console.error("Camera individual test failed:", err);
+        const name = err.name || "";
+        console.log(`Recovery dialog reason: camera error name = ${name}`);
+        
+        if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          console.log("Recovery dialog reason: Device unavailable");
+        } else if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          console.log("Recovery dialog reason: Permission denied / Permission blocked");
+        } else if (name === "NotReadableError" || name === "TrackStartError") {
+          console.log("Recovery dialog reason: NotReadableError (device locked by another app)");
+        } else if (name === "AbortError") {
+          console.log("Recovery dialog reason: AbortError");
+        }
+        
+        const isBlocked = name === "NotAllowedError" || name === "PermissionDeniedError";
         setCameraState(isBlocked ? "blocked" : "denied");
-        addToast(isBlocked ? "Camera blocked in browser settings" : "Camera permission denied", "error");
+        addToast(isBlocked ? "Camera blocked in settings" : "Camera permission denied", "error");
       }
 
-      // 2. Microphone check
+      // Fallback: Check Microphone in isolation
       try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("Fallback: Requesting microphone only...");
+        const micTest = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("Microphone test success");
         setMicState("granted");
-        addToast("Microphone access granted", "success");
+        micPassed = true;
+        
+        // Stop the tracks immediately to release hardware locks
+        micTest.getTracks().forEach((t) => {
+          t.stop();
+          console.log(`Stopped microphone track: ${t.label}`);
+        });
       } catch (err: any) {
-        console.warn("Microphone permission failed:", err);
-        const isBlocked = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
+        console.error("Microphone individual test failed:", err);
+        const name = err.name || "";
+        console.log(`Recovery dialog reason: microphone error name = ${name}`);
+        
+        if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          console.log("Recovery dialog reason: Device unavailable");
+        } else if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          console.log("Recovery dialog reason: Permission denied / Permission blocked");
+        } else if (name === "NotReadableError" || name === "TrackStartError") {
+          console.log("Recovery dialog reason: NotReadableError (device locked by another app)");
+        } else if (name === "AbortError") {
+          console.log("Recovery dialog reason: AbortError");
+        }
+        
+        const isBlocked = name === "NotAllowedError" || name === "PermissionDeniedError";
         setMicState(isBlocked ? "blocked" : "denied");
-        addToast(isBlocked ? "Microphone blocked in browser settings" : "Microphone permission denied", "error");
+        addToast(isBlocked ? "Microphone blocked in settings" : "Microphone permission denied", "error");
       }
 
       setRequesting(false);
 
-      if (cameraStream && micStream) {
-        addToast("All permissions granted", "success");
-        onAllPermissionsGranted({ video: cameraStream, audio: micStream });
+      if (camPassed && micPassed) {
+        console.log("Both devices passed verification in isolation. Re-triggering combined stream...");
+        try {
+          const finalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          const videoTracks = finalStream.getVideoTracks();
+          const audioTracks = finalStream.getAudioTracks();
+          
+          cameraStream = new MediaStream(videoTracks);
+          micStream = new MediaStream(audioTracks);
+          
+          addToast("All permissions granted", "success");
+          onAllPermissionsGranted({ video: cameraStream, audio: micStream });
+        } catch (e: any) {
+          console.error("Failed final combined re-acquisition:", e);
+          setShowRecovery(true);
+        }
       } else {
-        // Cleanup successful streams if the other failed
-        if (cameraStream) {
-          cameraStream.getTracks().forEach((track) => track.stop());
-        }
-        if (micStream) {
-          micStream.getTracks().forEach((track) => track.stop());
-        }
+        console.log("One or both devices failed permissions check. Opening recovery dialog.");
         setShowRecovery(true);
       }
     }
