@@ -9,31 +9,31 @@ type AIAvatarProps = {
   personaLabel?: string;
 };
 
-export function AIAvatar({ state, personaLabel = "AI Recruiter" }: AIAvatarProps) {
+export const AIAvatar = React.memo(function AIAvatar({ state, personaLabel = "AI Recruiter" }: AIAvatarProps) {
   return (
     <div className="flex flex-col items-center justify-center py-6">
       <div className="relative h-44 w-44 flex items-center justify-center">
         {/* Animated breathing pulse ring */}
         {state === "idle" && (
-          <div className="absolute inset-0 rounded-full bg-cyan-500/5 animate-pulse duration-[3000ms] scale-110 border border-cyan-500/10" />
+          <div className="absolute inset-0 rounded-full bg-cyan-500/5 animate-pulse motion-reduce:animate-none duration-[3000ms] scale-110 border border-cyan-500/10" />
         )}
 
         {/* Dynamic rippling rings for Listening state */}
         {state === "listening" && (
           <>
-            <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping duration-[2000ms] border border-emerald-500/20" />
-            <div className="absolute inset-2 rounded-full bg-emerald-500/5 animate-pulse duration-[1000ms]" />
+            <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping motion-reduce:animate-none duration-[2000ms] border border-emerald-500/20" />
+            <div className="absolute inset-2 rounded-full bg-emerald-500/5 animate-pulse motion-reduce:animate-none duration-[1000ms]" />
           </>
         )}
 
         {/* Orbit spinner rings for Thinking state */}
         {state === "thinking" && (
-          <div className="absolute inset-0 rounded-full border border-dashed border-cyan-400/40 animate-spin duration-[8000ms]" />
+          <div className="absolute inset-0 rounded-full border border-dashed border-cyan-400/40 animate-spin motion-reduce:animate-none duration-[8000ms]" />
         )}
 
         {/* Expanding glowing bars for Speaking state */}
         {state === "speaking" && (
-          <div className="absolute inset-0 rounded-full bg-cyan-500/5 border border-cyan-500/10 animate-pulse duration-[1500ms]" />
+          <div className="absolute inset-0 rounded-full bg-cyan-500/5 border border-cyan-500/10 animate-pulse motion-reduce:animate-none duration-[1500ms]" />
         )}
 
         {/* Core Orb */}
@@ -56,11 +56,11 @@ export function AIAvatar({ state, personaLabel = "AI Recruiter" }: AIAvatarProps
             <div className="flex items-center gap-1">
               <span className={`h-1.5 w-1.5 rounded-full ${
                 state === "listening"
-                  ? "bg-emerald-400 animate-pulse"
+                  ? "bg-emerald-400 animate-pulse motion-reduce:animate-none"
                   : state === "thinking"
-                  ? "bg-cyan-400 animate-spin"
+                  ? "bg-cyan-400 animate-spin motion-reduce:animate-none"
                   : state === "speaking"
-                  ? "bg-cyan-300 animate-bounce"
+                  ? "bg-cyan-300 animate-bounce motion-reduce:animate-none"
                   : "bg-white/40"
               }`} />
               <span className="text-xs font-black tracking-tight">{personaLabel}</span>
@@ -72,7 +72,7 @@ export function AIAvatar({ state, personaLabel = "AI Recruiter" }: AIAvatarProps
             state === "listening"
               ? "bg-emerald-500/10 filter blur-md opacity-100"
               : state === "thinking"
-              ? "bg-cyan-500/10 filter blur-md opacity-100 animate-pulse"
+              ? "bg-cyan-500/10 filter blur-md opacity-100 animate-pulse motion-reduce:animate-none"
               : state === "speaking"
               ? "bg-cyan-400/20 filter blur-lg opacity-100"
               : "opacity-20 bg-white/5"
@@ -81,4 +81,4 @@ export function AIAvatar({ state, personaLabel = "AI Recruiter" }: AIAvatarProps
       </div>
     </div>
   );
-}
+});

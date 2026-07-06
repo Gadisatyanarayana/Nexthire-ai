@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Award, Zap, Trophy, Flame } from "lucide-react";
+import { Award, Trophy, Flame } from "lucide-react";
 
 export type Badge = {
   id: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Mic, MicOff, Play, Pause, LogOut, Maximize2, Minimize2 } from "lucide-react";
+import { Mic, MicOff, Play, Pause, LogOut, Maximize2, Minimize2, Settings } from "lucide-react";
 
 type InterviewControlsProps = {
   isMuted: boolean;
@@ -9,9 +9,10 @@ type InterviewControlsProps = {
   isPaused: boolean;
   onPauseToggle: () => void;
   onExit: () => void;
+  onSettingsToggle?: () => void;
 };
 
-export function InterviewControls({ isMuted, onMuteToggle, isPaused, onPauseToggle, onExit }: InterviewControlsProps) {
+export function InterviewControls({ isMuted, onMuteToggle, isPaused, onPauseToggle, onExit, onSettingsToggle }: InterviewControlsProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -71,6 +72,17 @@ export function InterviewControls({ isMuted, onMuteToggle, isPaused, onPauseTogg
       >
         {isFullscreen ? <Minimize2 className="h-4.5 w-4.5" /> : <Maximize2 className="h-4.5 w-4.5" />}
       </button>
+
+      {/* Settings control */}
+      {onSettingsToggle && (
+        <button
+          onClick={onSettingsToggle}
+          className="p-3 rounded-xl border border-white/10 bg-zinc-900 text-white hover:bg-white/5 transition-all flex items-center justify-center"
+          aria-label="Open Settings"
+        >
+          <Settings className="h-4.5 w-4.5" />
+        </button>
+      )}
 
       {/* Divider */}
       <div className="h-5 w-[1px] bg-white/10 mx-1 hidden sm:block" />

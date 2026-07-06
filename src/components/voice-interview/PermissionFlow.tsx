@@ -47,10 +47,18 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
     let cameraStream: MediaStream | null = null;
     let micStream: MediaStream | null = null;
 
+    const savedMicId = window.localStorage.getItem("nh-mic")?.replace(/"/g, "");
+    const savedCamId = window.localStorage.getItem("nh-cam")?.replace(/"/g, "");
+
+    const constraints: MediaStreamConstraints = {
+      video: savedCamId ? { deviceId: { ideal: savedCamId } } : true,
+      audio: savedMicId ? { deviceId: { ideal: savedMicId } } : true
+    };
+
     // Try joint request first (standard browser behavior for unified prompts)
     try {
       addToast("Requesting camera and microphone access...", "info", 2000);
-      const combinedStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const combinedStream = await navigator.mediaDevices.getUserMedia(constraints);
 
       console.log("getUserMedia() succeeded: combined stream received");
       console.log("Stream received ID:", combinedStream.id);
@@ -102,7 +110,7 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       // Fallback: Check Camera in isolation
       try {
         console.log("getUserMedia() called: fallback requesting camera video track in isolation");
-        const camTest = await navigator.mediaDevices.getUserMedia({ video: true });
+        const camTest = await navigator.mediaDevices.getUserMedia(constraints.video ? { video: constraints.video } : { video: true });
         console.log("getUserMedia() succeeded: camera video track isolation test passed");
         setCameraState("granted");
         camPassed = true;
@@ -146,7 +154,7 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       // Fallback: Check Microphone in isolation
       try {
         console.log("getUserMedia() called: fallback requesting microphone audio track in isolation");
-        const micTest = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const micTest = await navigator.mediaDevices.getUserMedia(constraints.audio ? { audio: constraints.audio } : { audio: true });
         console.log("getUserMedia() succeeded: microphone audio track isolation test passed");
         setMicState("granted");
         micPassed = true;

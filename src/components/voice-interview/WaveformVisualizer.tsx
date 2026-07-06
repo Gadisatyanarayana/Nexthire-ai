@@ -8,7 +8,7 @@ type WaveformVisualizerProps = {
   color?: string;
 };
 
-export function WaveformVisualizer({ stream, isActive, color = "#06b6d4" }: WaveformVisualizerProps) {
+export const WaveformVisualizer = React.memo(function WaveformVisualizer({ stream, isActive, color = "#06b6d4" }: WaveformVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -122,4 +122,4 @@ export function WaveformVisualizer({ stream, isActive, color = "#06b6d4" }: Wave
       />
     </div>
   );
-}
+});

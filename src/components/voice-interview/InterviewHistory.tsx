@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Filter, Play, Trash2, RotateCcw, Calendar, ChevronRight, Award } from "lucide-react";
+import { Filter, Play, Trash2, RotateCcw, Calendar } from "lucide-react";
 import { InterviewReplay, ReplayMessage } from "./InterviewReplay";
 
 export type HistoryItem = {
