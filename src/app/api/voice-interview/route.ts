@@ -82,11 +82,75 @@ function supportiveLine(): string {
   return options[Math.floor(Math.random() * options.length)];
 }
 
+function adaptDifficulty(current: InterviewDifficulty, score: number): InterviewDifficulty {
+  if (score >= 82) {
+    if (current === "easy") return "medium";
+    if (current === "medium") return "hard";
+  } else if (score <= 58) {
+    if (current === "hard") return "medium";
+    if (current === "medium") return "easy";
+  }
+  return current;
+}
+
+function generateInitialGreeting(name: string, companyMode: string, persona: string, topic: string, difficulty: string): string {
+  let companyText = "";
+  if (companyMode && companyMode !== "general") {
+    companyText = ` specifically tailored for the target role at ${companyMode.toUpperCase()}`;
+  }
+
+  let personaIntro = "Hello, I am your NextHire AI interviewer.";
+  if (persona === "friendly") {
+    personaIntro = `Hi ${name}! I'm your friendly mock interviewer today. We want to help you prepare and have a great conversation.`;
+  } else if (persona === "tough") {
+    personaIntro = `Welcome candidate. I am your Lead AI Recruiter. I will conduct a strict, timed placement evaluation today.`;
+  } else if (persona === "startup_cto") {
+    personaIntro = `Hey! I'm the CTO of our startup. Let's do a fast-paced chat about building scalable logic.`;
+  } else if (persona === "hr_lead") {
+    personaIntro = `Good day. I am the HR Lead. I will evaluate both your technical problem solving and leadership capabilities.`;
+  }
+
+  const topicLabel = topic.charAt(0).toUpperCase() + topic.slice(1);
+  return `${personaIntro} Nice to meet you. Please start by giving a short self-introduction. We'll run a focused 20-minute evaluation round${companyText} focusing on ${topicLabel} at ${difficulty} level.`;
+}
+
 function buildMasterInterviewerPrompt(sess: VoiceInterviewSession): string {
   const candidate = resolveCandidateName(sess);
   const totalElapsedMs = Date.now() - sess.timeline.totalStartedAt;
   const phase = resolvePromptPhase(totalElapsedMs);
   const corePrompt = getMasterSystemPrompt("interviewer");
+
+  const company = sess.config.companyMode || "general";
+  const persona = sess.config.persona || "professional";
+  const jobDescription = sess.config.jobDescription || "";
+
+  let companyBias = "General Placement Standard Evaluation.";
+  if (company === "google") {
+    companyBias = "Target Company: Google. Strict focus on algorithmic complexity, optimal space/time trade-offs, Googleyness, open-ended problem exploration, and edge-case rigor.";
+  } else if (company === "amazon") {
+    companyBias = "Target Company: Amazon. Inject questions mapping to Amazon Leadership Principles (Customer Obsession, Ownership, Bias for Action). Challenge coding optimization and scalability.";
+  } else if (company === "microsoft") {
+    companyBias = "Target Company: Microsoft. Encourage clean, modular design patterns, growth mindset, accessibility, and clear structural explanation.";
+  } else if (company === "tcs" || company === "infosys") {
+    companyBias = `Target Company: ${company.toUpperCase()}. Focus on core technical fundamentals, clean documentation, robust software lifecycle checks, and basic data structures.`;
+  } else if (company === "meta") {
+    companyBias = "Target Company: Meta. Focus on speed of execution, rapid reasoning, optimal time complexity, and direct logical implementation.";
+  } else if (company === "apple") {
+    companyBias = "Target Company: Apple. Strict focus on accuracy, details, privacy, memory efficiency, and robust resource usage.";
+  }
+
+  let personaInstructions = "Persona: Professional Interviewer. Professional, objective, balanced, and structured.";
+  if (persona === "friendly") {
+    personaInstructions = "Persona: Friendly Recruiter. Warm, encouraging, supportive, smiles in tone, reassures if candidate hesitates, keeps it lower pressure.";
+  } else if (persona === "tough") {
+    personaInstructions = "Persona: Tough Recruiter. Strict, no-nonsense, direct, questions assumptions, demands optimal complexity, challenges answers with hard follow-ups.";
+  } else if (persona === "startup_cto") {
+    personaInstructions = "Persona: Startup CTO. Fast-paced, pragmatic, hands-on, focus on scaling, shipping code fast, no fluff, values raw problem-solving speed.";
+  } else if (persona === "hr_lead") {
+    personaInstructions = "Persona: HR Lead. Focuses on leadership behavior, soft skills, team alignment, adaptability, alongside technical correctness.";
+  }
+
+  const jdText = jobDescription ? `Target Job Description Context: ${jobDescription}` : "";
 
   return `${corePrompt}
 
@@ -96,8 +160,11 @@ Candidate Name: ${candidate}
 Interview Duration: 20 minutes
 Topic: ${String(sess.config.dsaTopic || "arrays")}
 Difficulty: ${String(sess.config.difficulty || "medium")}
+${companyBias}
+${personaInstructions}
+${jdText}
 
-Your behavior must feel like a real human interviewer.
+Your behavior must feel like a real human interviewer corresponding to your active Persona.
 
 INTERVIEW FLOW
 PHASE 1 (0-2 min): Greeting and intro request.
@@ -108,15 +175,18 @@ PHASE 5 (18-20 min): Final structured review.
 
 HUMAN-LIKE BEHAVIOR
 - Use natural fillers occasionally: "hmm", "okay", "right", "mhmm".
-- If hesitation is detected, reassure briefly.
+- If hesitation is detected, reassure briefly based on your active Persona.
 - If silence is detected, use: "I'm here, continue when you're ready.".
 - If stress appears, reassure that this is mock practice.
 
+STAR METHOD EVALUATION (For behavioral / HR / leadership questions):
+- Evaluate if the response defines: Situation, Task, Action, and Result.
+- If any component is missing, ask follow-up questions to prompt for the missing details.
+
 RULES
 - Ask only one question at a time.
-- Keep response short and natural.
+- Keep response short and natural (under 45 words).
 - Stay on topic.
-- Be calm, supportive, and professional.
 - Never say you are an AI.
 
 CURRENT RUNTIME PHASE: ${phase}
@@ -642,6 +712,9 @@ type RequestBody = {
   file?: string;
   filename?: string;
   size?: number;
+  companyMode?: string;
+  persona?: string;
+  jobDescription?: string;
 };
 
 function scoreBand(value: number): number {
@@ -789,10 +862,95 @@ function analyzeCodeQuality(code: string, difficulty: InterviewDifficulty) {
   };
 }
 
+function evaluateSTARMetrics(transcript: string, structureScore: number) {
+  const text = String(transcript || "").toLowerCase();
+  
+  // Look for keywords indicating Situation, Task, Action, Result
+  const hasSituation = /(project|context|problem|client|customer|background|scenario|was trying to|needed to)/i.test(text);
+  const hasTask = /(task|responsibility|goal|objective|assigned|target|role|milestone)/i.test(text);
+  const hasAction = /(i implemented|i created|i solved|i designed|i used|i built|we decided|i led|i analyzed)/i.test(text);
+  const hasResult = /(result|outcome|impact|increased|decreased|improved|percentage|%|achieved|delivered|learned)/i.test(text);
+
+  const situationScore = scoreBand((hasSituation ? 80 : 40) + structureScore * 0.2);
+  const taskScore = scoreBand((hasTask ? 80 : 40) + structureScore * 0.2);
+  const actionScore = scoreBand((hasAction ? 85 : 45) + structureScore * 0.15);
+  const resultScore = scoreBand((hasResult ? 85 : 45) + structureScore * 0.15);
+
+  let feedback = "Your responses follow a solid structure. To further align with the STAR framework, make sure to clearly quantify the outcomes of your projects.";
+  if (!hasSituation || !hasTask) {
+    feedback = "Ensure you set the stage clearly: describe the initial situation and your specific task/responsibility before jumping into technical details.";
+  } else if (!hasResult) {
+    feedback = "You explained your actions well, but missed stating the final result. Mention numbers, metrics, or key takeaways of your solution.";
+  }
+
+  return {
+    situation: situationScore,
+    task: taskScore,
+    action: actionScore,
+    result: resultScore,
+    feedback
+  };
+}
+
+function generateLearningRecommendations(overallScore: number, codeQuality: number, introQuality: number) {
+  const recs = [];
+  
+  if (codeQuality < 75) {
+    recs.push({
+      subject: "Data Structures & Algorithms",
+      topic: "Arrays, Strings & Graph Traversal",
+      resource: "NextHire DSA Sandbox / Coding Challenges",
+      urgency: "High"
+    });
+  } else {
+    recs.push({
+      subject: "Advanced Algorithms",
+      topic: "Dynamic Programming & Optimization",
+      resource: "LeetCode Hard Challenges / NextHire Coding Track",
+      urgency: "Medium"
+    });
+  }
+
+  if (overallScore < 80) {
+    recs.push({
+      subject: "System Design",
+      topic: "Scaling API Gateways & Load Balancing",
+      resource: "NextHire System Design Roadmap",
+      urgency: "Medium"
+    });
+    recs.push({
+      subject: "SQL & Databases",
+      topic: "Indexing & Query Optimization",
+      resource: "SQL Practice Hub / Complex Joins",
+      urgency: "High"
+    });
+  }
+
+  if (introQuality < 70) {
+    recs.push({
+      subject: "Behavioral Preparation",
+      topic: "STAR Method & Leadership Principles",
+      resource: "Google Warmup / STAR templates",
+      urgency: "High"
+    });
+  }
+
+  recs.push({
+    subject: "Aptitude & Reasoning",
+    topic: "Logical Puzzles & Probability",
+    resource: "NextHire Placement Reasoning Tracks",
+    urgency: "Low"
+  });
+
+  return recs;
+}
+
 function buildFinalAnalysis(sess: VoiceInterviewSession, code: string) {
   const introMetrics = analyzeIntroTranscript(sess.introTranscript || sess.config.selfIntroduction || "");
   const codeMetrics = analyzeCodeQuality(code || "", sess.config.difficulty);
   const overallScore = scoreBand(introMetrics.selfIntroQuality * 0.45 + codeMetrics.codeQuality * 0.55);
+  const starEvaluation = evaluateSTARMetrics(sess.introTranscript || sess.config.selfIntroduction || "", introMetrics.structure);
+  const learningRecommendations = generateLearningRecommendations(overallScore, codeMetrics.codeQuality, introMetrics.selfIntroQuality);
 
   return {
     selfIntroQuality: introMetrics.selfIntroQuality,
@@ -819,6 +977,8 @@ function buildFinalAnalysis(sess: VoiceInterviewSession, code: string) {
       "Do one timed mock interview weekly and track intro + coding score trend.",
     ],
     overallScore,
+    starEvaluation,
+    learningRecommendations,
   };
 }
 
@@ -1029,6 +1189,10 @@ export async function POST(req: Request) {
           selfIntroduction: body.selfIntroduction || "",
           dsaTopic: body.dsaTopic || "arrays",
           totalDurationMinutes: 20,
+          companyMode: body.companyMode || "general",
+          persona: body.persona || "professional",
+          jobDescription: body.jobDescription || "",
+          askedQuestionIds: []
         },
         timeline: {
           phase: "intro",
@@ -1039,7 +1203,13 @@ export async function POST(req: Request) {
         aiResponses: [
           {
             role: "ai",
-            content: `Hello ${String(session.user.name || candidateNameFromEmail(session.user.email || "candidate")).trim()}, nice to meet you. Please give a short self-introduction first. We'll run a focused 20-minute interview on ${String(body.dsaTopic || "arrays")}, ${String(body.difficulty || "medium")} level, one question at a time.`,
+            content: generateInitialGreeting(
+              String(session.user.name || candidateNameFromEmail(session.user.email || "candidate")).trim(),
+              body.companyMode || "general",
+              body.persona || "professional",
+              body.dsaTopic || "arrays",
+              body.difficulty || "medium"
+            ),
             timestamp: now,
           },
         ],
@@ -1083,7 +1253,24 @@ export async function POST(req: Request) {
 
       if (sess.timeline.phase === "intro") {
         nextPhase = "dsa-question";
-        sess.dsaQuestion = getRandomDsaQuestion(sess.config.difficulty, sess.config.dsaTopic);
+        
+        // Dynamic difficulty adaptation
+        const introMetrics = analyzeIntroTranscript(sess.introTranscript || sess.config.selfIntroduction || "");
+        const score = introMetrics.selfIntroQuality;
+        const oldDifficulty = sess.config.difficulty;
+        sess.config.difficulty = adaptDifficulty(oldDifficulty, score);
+        console.log(`Adaptive AI Difficulty: score = ${score}, shifted from ${oldDifficulty} to ${sess.config.difficulty}`);
+
+        // Exclude previously asked questions
+        const excludeList = sess.config.askedQuestionIds || [];
+        sess.dsaQuestion = getRandomDsaQuestion(sess.config.difficulty, sess.config.dsaTopic, excludeList);
+        
+        // Track asked questions
+        if (!sess.config.askedQuestionIds) {
+          sess.config.askedQuestionIds = [];
+        }
+        sess.config.askedQuestionIds.push(sess.dsaQuestion.id);
+
         const samples = sess.dsaQuestion.examples.slice(0, 2);
         const sampleText = samples
           .map((example, idx) => `Sample ${idx + 1} Input: ${example.input}. Output: ${example.output}.`)
@@ -1353,6 +1540,8 @@ export async function POST(req: Request) {
             suggestions: sess.analysis.aiSuggestions,
             improvements: sess.analysis.improvements,
             strengths: sess.analysis.strengths,
+            starEvaluation: sess.analysis.starEvaluation,
+            learningRecommendations: sess.analysis.learningRecommendations,
           }),
           difficulty: sess.config.difficulty,
           question_id: sess.dsaQuestion?.id || null,

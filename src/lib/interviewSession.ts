@@ -20,6 +20,10 @@ export type InterviewSessionConfig = {
   selfIntroduction: string;
   dsaTopic: string;
   totalDurationMinutes: number;
+  companyMode?: string;
+  persona?: string;
+  jobDescription?: string;
+  askedQuestionIds?: string[];
 };
 
 export type InterviewTimeline = {
@@ -57,6 +61,8 @@ export type InterviewAnalysis = {
   strengths: string[];
   aiSuggestions: string[];
   overallScore: number;
+  starEvaluation?: any;
+  learningRecommendations?: any;
 };
 
 export type VoiceInterviewSession = {
