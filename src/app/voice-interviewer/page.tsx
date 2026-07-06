@@ -18,6 +18,17 @@ import { ConnectionIndicator } from "@/components/voice-interview/ConnectionIndi
 import { PermissionFlow } from "@/components/voice-interview/PermissionFlow";
 import { ResumeFlow } from "@/components/voice-interview/ResumeFlow";
 import { ResumeManager } from "@/components/voice-interview/ResumeManager";
+import { CompanyModeSelector } from "@/components/voice-interview/CompanyModeSelector";
+import { PersonaSelector } from "@/components/voice-interview/PersonaSelector";
+import { InterviewCountdown } from "@/components/voice-interview/InterviewCountdown";
+import { AIAvatar } from "@/components/voice-interview/AIAvatar";
+import { WaveformVisualizer } from "@/components/voice-interview/WaveformVisualizer";
+import { InterviewTimer } from "@/components/voice-interview/InterviewTimer";
+import { InterviewControls } from "@/components/voice-interview/InterviewControls";
+import { InterviewProgress } from "@/components/voice-interview/InterviewProgress";
+import { ExitConfirmation } from "@/components/voice-interview/ExitConfirmation";
+import { CompanyMode, RecruiterPersona } from "@/components/voice-interview/types";
+import { COMPANY_MODES, PERSONAS } from "@/components/voice-interview/constants";
 
 type ChatRole = "user" | "assistant";
 
@@ -70,8 +81,8 @@ function VoiceInterviewerWorkspace() {
     setMounted(true);
   }, []);
 
-  // Flow State: 'permissions' | 'resume' | 'settings' | 'active' | 'scorecard' | 'history'
-  const [step, setStep] = useState<"permissions" | "resume" | "settings" | "active" | "scorecard" | "history">("permissions");
+  // Flow State: 'permissions' | 'resume' | 'settings' | 'countdown' | 'active' | 'scorecard' | 'history'
+  const [step, setStep] = useState<"permissions" | "resume" | "settings" | "countdown" | "active" | "scorecard" | "history">("permissions");
   
   // Configurations
   const [interviewType, setInterviewType] = useState<"Technical" | "Coding" | "SQL" | "HR" | "Mixed">("Technical");
@@ -80,6 +91,11 @@ function VoiceInterviewerWorkspace() {
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [duration, setDuration] = useState<number>(20);
   const [questionsCount, setQuestionsCount] = useState<number>(3);
+  const [companyMode, setCompanyMode] = useState<CompanyMode>("general");
+  const [persona, setPersona] = useState<RecruiterPersona>("professional");
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   
   // Resume info
   const [resumeUploaded, setResumeUploaded] = useState(false);
@@ -160,6 +176,16 @@ function VoiceInterviewerWorkspace() {
     messagesBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, voiceDraft, isThinking]);
 
+  // Listen to mute / pause toggles
+  useEffect(() => {
+    if (step !== "active") return;
+    if (isMuted || isPaused) {
+      stopListening();
+    } else {
+      void startListening();
+    }
+  }, [isMuted, isPaused, step]);
+
   // Load Speech API
   useEffect(() => {
     const recognitionCtor = (
@@ -196,8 +222,18 @@ function VoiceInterviewerWorkspace() {
       const voices = window.speechSynthesis.getVoices();
       if (!voices.length) return;
       const english = voices.filter((voice) => /^en(-|_)?/i.test(voice.lang));
+      
+      // Select voice by persona matching key traits
+      let selected: SpeechSynthesisVoice | null = null;
+      if (persona === "friendly") {
+        selected = english.find((voice) => /zira|samantha/i.test(voice.name)) || null;
+      } else if (persona === "tough") {
+        selected = english.find((voice) => /david|mark/i.test(voice.name)) || null;
+      }
+      
       preferredVoiceRef.current =
-        english.find((voice) => /zira|aria|david|mark|samantha|google|neural/i.test(voice.name)) ||
+        selected ||
+        english.find((voice) => /google|neural|aria/i.test(voice.name)) ||
         english[0] ||
         voices[0] ||
         null;
@@ -207,7 +243,7 @@ function VoiceInterviewerWorkspace() {
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
-  }, []);
+  }, [persona]);
 
   // Web Speech synthesis utilities
   const splitSpeechChunks = (text: string) => {
@@ -237,7 +273,7 @@ function VoiceInterviewerWorkspace() {
       setVoiceIssue("Speech recognition not supported in this browser.");
       return false;
     }
-    if (isListeningRef.current || isSpeakingRef.current || isThinkingRef.current) return false;
+    if (isMuted || isPaused || isListeningRef.current || isSpeakingRef.current || isThinkingRef.current) return false;
 
     try {
       const recognition = recognitionFactoryRef.current();
@@ -324,8 +360,9 @@ function VoiceInterviewerWorkspace() {
         if (unmountedRef.current) break;
         await new Promise<void>((resolve) => {
           const utterance = new SpeechSynthesisUtterance(chunk);
-          utterance.rate = 1.05;
-          utterance.pitch = 1.0;
+          const pConfig = PERSONAS[persona];
+          utterance.rate = pConfig ? pConfig.voiceRate : 1.05;
+          utterance.pitch = pConfig ? pConfig.voicePitch : 1.0;
           utterance.volume = 1;
           if (preferredVoiceRef.current) {
             utterance.voice = preferredVoiceRef.current;
@@ -709,7 +746,7 @@ function VoiceInterviewerWorkspace() {
 
   // Launch interview
   const launchInterview = async () => {
-    setStep("active");
+    setStep("countdown");
     setTimeRemaining(duration * 60);
     setIsThinking(true);
 
@@ -722,6 +759,8 @@ function VoiceInterviewerWorkspace() {
           difficulty,
           language,
           dsaTopic,
+          companyMode,
+          persona,
           selfIntroduction: resumeUploaded ? `My name is candidate. I know ${skillsDetected.join(", ")}.` : "Hi, I am ready for the interview."
         })
       });
@@ -730,12 +769,10 @@ function VoiceInterviewerWorkspace() {
         setSessionId(data.session.id);
         const greeting = data.session.aiResponses[0]?.content || "Hi, welcome! Please introduce yourself to begin.";
         setMessages([createMessage("assistant", greeting)]);
-        await speakReply(greeting);
       }
     } catch {
       const fallbackGreeting = "Hi, welcome to the NextHire AI interview panel. Please share your self-introduction to start.";
       setMessages([createMessage("assistant", fallbackGreeting)]);
-      await speakReply(fallbackGreeting);
     } finally {
       setIsThinking(false);
     }
@@ -810,7 +847,7 @@ function VoiceInterviewerWorkspace() {
 
   // Countdown timer
   useEffect(() => {
-    if (step !== "active") return;
+    if (step !== "active" || isPaused) return;
     const interval = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
@@ -822,7 +859,7 @@ function VoiceInterviewerWorkspace() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [step]);
+  }, [step, isPaused]);
 
   // Compile / Run Code in technical interview panel
   const [runningCode, setRunningCode] = useState(false);
@@ -1059,6 +1096,12 @@ function VoiceInterviewerWorkspace() {
 
               <div className="space-y-4">
                 
+                {/* Target Company Mode */}
+                <CompanyModeSelector selected={companyMode} onSelect={setCompanyMode} />
+
+                {/* Recruiter Persona */}
+                <PersonaSelector selected={persona} onSelect={setPersona} />
+
                 {/* Interview Type Selector */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-foreground/85">Evaluation Round Type:</label>
@@ -1172,6 +1215,19 @@ function VoiceInterviewerWorkspace() {
           </div>
         )}
 
+        {/* STEP 1.5: INTERVIEW COUNTDOWN */}
+        {step === "countdown" && (
+          <InterviewCountdown
+            onComplete={() => {
+              setStep("active");
+              const greeting = messages[0]?.content;
+              if (greeting) {
+                void speakReply(greeting);
+              }
+            }}
+          />
+        )}
+
         {/* STEP 2: ACTIVE INTERVIEW PLAYGROUND */}
         {step === "active" && (
           <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6">
@@ -1179,7 +1235,7 @@ function VoiceInterviewerWorkspace() {
             {/* Left Panel: Conversation and Recruiter waves */}
             <div className="space-y-6 flex flex-col min-h-0">
               
-              {/* Recruiter Avatar & Voice Status Wave */}
+              {/* Recruiter Avatar Panel */}
               <div className={`rounded-3xl border p-6 flex flex-col items-center justify-center text-center space-y-4 relative ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
                 
                 {/* Cheating warning count badge */}
@@ -1187,99 +1243,22 @@ function VoiceInterviewerWorkspace() {
                   <ShieldAlert className="h-3.5 w-3.5" /> Warnings: {cheatingWarnings}/3
                 </span>
 
-                {/* Duration Timer count */}
-                <span className="absolute top-4 right-4 text-xs font-mono font-bold flex items-center gap-1 text-cyan-400">
-                  <Clock className="h-4 w-4" /> {formatTimer(timeRemaining)}
-                </span>
-
-                {/* Floating Recruiter Orb */}
-                <div className="relative flex items-center justify-center h-28 w-28">
-                  <div className={`absolute inset-0 rounded-full border-4 border-cyan-400/40 animate-ping opacity-75 ${isSpeaking ? "duration-500" : "duration-1000"}`} />
-                  <div className="relative rounded-full h-24 w-24 bg-gradient-to-tr from-cyan-600 to-blue-500 shadow-xl flex items-center justify-center text-white border-2 border-white/20">
-                    <User className="h-10 w-10 text-white" />
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-base font-extrabold tracking-tight">NextHire AI Recruiter</h3>
-                  <p className="text-[10px] font-bold tracking-wider text-cyan-400 uppercase mt-0.5">Active Placement Panel</p>
-                </div>
-
-                {/* Visual Audio Waveform synced with speech synthesis state */}
-                <div className="flex items-center gap-1 h-6 py-1 select-none">
-                  {isSpeaking ? (
-                    [...Array(12)].map((_, i) => (
-                      <span
-                        key={i}
-                        className="w-1 rounded-full bg-cyan-400 animate-pulse"
-                        style={{
-                          height: `${Math.sin(i) * 16 + 20}px`,
-                          animationDelay: `${i * 0.1}s`,
-                          animationDuration: "0.6s"
-                        }}
-                      />
-                    ))
-                  ) : (
-                    <span className="text-[11px] text-foreground/40 font-mono tracking-widest">AWAITING CANDIDATE RESPONSE</span>
-                  )}
-                </div>
-
-                {/* Live STT draft */}
-                {voiceDraft && (
-                  <div className="w-full text-center bg-cyan-400/10 border border-cyan-400/20 text-xs px-3 py-2 rounded-xl text-cyan-200 italic">
-                    Listening: "{voiceDraft}"
-                  </div>
-                )}
-              </div>
-
-              {/* Real-time Voice Wave & Subtitles Dashboard */}
-              <div className={`rounded-3xl border flex flex-col flex-1 min-h-[300px] p-6 justify-between ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
-                
-                {/* Active Speaking Wave Indicator */}
-                <div className="flex flex-col items-center justify-center space-y-4 my-auto">
-                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">
-                    {isSpeaking ? "Recruiter is speaking..." : isListening ? "Listening to candidate..." : "Awaiting response..."}
-                  </div>
-                  
-                  {/* Dynamic waveform visualizer */}
-                  <div className="flex items-center gap-1.5 h-16 py-2 select-none">
-                    {(isSpeaking || isListening) ? (
-                      [...Array(18)].map((_, i) => {
-                        const baseDelay = i * 0.08;
-                        const durationSec = isSpeaking ? "0.6s" : "0.4s";
-                        const heightPx = isSpeaking 
-                          ? `${Math.sin(i) * 25 + 35}px` 
-                          : `${Math.cos(i) * 20 + 28}px`;
-                        return (
-                          <span
-                            key={i}
-                            className={`w-1 rounded-full bg-gradient-to-t transition-all ${isSpeaking ? "from-cyan-500 to-blue-500" : "from-emerald-400 to-teal-500"}`}
-                            style={{
-                              height: heightPx,
-                              animation: `pulse ${durationSec} infinite ease-in-out`,
-                              animationDelay: `${baseDelay}s`
-                            }}
-                          />
-                        );
-                      })
-                    ) : (
-                      <div className="flex gap-1 items-center">
-                        {[...Array(6)].map((_, i) => (
-                          <span key={i} className="w-1.5 h-1.5 rounded-full bg-foreground/20 animate-ping" style={{ animationDelay: `${i * 0.15}s` }} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                {/* Recruiter Avatar */}
+                <AIAvatar 
+                  state={
+                    isThinking ? "thinking" : isSpeaking ? "speaking" : isListening ? "listening" : "idle"
+                  } 
+                  personaLabel={PERSONAS[persona].label} 
+                />
 
                 {/* Subtitle captions */}
-                <div className={`rounded-2xl border p-4 space-y-3 ${isDark ? "border-white/5 bg-zinc-900/40" : "border-black/5 bg-slate-50"}`}>
+                <div className={`rounded-2xl border p-4 space-y-3 w-full ${isDark ? "border-white/5 bg-zinc-900/40" : "border-black/5 bg-slate-50"}`}>
                   <div className="flex items-center justify-between border-b border-foreground/5 pb-1.5">
                     <span className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest">Live Subtitles Overlay</span>
                     <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
                   </div>
                   
-                  <div className="space-y-2 font-medium text-xs leading-relaxed">
+                  <div className="space-y-2 font-medium text-xs leading-relaxed text-left">
                     {/* Recruiter caption */}
                     <div className="flex gap-2">
                       <span className="text-cyan-400 font-extrabold select-none">AI:</span>
@@ -1303,25 +1282,38 @@ function VoiceInterviewerWorkspace() {
                     </div>
                   </div>
                 </div>
-
               </div>
 
-              {/* Active mic controls / End trigger */}
-              <div className="flex gap-4">
-                <button
-                  onClick={toggleManualListening}
-                  className={`flex-1 inline-flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-extrabold border transition ${isListening ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20" : "bg-cyan-500 hover:bg-cyan-400 border-cyan-500 text-black"}`}
-                >
-                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  {isListening ? "Mute Microphone" : "Unmute / Speak"}
-                </button>
-                <button
-                  onClick={finalizeScorecard}
-                  className={`flex-1 inline-flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-extrabold border transition ${isDark ? "border-white/15 hover:bg-white/5" : "border-black/10 hover:bg-slate-100"}`}
-                >
-                  End & Generate scorecard
-                </button>
+              {/* Dynamic waveform visualizer */}
+              <WaveformVisualizer 
+                stream={webcamStreamRef.current} 
+                isActive={isListening || isSpeaking} 
+                color={isListening ? "#10b981" : "#06b6d4"} 
+              />
+
+              {/* Timer and Progress Dashboard */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InterviewTimer
+                  timeRemaining={timeRemaining}
+                  totalDuration={duration * 60}
+                  currentQuestion={messages.filter(m => m.role === "assistant").length}
+                  totalQuestions={questionsCount}
+                />
+                
+                <InterviewProgress
+                  current={messages.filter(m => m.role === "user").length}
+                  total={questionsCount}
+                />
               </div>
+
+              {/* Workspace Action Controls */}
+              <InterviewControls
+                isMuted={isMuted}
+                onMuteToggle={() => setIsMuted(prev => !prev)}
+                isPaused={isPaused}
+                onPauseToggle={() => setIsPaused(prev => !prev)}
+                onExit={() => setShowExitConfirm(true)}
+              />
 
             </div>
 
@@ -1580,6 +1572,18 @@ function VoiceInterviewerWorkspace() {
               Return to Workspace Setup
             </button>
           </div>
+        )}
+
+        {showExitConfirm && (
+          <ExitConfirmation
+            questionsAnswered={messages.filter((m) => m.role === "user").length}
+            timeSpentStr={formatTimer(duration * 60 - timeRemaining)}
+            onCancel={() => setShowExitConfirm(false)}
+            onConfirm={() => {
+              setShowExitConfirm(false);
+              void finalizeScorecard();
+            }}
+          />
         )}
 
       </div>
