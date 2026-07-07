@@ -29,7 +29,7 @@ export class AdaptiveEngine {
    * Harder questions yield higher rewards, wrong answers penalize more if easy.
    */
   public static calculateNewMastery(params: MasteryUpdateParams): number {
-    let { currentMastery, isCorrect, difficulty, hintsUsed } = params;
+    const { currentMastery, isCorrect, difficulty, hintsUsed } = params;
 
     let delta = 0;
     const difficultyMultiplier = {
@@ -71,7 +71,8 @@ export class AdaptiveEngine {
    * Calculates the next review date for a topic based on recall quality.
    */
   public static calculateSpacedRepetition(params: SM2UpdateParams) {
-    let { quality, reviewCount, interval, easeFactor } = params;
+    const { quality } = params;
+    let { reviewCount, interval, easeFactor } = params;
 
     if (quality >= 3) {
       // Correct response

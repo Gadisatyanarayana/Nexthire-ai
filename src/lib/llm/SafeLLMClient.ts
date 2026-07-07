@@ -33,7 +33,7 @@ const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-3.5-sonnet';
  */
 export class SafeLLMClient {
   
-  private static responseCache = new Map<string, { data: any, timestamp: number }>();
+  private static responseCache = new Map<string, { data: unknown, timestamp: number }>();
   private static CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
   private static async delay(ms: number) {
@@ -103,9 +103,10 @@ export class SafeLLMClient {
         }
 
         return response; // Return raw response (could be a stream or json)
-      } catch (error: any) {
+      } catch (error: unknown) {
         clearTimeout(timeoutId);
-        logger.warn(`LLM attempt ${attempt + 1} failed: ${error.message}`);
+        const errMessage = error instanceof Error ? error.message : String(error);
+        logger.warn(`LLM attempt ${attempt + 1} failed: ${errMessage}`);
         
         if (attempt === maxRetries) {
           logger.error("LLM maximum retries exceeded.");
@@ -156,9 +157,10 @@ export class SafeLLMClient {
       
       this.responseCache.set(cacheKey, { data: validatedData, timestamp: Date.now() });
       return validatedData;
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errMessage = e instanceof Error ? e.message : String(e);
       logger.error(`Failed to parse structured JSON from LLM: ${content}`);
-      throw new Error(`LLM output did not match required schema: ${e.message}`);
+      throw new Error(`LLM output did not match required schema: ${errMessage}`);
     }
   }
 }
