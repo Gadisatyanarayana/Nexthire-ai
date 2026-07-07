@@ -17,6 +17,11 @@ export interface SM2UpdateParams {
   easeFactor: number;
 }
 
+export interface TopicMastery {
+  topicId: string;
+  masteryScore: number;
+}
+
 export class AdaptiveEngine {
   
   /**
@@ -107,5 +112,37 @@ export class AdaptiveEngine {
     if (timeTakenSeconds < (targetSeconds * 0.5)) return 5; // Perfect, fast recall
     if (timeTakenSeconds <= targetSeconds) return 4; // Good recall
     return 3; // Correct, but slow
+  }
+
+  /**
+   * Recommendation Engine: Detects weak topics and suggests next lessons.
+   */
+  public static generateRecommendations(
+    allTopics: TopicMastery[],
+    revisionQueue: { topic_id: string; next_review_date: string }[],
+    currentModuleTopics: string[]
+  ) {
+    const weakTopics = allTopics.filter(t => t.masteryScore < 60).sort((a, b) => a.masteryScore - b.masteryScore);
+    const strongTopics = allTopics.filter(t => t.masteryScore >= 80);
+    
+    const dueForRevision = revisionQueue.filter(r => new Date(r.next_review_date) <= new Date());
+    
+    // Suggest the weakest topic that is currently due for revision, or just the weakest topic overall
+    let nextSuggestedTopic = dueForRevision.length > 0 
+      ? dueForRevision[0].topic_id 
+      : weakTopics.length > 0 ? weakTopics[0].topicId : null;
+
+    // If no weak topics, recommend the next unmastered topic in the module
+    if (!nextSuggestedTopic) {
+      const masteredIds = strongTopics.map(t => t.topicId);
+      nextSuggestedTopic = currentModuleTopics.find(id => !masteredIds.includes(id)) || null;
+    }
+
+    return {
+      weakTopics: weakTopics.map(t => t.topicId),
+      strongTopics: strongTopics.map(t => t.topicId),
+      dueForRevision: dueForRevision.map(r => r.topic_id),
+      nextSuggestedTopic
+    };
   }
 }

@@ -33,6 +33,9 @@ const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-3.5-sonnet';
  */
 export class SafeLLMClient {
   
+  private static responseCache = new Map<string, { data: any, timestamp: number }>();
+  private static CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
   private static async delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -67,6 +70,9 @@ export class SafeLLMClient {
     const model = config.model || (provider === 'groq' ? DEFAULT_GROQ_MODEL : DEFAULT_OPENROUTER_MODEL);
     const maxRetries = config.retries ?? 3;
     const timeoutMs = config.timeoutMs ?? 15000;
+    
+    // We intentionally don't cache Streams here to avoid breaking SSE formatting, 
+    // but we can cache structured JSON calls in generateStructuredJSON.
 
     let attempt = 0;
     
@@ -122,6 +128,13 @@ export class SafeLLMClient {
     schema: z.ZodSchema<T>, 
     config: LLMConfig = {}
   ): Promise<T> {
+    const cacheKey = JSON.stringify({ messages, model: config.model, provider: config.provider });
+    const cached = this.responseCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) {
+      logger.info('LLM Cache hit');
+      return cached.data as T;
+    }
+
     // Force JSON mode on config
     const safeConfig = { ...config, stream: false };
     
@@ -139,7 +152,10 @@ export class SafeLLMClient {
     
     try {
       const parsed = JSON.parse(content);
-      return schema.parse(parsed); // Zod validation
+      const validatedData = schema.parse(parsed); // Zod validation
+      
+      this.responseCache.set(cacheKey, { data: validatedData, timestamp: Date.now() });
+      return validatedData;
     } catch (e: any) {
       logger.error(`Failed to parse structured JSON from LLM: ${content}`);
       throw new Error(`LLM output did not match required schema: ${e.message}`);
