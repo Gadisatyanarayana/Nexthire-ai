@@ -602,10 +602,101 @@ CREATE POLICY "vi_history_auth_access" ON voice_interview_history
 
 DROP POLICY IF EXISTS "vi_gamification_auth_access" ON voice_interview_gamification;
 CREATE POLICY "vi_gamification_auth_access" ON voice_interview_gamification
-  FOR ALL USING (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "vi_analytics_auth_access" ON voice_interview_analytics;
 CREATE POLICY "vi_analytics_auth_access" ON voice_interview_analytics
   FOR ALL USING (auth.role() = 'authenticated');
 
+-- ========================================================
+-- SYSTEM DESIGN PLATFORM V2 TABLES
+-- ========================================================
 
+CREATE TABLE IF NOT EXISTS sd_modules (
+  id text PRIMARY KEY,
+  title text NOT NULL,
+  level_order integer NOT NULL,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_lessons (
+  id text PRIMARY KEY,
+  module_id text REFERENCES sd_modules(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  difficulty text NOT NULL,
+  reading_time text NOT NULL,
+  content jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_questions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id text REFERENCES sd_lessons(id) ON DELETE CASCADE,
+  question text NOT NULL,
+  options jsonb NOT NULL,
+  correct_index integer NOT NULL,
+  explanation text NOT NULL,
+  difficulty text NOT NULL,
+  company_tags text[] DEFAULT '{}',
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_user_mastery (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  topic_id text NOT NULL,
+  ema_score numeric NOT NULL DEFAULT 0.0,
+  questions_attempted integer NOT NULL DEFAULT 0,
+  last_reviewed_at timestamp DEFAULT now(),
+  UNIQUE(user_id, topic_id)
+);
+
+CREATE TABLE IF NOT EXISTS sd_case_studies (
+  id text PRIMARY KEY,
+  title text NOT NULL,
+  target_scale text NOT NULL,
+  content jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_company_profiles (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  difficulty text NOT NULL,
+  focus text NOT NULL,
+  rubric jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_certificates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  readiness_score numeric NOT NULL,
+  issued_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_assets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  type text NOT NULL CHECK (type IN ('diagram', 'pdf', 'animation')),
+  file_path text NOT NULL,
+  version integer NOT NULL DEFAULT 1,
+  author text NOT NULL,
+  created_at timestamp DEFAULT now(),
+  updated_at timestamp DEFAULT now()
+);
+
+-- Full Text Search Indexes
+ALTER TABLE sd_lessons ADD COLUMN IF NOT EXISTS fts_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', title || ' ' || (content->>'theory'))) STORED;
+CREATE INDEX IF NOT EXISTS sd_lessons_fts_idx ON sd_lessons USING GIN (fts_vector);
+
+ALTER TABLE sd_case_studies ADD COLUMN IF NOT EXISTS fts_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', title || ' ' || (content->>'highLevelDesign') || ' ' || (content->>'lowLevelDesign'))) STORED;
+CREATE INDEX IF NOT EXISTS sd_case_studies_fts_idx ON sd_case_studies USING GIN (fts_vector);
+
+CREATE TABLE IF NOT EXISTS sd_lesson_revisions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id text REFERENCES sd_lessons(id) ON DELETE CASCADE,
+  content jsonb NOT NULL,
+  version integer NOT NULL,
+  author text NOT NULL,
+  commit_message text,
+  created_at timestamp DEFAULT now()
+);
