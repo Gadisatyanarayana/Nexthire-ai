@@ -521,10 +521,10 @@ create policy "notes_self_access" on system_design_notes for all using (auth.rol
 -- Contest config updates
 alter table contests add column if not exists config jsonb default '{}'::jsonb;
 
--- ══════════════════════════════════════════════════════════
--- Voice Interview Module v2 — Database Migration
+-- ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+-- Voice Interview Module v2 ΓÇö Database Migration
 -- Strategy: Additive only, backward compatible
--- ══════════════════════════════════════════════════════════
+-- ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
 
 -- 1. Resume columns on users table
 ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_path text;
@@ -602,6 +602,7 @@ CREATE POLICY "vi_history_auth_access" ON voice_interview_history
 
 DROP POLICY IF EXISTS "vi_gamification_auth_access" ON voice_interview_gamification;
 CREATE POLICY "vi_gamification_auth_access" ON voice_interview_gamification
+  FOR ALL USING (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "vi_analytics_auth_access" ON voice_interview_analytics;
 CREATE POLICY "vi_analytics_auth_access" ON voice_interview_analytics
