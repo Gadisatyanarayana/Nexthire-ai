@@ -34,14 +34,17 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@supabase/supabase-js": "^2.100.1",
+    "@xyflow/react": "^12.11.2",
     "axios": "^1.14.0",
     "bullmq": "^5.73.0",
+    "framer-motion": "^12.42.2",
     "gray-matter": "^4.0.3",
     "ioredis": "^5.10.1",
     "jspdf": "^4.2.1",
     "kill-port": "^2.0.1",
     "lucide-react": "^1.7.0",
     "mammoth": "^1.12.0",
+    "mermaid": "^11.16.0",
     "next": "16.2.1",
     "next-auth": "^4.24.13",
     "pdf-parse": "^2.4.5",
@@ -51,7 +54,8 @@
     "react-resizable-panels": "^4.8.0",
     "recharts": "^3.8.1",
     "ts-node": "^10.9.2",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

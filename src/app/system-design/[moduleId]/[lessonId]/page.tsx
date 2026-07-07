@@ -1,7 +1,35 @@
 import Link from "next/link";
 import { BookOpen, CheckCircle, ChevronRight, Lock, BrainCircuit } from "lucide-react";
 import { getV2Lesson } from "@/lib/api/systemDesignV2";
+import LessonVisualsSwitcher from "@/components/system-design/LessonVisualsSwitcher";
+import ConceptTooltip from "@/components/system-design/ConceptTooltip";
 
+// Phase 3 mock diagrams/animations since the actual DB is still being populated
+const mockDiagrams = [
+  {
+    id: "diag-1",
+    type: "mermaid" as const,
+    title: "High Level Architecture",
+    isInteractive: true,
+    content: `
+      graph TD
+        A[Client] -->|HTTP| B(API Gateway)
+        B --> C{Load Balancer}
+        C --> D[Web Server 1]
+        C --> E[Web Server 2]
+        D --> F[(Database)]
+        E --> F
+    `
+  }
+];
+
+const mockAnimations = [
+  { id: '1', label: 'Client', description: 'User sends HTTP request', componentType: 'client' },
+  { id: '2', label: 'Gateway', description: 'API Gateway authenticates', componentType: 'gateway' },
+  { id: '3', label: 'Load Balancer', description: 'Routes to Server 1', componentType: 'loadbalancer' },
+  { id: '4', label: 'Cache', description: 'Checks Redis cache (Miss)', componentType: 'cache' },
+  { id: '5', label: 'Database', description: 'Queries PostgreSQL', componentType: 'database' }
+];
 export default async function LessonTheoryPage({ params }: { params: { moduleId: string, lessonId: string } }) {
   const { moduleId, lessonId } = params;
   
@@ -40,16 +68,28 @@ export default async function LessonTheoryPage({ params }: { params: { moduleId:
         </div>
       </header>
 
-      {/* 23-Step Standardized Template Scaffold */}
+
+
+      {/* 23-Step Standardized Template Scaffold with Visual Engine */}
       
       <section className="space-y-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <BrainCircuit className="h-5 w-5 text-indigo-400" />
           1. Overview & Theory
         </h2>
-        <div className="p-5 rounded-xl bg-foreground/[0.03] border border-foreground/5 leading-relaxed text-sm opacity-90">
-          {content.theory || "Theory content goes here."}
-        </div>
+        
+        <LessonVisualsSwitcher diagrams={mockDiagrams} animationSteps={mockAnimations}>
+          <div className="p-5 rounded-xl bg-foreground/[0.03] border border-foreground/5 leading-relaxed text-sm opacity-90">
+            {/* We mock injecting ConceptTooltips here. In production, this would be an MDX mapping. */}
+            {content.theory ? (
+              <div dangerouslySetInnerHTML={{ __html: content.theory }} />
+            ) : (
+              <p>
+                In a <ConceptTooltip term="Distributed System" definition="A system whose components are located on different networked computers." difficulty="Beginner" interviewImportance="High">Distributed System</ConceptTooltip>, a <ConceptTooltip term="Load Balancer" definition="Distributes network traffic across multiple servers." difficulty="Beginner" interviewImportance="High" lessonLink="/system-design/mod-foundations/load-balancing">Load Balancer</ConceptTooltip> is used to ensure no single server bears too much demand.
+              </p>
+            )}
+          </div>
+        </LessonVisualsSwitcher>
       </section>
 
       <section className="space-y-4">

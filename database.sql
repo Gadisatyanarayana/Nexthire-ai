@@ -678,7 +678,11 @@ CREATE TABLE IF NOT EXISTS sd_certificates (
 CREATE TABLE IF NOT EXISTS sd_assets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   type text NOT NULL CHECK (type IN ('diagram', 'pdf', 'animation')),
-  file_path text NOT NULL,
+  diagram_type text, -- react_flow, mermaid, svg
+  file_path text, -- Optional if raw_content is provided
+  raw_content text, -- Stores raw JSON or Mermaid source
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  is_interactive boolean NOT NULL DEFAULT true,
   version integer NOT NULL DEFAULT 1,
   author text NOT NULL,
   created_at timestamp DEFAULT now(),
