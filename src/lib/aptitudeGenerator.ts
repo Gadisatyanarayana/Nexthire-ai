@@ -291,7 +291,7 @@ function generateDynamicQuestion(topic: string, index: number): AptitudeQuestion
 }
 
 export function getAptitudeQuestions(topic: string = "All Topics"): AptitudeQuestion[] {
-  let questions = [...STATIC_QUESTIONS];
+  const questions = [...STATIC_QUESTIONS];
   
   for (const t of APTITUDE_TOPICS) {
     for (let i = 1; i <= 180; i++) {

@@ -219,7 +219,7 @@ function generateDynamicSDQuestion(topic: string, index: number): QuizQuestion {
 }
 
 export function getSystemDesignQuestions(topic: string = "All Topics"): QuizQuestion[] {
-  let questions = [...STATIC_QUIZ_QUESTIONS];
+  const questions = [...STATIC_QUIZ_QUESTIONS];
 
   // For each of the 20 topics, dynamically generate 1000 questions to achieve 20,000+ questions
   for (const t of SYSTEM_DESIGN_TOPICS) {

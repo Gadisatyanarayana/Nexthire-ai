@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { AdaptiveEngine, MasteryUpdateParams, SM2UpdateParams } from '@/lib/adaptive/AdaptiveEngine';
+import { supabaseAdmin } from '@/lib/api/systemDesignV2';
 
 export const runtime = 'edge';
 
@@ -43,9 +44,23 @@ export async function POST(req: NextRequest) {
       easeFactor: currentSM2?.easeFactor || 2.5
     });
 
-    // In a real flow, this data would be immediately Upserted into PostgreSQL (sd_mastery and sd_revision_queue).
-    // e.g. await supabase.from('sd_mastery').upsert({ user_id, topic_id, mastery_score: newMastery })
-    // e.g. await supabase.from('sd_revision_queue').upsert({ ...nextReview })
+    // Real Upsert into PostgreSQL (sd_mastery and sd_revision_queue)
+    await supabaseAdmin.from('sd_mastery').upsert({
+      user_id: userId,
+      topic_id: topicId,
+      mastery_score: newMastery,
+      last_assessed_at: new Date().toISOString()
+    });
+
+    await supabaseAdmin.from('sd_revision_queue').upsert({
+      user_id: userId,
+      topic_id: topicId,
+      next_review_date: nextReview.nextReviewDate.toISOString(),
+      interval: nextReview.interval,
+      ease_factor: nextReview.easeFactor,
+      review_count: nextReview.reviewCount,
+      updated_at: new Date().toISOString()
+    });
 
     return new Response(JSON.stringify({
       success: true,

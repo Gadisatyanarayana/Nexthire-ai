@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
 
     const questionIdFilter = resolved.questionId || requestedProblemId;
 
-    let query = admin
+    const query = admin
       .from("submissions")
       .select(
         "id, question_id, language, code, result, runtime, memory, runtime_ms, memory_kb, passed_count, total_count, created_at"

@@ -679,7 +679,7 @@ export function formatJavaValue(val: any, type: string): string {
 }
 
 export function extractCppType(paramDecl: string): string {
-  let cleaned = String(paramDecl || "")
+  const cleaned = String(paramDecl || "")
     .trim()
     .replace(/=.*/, "")
     .replace(/\bconst\b/g, "")

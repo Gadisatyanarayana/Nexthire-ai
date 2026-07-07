@@ -2,7 +2,7 @@
 let logger: any;
 try {
   // Dynamically require pino to avoid build-time errors if missing
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   const pino = require('pino');
   logger = pino({
     level: process.env.LOG_LEVEL || 'info',

@@ -135,7 +135,7 @@ export async function GET() {
     let hasCommExpert = false;
     let totalScore = 0;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
       historyList.forEach((item: any) => {
       totalScore += item.overall_score || 0;
@@ -250,7 +250,7 @@ export async function GET() {
       }
 
       // Aggregate Category scores
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
       historyList.forEach((item: any) => {
         const catScores = item.category_scores || {};

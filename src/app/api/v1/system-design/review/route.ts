@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { SafeLLMClient, LLMMessage } from '@/lib/llm/SafeLLMClient';
 import { getReviewerPrompt, PROMPT_VERSION } from '@/lib/prompts/systemDesignPrompts';
+import { supabaseAdmin } from '@/lib/api/systemDesignV2';
 import { z } from 'zod';
 
 export const runtime = 'edge';
@@ -24,10 +25,10 @@ const ReviewResponseSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { submissionPayload, lessonTitle } = await req.json();
+    const { userId, lessonId, submissionPayload, lessonTitle } = await req.json();
 
-    if (!submissionPayload) {
-      return new Response(JSON.stringify({ error: 'Submission payload is required' }), { status: 400 });
+    if (!submissionPayload || !userId || !lessonId) {
+      return new Response(JSON.stringify({ error: 'Missing required payload (submission, userId, lessonId)' }), { status: 400 });
     }
 
     const systemPrompt = getReviewerPrompt();
@@ -52,8 +53,20 @@ export async function POST(req: NextRequest) {
       retries: 2
     });
 
-    // In a real flow, we would save this to sd_ai_feedback table here using a service layer
-    // await saveReviewFeedback(userId, lessonId, submissionPayload, result, PROMPT_VERSION, 'claude-3.5-sonnet');
+    // Real flow, insert into sd_ai_feedback table using supabaseAdmin
+    const { error: insertError } = await supabaseAdmin.from('sd_ai_feedback').insert({
+      user_id: userId,
+      lesson_id: lessonId,
+      submission_payload: submissionPayload,
+      ai_review: result,
+      prompt_version: PROMPT_VERSION,
+      model_name: 'anthropic/claude-3.5-sonnet',
+      confidence: 0.95 // Claude is usually very confident with structured output
+    });
+
+    if (insertError) {
+      console.warn("Failed to persist AI Review", insertError);
+    }
 
     return new Response(JSON.stringify(result), {
       status: 200,

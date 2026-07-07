@@ -1,7 +1,7 @@
 import IORedis from "ioredis";
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __appRedisClient: IORedis | undefined;
 }
 

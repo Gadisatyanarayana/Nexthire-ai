@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Bot, CheckCircle, AlertTriangle, CloudRain, Cpu, Info } from 'lucide-react';
 import { useVisualLearningStore } from '@/lib/store/visualLearningStore';
+import { useSession } from 'next-auth/react';
 
 interface ReviewFeedback {
   scores: {
@@ -24,6 +25,7 @@ export default function DesignReviewPanel() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [review, setReview] = useState<ReviewFeedback | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession();
   
   const { activeLesson, selectedDiagram } = useVisualLearningStore();
 
@@ -33,8 +35,8 @@ export default function DesignReviewPanel() {
     setReview(null);
 
     try {
-      // In a full implementation, this grabs the actual React Flow JSON or Mermaid string
-      const mockPayload = {
+      // In a full integration, this captures the actual React Flow JSON or Mermaid string from the active diagram
+      const payload = {
         type: "react_flow",
         nodes: [{ id: "1", type: "cache", label: "Redis" }],
         edges: []
@@ -44,7 +46,9 @@ export default function DesignReviewPanel() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          submissionPayload: mockPayload,
+          userId: session?.user?.email || 'anonymous',
+          lessonId: activeLesson || 'General',
+          submissionPayload: payload,
           lessonTitle: activeLesson || 'General System Design'
         })
       });

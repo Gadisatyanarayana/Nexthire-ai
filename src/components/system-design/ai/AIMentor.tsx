@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useVisualLearningStore } from '@/lib/store/visualLearningStore';
+import { useSession } from 'next-auth/react';
 import { MessageSquare, X, Send, Bot, User, Sparkles, Brain, Code, Network } from 'lucide-react';
 
 interface Message {
@@ -17,6 +18,7 @@ export default function AIMentor() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
   
   const { activeLesson, visualMode, highlightedConcept } = useVisualLearningStore();
 
@@ -39,10 +41,11 @@ export default function AIMentor() {
 
     try {
       const payload = {
+        userId: session?.user?.email || 'anonymous',
         messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
         lessonTitle: activeLesson || "Current Topic",
-        difficulty: "Intermediate", // Derived from context in real app
-        masteryScore: 45, // Derived from AdaptiveEngine in real app
+        difficulty: "Intermediate", // In full app, pulled from lesson metadata
+        masteryScore: 45, // In full app, pulled from AdaptiveEngine API state
         weakTopics: ["Caching"],
         mode: visualMode
       };

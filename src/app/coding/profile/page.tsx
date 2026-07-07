@@ -69,7 +69,7 @@ export default function CodingProfilePage() {
       }
     });
 
-    let currentCursor = new Date(startDate);
+    const currentCursor = new Date(startDate);
     for (let w = 0; w < 53; w++) {
       const week: Array<{ date: Date; dateStr: string; count: number } | null> = [];
       for (let d = 0; d < 7; d++) {

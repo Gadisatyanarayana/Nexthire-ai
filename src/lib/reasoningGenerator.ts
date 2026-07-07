@@ -293,7 +293,7 @@ function generateDynamicQuestion(topic: string, index: number): ReasoningQuestio
 }
 
 export function getReasoningQuestions(topic: string = "All Topics"): ReasoningQuestion[] {
-  let questions = [...STATIC_QUESTIONS];
+  const questions = [...STATIC_QUESTIONS];
   
   for (const t of REASONING_TOPICS) {
     for (let i = 1; i <= 180; i++) {
