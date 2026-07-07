@@ -705,3 +705,72 @@ CREATE TABLE IF NOT EXISTS sd_lesson_revisions (
   commit_message text,
   created_at timestamp DEFAULT now()
 );
+
+-- Phase 4: Adaptive Learning & AI Tables
+
+CREATE TABLE IF NOT EXISTS sd_mastery (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  topic_id text NOT NULL, -- Corresponds to lesson_id or concept tag
+  mastery_score float NOT NULL DEFAULT 0.0, -- 0 to 100
+  confidence_score float NOT NULL DEFAULT 0.0,
+  last_assessed_at timestamp DEFAULT now(),
+  created_at timestamp DEFAULT now(),
+  UNIQUE(user_id, topic_id)
+);
+
+CREATE TABLE IF NOT EXISTS sd_revision_queue (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  topic_id text NOT NULL,
+  next_review_date timestamp NOT NULL,
+  interval integer NOT NULL DEFAULT 1, -- in days
+  ease_factor float NOT NULL DEFAULT 2.5, -- SuperMemo-2 default
+  review_count integer NOT NULL DEFAULT 0,
+  created_at timestamp DEFAULT now(),
+  updated_at timestamp DEFAULT now(),
+  UNIQUE(user_id, topic_id)
+);
+
+CREATE TABLE IF NOT EXISTS sd_ai_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  lesson_id text, -- Optional context
+  session_type text NOT NULL, -- 'mentor', 'interview'
+  messages jsonb NOT NULL DEFAULT '[]'::jsonb,
+  created_at timestamp DEFAULT now(),
+  updated_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_ai_feedback (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  lesson_id text NOT NULL,
+  submission_payload jsonb NOT NULL, -- User's HLD/LLD diagram or answers
+  ai_review jsonb NOT NULL, -- Structured JSON rubric scores
+  prompt_version text NOT NULL,
+  model_name text NOT NULL,
+  confidence float NOT NULL,
+  human_override jsonb, -- Null unless modified by admin
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_question_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  question_id text NOT NULL, -- Reference to specific MCQ or interview question
+  is_correct boolean NOT NULL,
+  time_taken_ms integer NOT NULL,
+  confidence_rating integer, -- 1-5 self rating
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_learning_path (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  recommended_modules jsonb NOT NULL DEFAULT '[]'::jsonb,
+  weak_topics jsonb NOT NULL DEFAULT '[]'::jsonb,
+  strong_topics jsonb NOT NULL DEFAULT '[]'::jsonb,
+  updated_at timestamp DEFAULT now(),
+  UNIQUE(user_id)
+);

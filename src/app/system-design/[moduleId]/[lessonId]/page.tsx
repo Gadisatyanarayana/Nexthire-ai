@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { BookOpen, CheckCircle, ChevronRight, Lock, BrainCircuit } from "lucide-react";
 import { getV2Lesson } from "@/lib/api/systemDesignV2";
+import AIMentor from "@/components/system-design/ai/AIMentor";
+import DesignReviewPanel from "@/components/system-design/ai/DesignReviewPanel";
 import LessonVisualsSwitcher from "@/components/system-design/LessonVisualsSwitcher";
 import ConceptTooltip from "@/components/system-design/ConceptTooltip";
 
@@ -128,6 +130,13 @@ export default async function LessonTheoryPage({ params }: { params: { moduleId:
         </div>
       </section>
 
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold">14. Conclusion & Summary</h2>
+        <div className="p-5 rounded-xl bg-foreground/[0.03] border border-foreground/5 leading-relaxed text-sm opacity-90">
+          {content.summary || "Summary content goes here."}
+        </div>
+      </section>
+
       <div className="flex justify-end pt-8 border-t border-foreground/10">
         <Link 
           href={`/system-design/${moduleId}/${lessonId}/quiz`}
@@ -138,6 +147,13 @@ export default async function LessonTheoryPage({ params }: { params: { moduleId:
         </Link>
       </div>
 
+      {/* Floating AI Mentor Widget */}
+      <AIMentor />
+      
+      {/* Design Review Panel (Mock placement for Phase 4) */}
+      <div className="mt-12">
+        <DesignReviewPanel />
+      </div>
     </div>
   );
 }
