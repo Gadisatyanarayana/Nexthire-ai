@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
 import { getMasterSystemPrompt } from "@/lib/aiMasterPrompt";
-import type { InterviewAnalysis, InterviewDifficulty, InterviewLanguage, VoiceInterviewSession, VoiceDsaQuestion } from "@/lib/interviewSession";
+import type { InterviewAnalysis, InterviewDifficulty, InterviewLanguage, VoiceInterviewSession, VoiceDsaQuestion, InterviewPhase } from "@/lib/interviewSession";
 import { getPhaseTimings, generateSessionId } from "@/lib/interviewSession";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
@@ -26,7 +26,7 @@ const FILLER_WORDS = [
   "kind of",
 ];
 
-type PromptPhase = "greeting_intro" | "intro_review" | "core_interview" | "coding_round" | "final_review";
+type PromptPhase = "intro" | "hr" | "technical" | "coding" | "system_design" | "behavioral" | "feedback";
 
 function getRemainingMinutes(sess: VoiceInterviewSession): number {
   const totalMs = Math.max(1, Number(sess.config.totalDurationMinutes || 20) * 60_000);
@@ -36,11 +36,13 @@ function getRemainingMinutes(sess: VoiceInterviewSession): number {
 }
 
 function phaseObjective(phase: PromptPhase): string {
-  if (phase === "greeting_intro") return "Collect concise self-introduction with role, impact, and target role.";
-  if (phase === "intro_review") return "Ask one focused follow-up from intro and check communication clarity.";
-  if (phase === "core_interview") return "Ask one DSA reasoning question with edge-case discussion.";
-  if (phase === "coding_round") return "Drive clean implementation and complexity explanation.";
-  return "Provide concise final review with actionable next steps.";
+  if (phase === "intro") return "Collect concise self-introduction with role, impact, and target role.";
+  if (phase === "hr") return "Evaluate motivation, background, and cultural fit.";
+  if (phase === "technical") return "Assess core technical knowledge and problem-solving without code.";
+  if (phase === "coding") return "Drive clean implementation, verify logic, and ask for time/space complexity.";
+  if (phase === "system_design") return "Discuss high-level architecture, scalability, and trade-offs.";
+  if (phase === "behavioral") return "Ask STAR method questions on past challenges or leadership.";
+  return "Provide concise final feedback with actionable next steps.";
 }
 
 function candidateNameFromEmail(email: string): string {
@@ -55,13 +57,42 @@ function resolveCandidateName(sess: VoiceInterviewSession): string {
   return candidateNameFromEmail(sess.email);
 }
 
-function resolvePromptPhase(totalElapsedMs: number): PromptPhase {
-  const elapsedSec = Math.max(0, Math.floor(totalElapsedMs / 1000));
-  if (elapsedSec < 120) return "greeting_intro";
-  if (elapsedSec < 300) return "intro_review";
-  if (elapsedSec < 900) return "core_interview";
-  if (elapsedSec < 1080) return "coding_round";
-  return "final_review";
+function resolvePromptPhase(sess: VoiceInterviewSession): PromptPhase {
+  // Hybrid logic: the phase is driven by the AI (stored in sess.timeline.phase),
+  // but if the phase runs out of time, we force it forward.
+  const now = Date.now();
+  const elapsedInPhase = now - sess.timeline.phaseStartedAt;
+  const current = sess.timeline.phase as string;
+
+  // Max durations per phase as fallback
+  const MAX_PHASE_MS: Record<string, number> = {
+    intro: 2 * 60_000,
+    hr: 3 * 60_000,
+    technical: 5 * 60_000,
+    coding: 10 * 60_000,
+    system_design: 5 * 60_000,
+    behavioral: 4 * 60_000,
+  };
+
+  const forcedTransitions: Record<string, PromptPhase> = {
+    intro: "hr",
+    hr: "technical",
+    technical: "coding",
+    coding: "system_design",
+    system_design: "behavioral",
+    behavioral: "feedback"
+  };
+
+  if (MAX_PHASE_MS[current] && elapsedInPhase > MAX_PHASE_MS[current]) {
+    // Force transition due to time limit
+    return forcedTransitions[current] || "feedback";
+  }
+
+  // Fallback map if the AI hasn't explicitly set it, or to map from old setup phases
+  if (["setup", "intro"].includes(current)) return "intro";
+  if (current === "completed") return "feedback";
+  
+  return current as PromptPhase;
 }
 
 function hasHesitationIndicators(text: string): boolean {
@@ -114,10 +145,9 @@ function generateInitialGreeting(name: string, companyMode: string, persona: str
   return `${personaIntro} Nice to meet you. Please start by giving a short self-introduction. We'll run a focused 20-minute evaluation round${companyText} focusing on ${topicLabel} at ${difficulty} level.`;
 }
 
-function buildMasterInterviewerPrompt(sess: VoiceInterviewSession): string {
+function buildMasterInterviewerPrompt(sess: VoiceInterviewSession, resumeText: string = ""): string {
   const candidate = resolveCandidateName(sess);
-  const totalElapsedMs = Date.now() - sess.timeline.totalStartedAt;
-  const phase = resolvePromptPhase(totalElapsedMs);
+  const phase = resolvePromptPhase(sess);
   const corePrompt = getMasterSystemPrompt("interviewer");
 
   const company = sess.config.companyMode || "general";
@@ -131,8 +161,8 @@ function buildMasterInterviewerPrompt(sess: VoiceInterviewSession): string {
     companyBias = "Target Company: Amazon. Inject questions mapping to Amazon Leadership Principles (Customer Obsession, Ownership, Bias for Action). Challenge coding optimization and scalability.";
   } else if (company === "microsoft") {
     companyBias = "Target Company: Microsoft. Encourage clean, modular design patterns, growth mindset, accessibility, and clear structural explanation.";
-  } else if (company === "tcs" || company === "infosys") {
-    companyBias = `Target Company: ${company.toUpperCase()}. Focus on core technical fundamentals, clean documentation, robust software lifecycle checks, and basic data structures.`;
+  } else if (company === "tcs" || company === "infosys" || company === "accenture") {
+    companyBias = `Target Company: ${company.toUpperCase()}. Focus on core technical fundamentals, clean documentation, robust software lifecycle checks, basic data structures, and aptitude.`;
   } else if (company === "meta") {
     companyBias = "Target Company: Meta. Focus on speed of execution, rapid reasoning, optimal time complexity, and direct logical implementation.";
   } else if (company === "apple") {
@@ -150,7 +180,8 @@ function buildMasterInterviewerPrompt(sess: VoiceInterviewSession): string {
     personaInstructions = "Persona: HR Lead. Focuses on leadership behavior, soft skills, team alignment, adaptability, alongside technical correctness.";
   }
 
-  const jdText = jobDescription ? `Target Job Description Context: ${jobDescription}` : "";
+  const jdText = jobDescription ? `Target Job Description Context: ${jobDescription}\n` : "";
+  const resumeContext = resumeText ? `Candidate Resume Context: ${resumeText.substring(0, 1500)}...\nUse this resume to ask personalized, intelligent follow-up questions.` : "";
 
   return `${corePrompt}
 
@@ -162,52 +193,52 @@ Topic: ${String(sess.config.dsaTopic || "arrays")}
 Difficulty: ${String(sess.config.difficulty || "medium")}
 ${companyBias}
 ${personaInstructions}
-${jdText}
+${jdText}${resumeContext}
 
 Your behavior must feel like a real human interviewer corresponding to your active Persona.
 
-INTERVIEW FLOW
-PHASE 1 (0-2 min): Greeting and intro request.
-PHASE 2 (2-5 min): Intro review with polite feedback.
-PHASE 3 (5-15 min): Core interview, one question at a time.
-PHASE 4 (15-18 min): Coding round with one coding problem, example IO, and 2-3 test cases.
-PHASE 5 (18-20 min): Final structured review.
+HYBRID PROGRESSION (AI DRIVEN)
+You control the interview stage. When you feel a stage is complete and it is time to move to the next stage, you MUST include the exact exact token "[STAGE: NEXT_STAGE_NAME]" anywhere in your response, where NEXT_STAGE_NAME is one of: [HR, TECHNICAL, CODING, SYSTEM_DESIGN, BEHAVIORAL, FEEDBACK]. 
+Example: "Great answer. Let's move on. [STAGE: CODING]"
+
+INTERVIEW FLOW STAGES
+- INTRO: Greeting and intro request.
+- HR: Motivation, culture fit.
+- TECHNICAL: Conceptual CS questions.
+- CODING: DSA logic.
+- SYSTEM_DESIGN: Scalability/Architecture.
+- BEHAVIORAL: STAR method questions.
+- FEEDBACK: Final wrap up.
 
 HUMAN-LIKE BEHAVIOR
+- Generate intelligent follow-up questions dynamically based on the candidate's last answer. Do not ask generic questions.
 - Use natural fillers occasionally: "hmm", "okay", "right", "mhmm".
-- If hesitation is detected, reassure briefly based on your active Persona.
-- If silence is detected, use: "I'm here, continue when you're ready.".
-- If stress appears, reassure that this is mock practice.
-
-STAR METHOD EVALUATION (For behavioral / HR / leadership questions):
-- Evaluate if the response defines: Situation, Task, Action, and Result.
-- If any component is missing, ask follow-up questions to prompt for the missing details.
-
-RULES
-- Ask only one question at a time.
 - Keep response short and natural (under 45 words).
 - Stay on topic.
 - Never say you are an AI.
 
 CURRENT RUNTIME PHASE: ${phase}
-Follow only the active phase in this turn.`;
+Follow only the active phase in this turn. Ask exactly one question.`;
 }
 
 function buildStructuredFinalReview(analysis: InterviewAnalysis): string {
-  const communication = analysis.communicationClarity ?? analysis.selfIntroQuality;
-  const technical = analysis.codeQuality;
-  const problemSolving = scoreBand((analysis.codeQuality * 0.7) + (analysis.selfIntroQuality * 0.3));
-  const confidence = analysis.confidenceScore ?? analysis.selfIntroQuality;
   const improvements = analysis.improvements.slice(0, 2).join(" ");
 
   return [
     "Final Interview Review",
-    `1. Communication Skills: ${communication}/100`,
-    `2. Technical Knowledge: ${technical}/100`,
-    `3. Problem Solving: ${problemSolving}/100`,
-    `4. Confidence Level: ${confidence}/100`,
-    `5. Suggestions for Improvement: ${improvements || "Keep practicing structured explanations and edge-case thinking."}`,
-    "You did well. Keep practicing daily and you'll improve.",
+    `1. Communication: ${analysis.communication}/100`,
+    `2. Technical Knowledge: ${analysis.technicalKnowledge}/100`,
+    `3. Coding: ${analysis.coding}/100`,
+    `4. System Design: ${analysis.systemDesign}/100`,
+    `5. Problem Solving: ${analysis.problemSolving}/100`,
+    `6. Confidence: ${analysis.confidence}/100`,
+    `7. Grammar: ${analysis.grammar}/100`,
+    `8. Speaking Fluency: ${analysis.speakingFluency}/100`,
+    `9. Resume Knowledge: ${analysis.resumeKnowledge}/100`,
+    `10. Behavioral Skills: ${analysis.behavioralSkills}/100`,
+    `Overall Placement Readiness Score: ${analysis.overallScore}/100`,
+    `Suggestions for Improvement: ${improvements || "Keep practicing structured explanations and edge-case thinking."}`,
+    "You did well. A full transcript and PDF report will be generated for your review.",
   ].join("\n");
 }
 
@@ -972,46 +1003,95 @@ function generateLearningRecommendations(overallScore: number, codeQuality: numb
   return recs;
 }
 
-function buildFinalAnalysis(sess: VoiceInterviewSession, code: string) {
-  const introMetrics = analyzeIntroTranscript(sess.introTranscript || sess.config.selfIntroduction || "");
-  const codeMetrics = analyzeCodeQuality(code || "", sess.config.difficulty);
-  const overallScore = scoreBand(introMetrics.selfIntroQuality * 0.45 + codeMetrics.codeQuality * 0.55);
-  const starEvaluation = evaluateSTARMetrics(sess.introTranscript || sess.config.selfIntroduction || "", introMetrics.structure);
-  const learningRecommendations = generateLearningRecommendations(overallScore, codeMetrics.codeQuality, introMetrics.selfIntroQuality);
+async function buildFinalAnalysis(sess: VoiceInterviewSession, code: string): Promise<InterviewAnalysis> {
+  const transcript = (sess.aiResponses || [])
+    .map((r) => `${r.role === "ai" ? "Interviewer" : "Candidate"}: ${r.content}`)
+    .join("\n");
 
-  return {
-    selfIntroQuality: introMetrics.selfIntroQuality,
-    codeQuality: codeMetrics.codeQuality,
-    codeFindings: codeMetrics.codeFindings,
-    communicationClarity: introMetrics.clarity,
-    fillerWordScore: introMetrics.fillerWordScore,
-    confidenceScore: introMetrics.confidence,
-    introTranscriptLength: introMetrics.wordCount,
-    transcript: introMetrics.transcript,
-    complexity: codeMetrics.complexity,
-    improvements: codeMetrics.improvements,
-    strengths: [
-      ...codeMetrics.strengths,
-      introMetrics.selfIntroQuality >= 70
-        ? "Self-introduction was structured and relevant."
-        : "You handled the intro stage and can improve structure with practice.",
-    ].slice(0, 4),
-    aiSuggestions: [
-      introMetrics.fillerWordScore < 65
-        ? "Practice a 60-second intro script to reduce filler words and improve pacing."
-        : "Keep your current speaking pace; it supports confident communication.",
-      "For each coding round, verbalize brute-force then optimized approach before coding.",
-      "Do one timed mock interview weekly and track intro + coding score trend.",
-    ],
-    overallScore,
-    starEvaluation,
-    learningRecommendations,
+  const fallback: InterviewAnalysis = {
+    communication: 70, technicalKnowledge: 70, coding: 70, systemDesign: 70,
+    problemSolving: 70, confidence: 70, grammar: 70, speakingFluency: 70,
+    resumeKnowledge: 70, behavioralSkills: 70, overallScore: 70,
+    improvements: ["Keep practicing."], strengths: ["Good effort."], aiSuggestions: [],
+    complexity: { time: "O(N)", space: "O(1)" }
   };
+
+  if (!GROQ_API_KEY) return fallback;
+
+  try {
+    const prompt = `Evaluate the following placement interview transcript and code submission.
+    
+Transcript:
+${transcript.slice(-6000)}
+
+Code Submission:
+${code.slice(0, 2000)}
+
+Return strict JSON only with the following keys (all integer scores 0-100):
+"communication", "technicalKnowledge", "coding", "systemDesign", "problemSolving", "confidence", "grammar", "speakingFluency", "resumeKnowledge", "behavioralSkills", "overallScore".
+Also include string arrays for "improvements" (max 3), "strengths" (max 3), "aiSuggestions" (max 3), and an object "complexity" with "time" and "space" string values.`;
+
+    const response = await callGroqAPI([
+      { role: "system", content: "You are an expert technical recruiter and interviewer. Output only valid JSON." },
+      { role: "user", content: prompt }
+    ]);
+
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return fallback;
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return {
+      communication: scoreBand(parsed.communication || 70),
+      technicalKnowledge: scoreBand(parsed.technicalKnowledge || 70),
+      coding: scoreBand(parsed.coding || 70),
+      systemDesign: scoreBand(parsed.systemDesign || 70),
+      problemSolving: scoreBand(parsed.problemSolving || 70),
+      confidence: scoreBand(parsed.confidence || 70),
+      grammar: scoreBand(parsed.grammar || 70),
+      speakingFluency: scoreBand(parsed.speakingFluency || 70),
+      resumeKnowledge: scoreBand(parsed.resumeKnowledge || 70),
+      behavioralSkills: scoreBand(parsed.behavioralSkills || 70),
+      overallScore: scoreBand(parsed.overallScore || 70),
+      improvements: Array.isArray(parsed.improvements) ? parsed.improvements : fallback.improvements,
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths : fallback.strengths,
+      aiSuggestions: Array.isArray(parsed.aiSuggestions) ? parsed.aiSuggestions : fallback.aiSuggestions,
+      complexity: parsed.complexity || fallback.complexity,
+    };
+  } catch (e) {
+    console.error("Failed to build final analysis:", e);
+    return fallback;
+  }
 }
 
-async function generateInterviewerReply(sess: VoiceInterviewSession, transcript: string): Promise<string> {
-  const totalElapsedMs = Date.now() - sess.timeline.totalStartedAt;
-  const promptPhase = resolvePromptPhase(totalElapsedMs);
+async function extractResumeText(email: string): Promise<string> {
+  try {
+    const admin = getAdminClient();
+    const { data: userRow } = await admin
+      .from("users")
+      .select("resume_path")
+      .eq("email", normalizeEmail(email))
+      .maybeSingle();
+
+    if (!userRow?.resume_path) return "";
+
+    const { data: fileData, error } = await admin.storage.from("resumes").download(userRow.resume_path);
+    if (error || !fileData) return "";
+
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    const pdfParseLib = (await import("pdf-parse")) as any;
+    const pdfParse = pdfParseLib.default || pdfParseLib;
+    const result = await pdfParse(buffer);
+    return result.text || "";
+  } catch (e) {
+    console.error("Failed to parse resume", e);
+    return "";
+  }
+}
+
+async function generateInterviewerReply(sess: VoiceInterviewSession, transcript: string, resumeText: string = ""): Promise<{ reply: string, nextPhase?: PromptPhase }> {
+  const promptPhase = resolvePromptPhase(sess);
   const remainingMinutes = getRemainingMinutes(sess);
   const compactHistory = sess.aiResponses
     .slice(-8)
@@ -1019,37 +1099,52 @@ async function generateInterviewerReply(sess: VoiceInterviewSession, transcript:
     .join("\n");
 
   const defaultReplyByPhase: Record<PromptPhase, string> = {
-    greeting_intro: `Hello ${resolveCandidateName(sess)}, nice to meet you. Please share a short self-introduction.`,
-    intro_review: "Okay, thank you. Briefly tell me one project, your exact role, and one measurable impact.",
-    core_interview: "Right. Here is one question: explain the core idea first, then one edge case, then your optimal approach.",
-    coding_round: "Good attempt. Now solve one coding problem step by step, verify with one edge case, and explain complexity before submitting.",
-    final_review: "Thanks. I will now give your final structured review in communication, technical depth, and confidence.",
+    intro: `Hello ${resolveCandidateName(sess)}, nice to meet you. Please share a short self-introduction.`,
+    hr: "Thank you. Why are you interested in this role and what is your greatest strength?",
+    technical: "Let's move to some technical concepts. Explain a core technical challenge you recently solved.",
+    coding: "Now we will do a coding challenge. Please explain your approach step-by-step.",
+    system_design: "Let's talk about system design. How would you scale a read-heavy application?",
+    behavioral: "Can you describe a time you had a conflict with a teammate and how you resolved it?",
+    feedback: "Thanks. I will now compile your final placement readiness report."
   };
 
   if (!GROQ_API_KEY) {
-    return defaultReplyByPhase[promptPhase];
+    return { reply: defaultReplyByPhase[promptPhase] };
   }
 
   try {
-    const systemPrompt = buildMasterInterviewerPrompt(sess);
+    const systemPrompt = buildMasterInterviewerPrompt(sess, resumeText);
     const hesitationNote = hasHesitationIndicators(transcript)
       ? "Candidate shows hesitation. First reassure briefly, then continue with one concise question."
       : "No hesitation detected. Continue normal interviewer flow.";
 
     const userPrompt = `Conversation so far:\n${compactHistory}\n\nLatest candidate response:\n${transcript}\n\nRemaining time: about ${remainingMinutes} minute(s).\nCurrent objective: ${phaseObjective(promptPhase)}\n${hesitationNote}\n\nRules: ask only one question in this turn, keep response under 45 words, and stay natural/human.`;
 
-    const reply = await callGroqAPI([
+    const rawReply = await callGroqAPI([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ]);
 
-    const cleaned = String(reply || "").replace(/\s+/g, " ").trim();
-    if (cleaned.length > 0) return cleaned;
-  } catch {
-    // Fallback below.
+    let cleaned = String(rawReply || "").replace(/\s+/g, " ").trim();
+    let nextPhase: PromptPhase | undefined = undefined;
+
+    // Detect [STAGE: XXX] token
+    const stageMatch = cleaned.match(/\[STAGE:\s*([A-Z_]+)\]/i);
+    if (stageMatch) {
+      const extractedPhase = stageMatch[1].toLowerCase();
+      const validPhases: PromptPhase[] = ["intro", "hr", "technical", "coding", "system_design", "behavioral", "feedback"];
+      if (validPhases.includes(extractedPhase as PromptPhase)) {
+        nextPhase = extractedPhase as PromptPhase;
+      }
+      cleaned = cleaned.replace(/\[STAGE:\s*[A-Z_]+\]/gi, "").trim();
+    }
+
+    if (cleaned.length > 0) return { reply: cleaned, nextPhase };
+  } catch (e) {
+    console.error("AI Generation failed:", e);
   }
 
-  return defaultReplyByPhase[promptPhase];
+  return { reply: defaultReplyByPhase[promptPhase] };
 }
 
 export async function POST(req: Request) {
@@ -1206,6 +1301,8 @@ export async function POST(req: Request) {
       const timings = getPhaseTimings(body.difficulty || "medium");
       const now = Date.now();
 
+      const resumeText = await extractResumeText(session.user.email);
+
       const newSession: VoiceInterviewSession = {
         id: sessionId,
         email: session.user.email,
@@ -1220,7 +1317,8 @@ export async function POST(req: Request) {
           persona: body.persona || "professional",
           jobDescription: body.jobDescription || "",
           askedQuestionIds: [],
-          interviewType: body.interviewType || "Technical"
+          interviewType: body.interviewType || "Technical",
+          resumeText,
         },
         timeline: {
           phase: "intro",
@@ -1274,26 +1372,22 @@ export async function POST(req: Request) {
 
       const timings = getPhaseTimings(sess.config.difficulty);
       const now = Date.now();
-      const totalElapsed = now - sess.timeline.totalStartedAt;
 
-      let nextPhase = sess.timeline.phase;
+      let nextPhase: InterviewPhase = sess.timeline.phase;
       let phaseMessage = "";
 
       if (sess.timeline.phase === "intro") {
-        nextPhase = "dsa-question";
-        
-        // Dynamic difficulty adaptation
-        const introMetrics = analyzeIntroTranscript(sess.introTranscript || sess.config.selfIntroduction || "");
-        const score = introMetrics.selfIntroQuality;
-        const oldDifficulty = sess.config.difficulty;
-        sess.config.difficulty = adaptDifficulty(oldDifficulty, score);
-        console.log(`Adaptive AI Difficulty: score = ${score}, shifted from ${oldDifficulty} to ${sess.config.difficulty}`);
+        nextPhase = "hr";
+        phaseMessage = "Let's move into the HR round. Why are you interested in this position?";
+      } else if (sess.timeline.phase === "hr") {
+        nextPhase = "technical";
+        phaseMessage = "Moving to the technical round. Can you explain a core technical challenge you recently solved?";
+      } else if (sess.timeline.phase === "technical") {
+        nextPhase = "coding";
 
         // Exclude previously asked questions
         const excludeList = sess.config.askedQuestionIds || [];
         sess.dsaQuestion = getRandomDsaQuestion(sess.config.difficulty, sess.config.dsaTopic, excludeList);
-        
-        // Track asked questions
         if (!sess.config.askedQuestionIds) {
           sess.config.askedQuestionIds = [];
         }
@@ -1307,16 +1401,19 @@ export async function POST(req: Request) {
         const difficultyLabel = sess.config.difficulty === "easy" ? "Easy" : sess.config.difficulty === "medium" ? "Medium" : "Hard";
         const topicLabel = String(sess.config.dsaTopic || "arrays").charAt(0).toUpperCase() + String(sess.config.dsaTopic || "arrays").slice(1);
 
-        phaseMessage = `Great start. Now we move into a ${difficultyLabel} ${topicLabel} coding round. Problem: ${sess.dsaQuestion.title}. ${sess.dsaQuestion.description} Function signature: ${sess.dsaQuestion.functionName}(${sess.dsaQuestion.inputType}) -> ${sess.dsaQuestion.outputType}. ${sampleText} Explain your approach step by step, mention edge cases, and then move to implementation in the editor.`;
-      } else if (sess.timeline.phase === "dsa-question") {
-        if (totalElapsed > timings.intro + timings.dsaQuestion + timings.coding - 120000) {
-          // Last 2 minutes
-          nextPhase = "coding";
-          phaseMessage = "You are in the final 2 minutes. Focus on correctness, edge cases, and clear explanation. Let us finalize your solution.";
-        } else {
-          nextPhase = "coding";
-          phaseMessage = "Clear! Now move to implementation. Keep calm, write clean code, verify with sample test cases, and submit when confident.";
-        }
+        phaseMessage = `Excellent. Let's move into a ${difficultyLabel} ${topicLabel} coding round. Problem: ${sess.dsaQuestion.title}. ${sess.dsaQuestion.description} Function signature: ${sess.dsaQuestion.functionName}(${sess.dsaQuestion.inputType}) -> ${sess.dsaQuestion.outputType}. ${sampleText} Explain your approach first.`;
+      } else if (sess.timeline.phase === "coding") {
+        nextPhase = "system_design";
+        phaseMessage = "Let's move to system design. How would you design a rate-limiter for a distributed system?";
+      } else if (sess.timeline.phase === "system_design") {
+        nextPhase = "behavioral";
+        phaseMessage = "Let's talk about behavioral skills. Tell me about a time you handled conflict within a team.";
+      } else if (sess.timeline.phase === "behavioral") {
+        nextPhase = "feedback";
+        phaseMessage = "Thank you. I am preparing your final feedback summary now.";
+      } else if (sess.timeline.phase === "feedback") {
+        nextPhase = "completed";
+        phaseMessage = "Evaluation completed.";
       }
 
       sess.timeline.phase = nextPhase;
@@ -1358,45 +1455,35 @@ export async function POST(req: Request) {
         timestamp: Date.now(),
       });
 
-      if (sess.timeline.phase === "intro") {
-        const elapsedMs = Date.now() - sess.timeline.totalStartedAt;
-        const promptPhase = resolvePromptPhase(elapsedMs);
-        let coaching = "";
+      const { reply, nextPhase } = await generateInterviewerReply(sess, transcript, sess.config.resumeText);
+      let coaching = reply;
 
-        if (promptPhase === "greeting_intro" || promptPhase === "intro_review") {
-          const intro = analyzeIntroTranscript(sess.introTranscript || "");
-          coaching = intro.fillerWordScore < 60
-            ? "Take your time. No pressure. Slow down slightly, pause between points, and reduce filler words."
-            : "Okay, good progress. Keep a calm pace and continue with concise, confident sentences.";
-        } else {
-          coaching = await generateInterviewerReply(sess, transcript);
-        }
-
-        if (hesitationDetected && !/take your time|no pressure|doing fine/i.test(coaching)) {
-          coaching = `${supportiveLine()} ${coaching}`;
-        }
-
-        sess.aiResponses.push({
-          role: "ai",
-          content: coaching,
-          timestamp: Date.now(),
-        });
-      } else if (sess.timeline.phase === "dsa-question" || sess.timeline.phase === "coding" || sess.timeline.phase === "submitted") {
-        let reply = await generateInterviewerReply(sess, transcript);
-        if (hesitationDetected && !/take your time|no pressure|doing fine/i.test(reply)) {
-          reply = `${supportiveLine()} ${reply}`;
-        }
-        sess.aiResponses.push({
-          role: "ai",
-          content: reply,
-          timestamp: Date.now(),
-        });
+      if (hesitationDetected && !/take your time|no pressure|doing fine/i.test(coaching)) {
+        coaching = `${supportiveLine()} ${coaching}`;
       }
+
+      if (nextPhase && nextPhase !== sess.timeline.phase) {
+        sess.timeline.phase = nextPhase;
+        sess.timeline.phaseStartedAt = Date.now();
+
+        if (nextPhase === "coding" && !sess.dsaQuestion) {
+           const excludeList = sess.config.askedQuestionIds || [];
+           // Assuming getRandomDsaQuestion is imported and available
+           sess.dsaQuestion = getRandomDsaQuestion(sess.config.difficulty, sess.config.dsaTopic, excludeList);
+           if (!sess.config.askedQuestionIds) sess.config.askedQuestionIds = [];
+           sess.config.askedQuestionIds.push(sess.dsaQuestion.id);
+        }
+      }
+
+      sess.aiResponses.push({
+        role: "ai",
+        content: coaching,
+        timestamp: Date.now(),
+      });
 
       await persistSession(sess);
 
-      const latestReply = sess.aiResponses.filter((m) => m.role === "ai").slice(-1)[0]?.content || "";
-      return NextResponse.json({ session: sess, accepted: true, reply: latestReply });
+      return NextResponse.json({ session: sess, accepted: true, reply: coaching, phase: sess.timeline.phase });
     }
 
     if (body.action === "intro-review") {
@@ -1491,7 +1578,7 @@ export async function POST(req: Request) {
           submittedAt: Date.now(),
         };
       }
-      const analysis = buildFinalAnalysis(sess, code);
+      const analysis = await buildFinalAnalysis(sess, code);
       sess.analysis = analysis;
       sess.timeline.phase = "completed";
       const finalSummary = buildStructuredFinalReview(analysis);
@@ -1529,11 +1616,16 @@ export async function POST(req: Request) {
             questions_count: sess.aiResponses.filter((m) => m.role === "user").length || 0,
             overall_score: analysis.overallScore,
             category_scores: {
-              self_introduction: analysis.selfIntroQuality,
-              code_quality: analysis.codeQuality,
-              communication: analysis.communicationClarity,
-              filler_words: analysis.fillerWordScore,
-              confidence: analysis.confidenceScore,
+              communication: analysis.communication,
+              technical_knowledge: analysis.technicalKnowledge,
+              coding: analysis.coding,
+              system_design: analysis.systemDesign,
+              problem_solving: analysis.problemSolving,
+              confidence: analysis.confidence,
+              grammar: analysis.grammar,
+              speaking_fluency: analysis.speakingFluency,
+              resume_knowledge: analysis.resumeKnowledge,
+              behavioral_skills: analysis.behavioralSkills,
             },
             transcript: sess.aiResponses,
             feedback: {
@@ -1631,7 +1723,7 @@ export async function POST(req: Request) {
         sess.timeline.phase = "completed";
       } else {
         feedbackMessage = `Excellent submission. I'll review your code for correctness, complexity, and interview-readiness.`;
-        sess.timeline.phase = "submitted";
+        sess.timeline.phase = "system_design";
       }
 
       sess.aiResponses.push({
@@ -1642,7 +1734,7 @@ export async function POST(req: Request) {
 
       const introMetrics = analyzeIntroTranscript(sess.introTranscript || sess.config.selfIntroduction || "");
       const codeMetrics = analyzeCodeQuality(body.code || "", sess.config.difficulty);
-      sess.analysis = buildFinalAnalysis(sess, body.code || "");
+      sess.analysis = await buildFinalAnalysis(sess, body.code || "");
       if (timeExpired) {
         feedbackMessage = buildStructuredFinalReview(sess.analysis);
       }

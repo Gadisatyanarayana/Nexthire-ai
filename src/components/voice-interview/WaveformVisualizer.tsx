@@ -21,7 +21,7 @@ export const WaveformVisualizer = React.memo(function WaveformVisualizer({ strea
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioCtx();
       const source = ctx.createMediaStreamSource(stream);

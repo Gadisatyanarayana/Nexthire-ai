@@ -136,7 +136,7 @@ export async function GET() {
     let totalScore = 0;
 
      
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
       historyList.forEach((item: any) => {
       totalScore += item.overall_score || 0;
       if (item.overall_score >= 80) has80Plus = true;
@@ -208,18 +208,18 @@ export async function GET() {
 
     if (completedCount > 0) {
       // Calculate overall average
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const totalScore = historyList.reduce((sum: number, item: any) => sum + item.overall_score, 0);
       averageScore = Math.round(totalScore / completedCount);
 
       // Readiness Index (average of last 3 interviews)
       const last3 = historyList.slice(-3);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const sumLast3 = last3.reduce((sum: number, item: any) => sum + item.overall_score, 0);
       readinessScore = Math.round(sumLast3 / last3.length);
 
       // Collect strengths and suggestions from last 3 interviews
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       last3.forEach((item: any) => {
         const itemFeedback = item.feedback || {};
         const itemStrengths = Array.isArray(itemFeedback.strengths) 
@@ -251,7 +251,7 @@ export async function GET() {
 
       // Aggregate Category scores
        
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
       historyList.forEach((item: any) => {
         const catScores = item.category_scores || {};
         Object.entries(catScores).forEach(([key, val]) => {
@@ -285,7 +285,7 @@ export async function GET() {
     });
 
     // Build chronological trend line (last 10 sessions)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const snapshotData = historyList.slice(-10).map((item: any) => ({
       date: item.created_at,
       score: item.overall_score

@@ -1,5 +1,5 @@
 export type InterviewDifficulty = "easy" | "medium" | "hard";
-export type InterviewPhase = "setup" | "intro" | "dsa-question" | "coding" | "submitted" | "completed";
+export type InterviewPhase = "setup" | "intro" | "hr" | "technical" | "coding" | "system_design" | "behavioral" | "feedback" | "completed";
 export type InterviewLanguage = "javascript" | "python" | "java" | "cpp";
 
 export type VoiceDsaQuestion = {
@@ -25,6 +25,7 @@ export type InterviewSessionConfig = {
   jobDescription?: string;
   askedQuestionIds?: string[];
   interviewType?: string;
+  resumeText?: string;
 };
 
 export type InterviewTimeline = {
@@ -42,12 +43,18 @@ export type CodingSubmission = {
 };
 
 export type InterviewAnalysis = {
-  selfIntroQuality: number;
-  codeQuality: number;
-  communicationClarity?: number;
-  fillerWordScore?: number;
-  confidenceScore?: number;
-  introTranscriptLength?: number;
+  communication: number;
+  technicalKnowledge: number;
+  coding: number;
+  systemDesign: number;
+  problemSolving: number;
+  confidence: number;
+  grammar: number;
+  speakingFluency: number;
+  resumeKnowledge: number;
+  behavioralSkills: number;
+  overallScore: number;
+
   transcript?: string;
   codeFindings?: Array<{
     line: number | null;
@@ -61,7 +68,6 @@ export type InterviewAnalysis = {
   improvements: string[];
   strengths: string[];
   aiSuggestions: string[];
-  overallScore: number;
   starEvaluation?: any;
   learningRecommendations?: any;
 };
@@ -83,7 +89,7 @@ export function generateSessionId(email: string): string {
   return `voice-interview:${email.toLowerCase()}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 10)}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export function getPhaseTimings(_difficulty: InterviewDifficulty): {
   intro: number;
   dsaQuestion: number;

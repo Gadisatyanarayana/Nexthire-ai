@@ -127,6 +127,7 @@ function VoiceInterviewerWorkspace() {
 
   // Active Session states
   const [sessionId, setSessionId] = useState<string>("");
+  const [interviewStage, setInterviewStage] = useState<"intro" | "hr" | "technical" | "coding" | "system_design" | "behavioral" | "feedback">("intro");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [voiceDraft, setVoiceDraft] = useState("");
@@ -700,35 +701,42 @@ function VoiceInterviewerWorkspace() {
     doc.setTextColor(51, 65, 85);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text("Category Scorecard Breakdown", 20, 98);
+    doc.text("Category Scorecard Breakdown", 20, 96);
 
     const metrics = [
-      { name: "Technical Logic & Syntax", score: reportAnalysis.codeQuality || 70 },
-      { name: "Self-Introduction Structure", score: reportAnalysis.selfIntroQuality || 80 },
-      { name: "Vocal Clarity & Tone", score: reportAnalysis.communicationClarity || 80 },
-      { name: "STAR Framework Confidence", score: reportAnalysis.confidenceScore || 75 },
-      { name: "Fluency & Vocal Pacing", score: reportAnalysis.fillerWordScore || 85 }
+      { name: "Communication", score: reportAnalysis.communication || 75 },
+      { name: "Technical Knowledge", score: reportAnalysis.technicalKnowledge || 75 },
+      { name: "Coding correctness", score: reportAnalysis.coding || 75 },
+      { name: "System Design", score: reportAnalysis.systemDesign || 75 },
+      { name: "Problem Solving", score: reportAnalysis.problemSolving || 75 },
+      { name: "Vocal Confidence", score: reportAnalysis.confidence || 75 },
+      { name: "Grammar & Vocabulary", score: reportAnalysis.grammar || 75 },
+      { name: "Speaking Fluency", score: reportAnalysis.speakingFluency || 75 },
+      { name: "Resume Knowledge", score: reportAnalysis.resumeKnowledge || 75 },
+      { name: "Behavioral (STAR)", score: reportAnalysis.behavioralSkills || 75 }
     ];
 
-    let yOffset = 108;
+    let yOffset = 104;
     metrics.forEach(m => {
       doc.setTextColor(15, 23, 42);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
+      doc.setFontSize(8.5);
       doc.text(m.name, 20, yOffset);
       
       doc.setFillColor(226, 232, 240);
-      doc.rect(90, yOffset - 3.5, 80, 4, "F");
+      doc.rect(90, yOffset - 3, 80, 3, "F");
       doc.setFillColor(6, 182, 212);
-      doc.rect(90, yOffset - 3.5, (m.score / 100) * 80, 4, "F");
+      doc.rect(90, yOffset - 3, (m.score / 100) * 80, 3, "F");
       
       doc.setFont("helvetica", "bold");
       doc.text(`${m.score}/100`, 176, yOffset);
-      yOffset += 10;
+      yOffset += 7;
     });
 
+    yOffset += 2;
+    doc.setDrawColor(226, 232, 240);
     doc.line(20, yOffset, 190, yOffset);
-    yOffset += 10;
+    yOffset += 8;
 
     doc.setTextColor(16, 185, 129);
     doc.setFont("helvetica", "bold");
@@ -764,21 +772,21 @@ function VoiceInterviewerWorkspace() {
       yOffset += splitText.length * 5;
     });
 
-    yOffset += 8;
+    yOffset += 6;
 
     const recommendText = reportAnalysis.overallScore >= 80 ? "STRONG HIRE" : reportAnalysis.overallScore >= 70 ? "HIRE" : reportAnalysis.overallScore >= 60 ? "LEAN HIRE" : "NO HIRE";
     doc.setFillColor(248, 250, 252);
-    doc.rect(20, yOffset, 170, 16, "F");
+    doc.rect(20, yOffset, 170, 14, "F");
     doc.setDrawColor(203, 213, 225);
-    doc.rect(20, yOffset, 170, 16, "S");
+    doc.rect(20, yOffset, 170, 14, "S");
     
     doc.setTextColor(71, 85, 105);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text("Hiring Recommendation Recommendation:", 25, yOffset + 10);
+    doc.text("Hiring Recommendation:", 25, yOffset + 9);
     
     doc.setTextColor(reportAnalysis.overallScore >= 70 ? 16 : 220, reportAnalysis.overallScore >= 70 ? 185 : 38, reportAnalysis.overallScore >= 70 ? 129 : 38);
-    doc.text(recommendText, 110, yOffset + 10);
+    doc.text(recommendText, 110, yOffset + 9);
 
     doc.save(`Placement_Report_${session?.user?.name || "Candidate"}.pdf`);
   };
@@ -859,6 +867,10 @@ function VoiceInterviewerWorkspace() {
             setCode(data.session.dsaQuestion.starterCode);
           }
         }
+        
+        if (data.phase) {
+          setInterviewStage(data.phase);
+        }
 
         await speakReply(reply);
       }
@@ -914,9 +926,13 @@ function VoiceInterviewerWorkspace() {
   const handleExecuteCode = async () => {
     setRunningCode(true);
     setCodeOutput("Compiling and executing against sample test cases...");
-    setTimeout(() => {
+    setTimeout(async () => {
       setCodeOutput("Success! Passed 3/3 visible test cases.\nRuntime: 12ms\nMemory: 24.1MB");
       setRunningCode(false);
+      
+      const followup = "Great. Can you explain your approach, the time complexity, space complexity, and any possible optimizations?";
+      setMessages(prev => [...prev, createMessage("assistant", followup)]);
+      await speakReply(followup);
     }, 1500);
   };
 
@@ -927,11 +943,16 @@ function VoiceInterviewerWorkspace() {
     setStep("scorecard");
     setAnalysis({
       overallScore: 35,
-      selfIntroQuality: 40,
-      codeQuality: 20,
-      communicationClarity: 30,
-      confidenceScore: 25,
-      fillerWordScore: 40,
+      communication: 30,
+      technicalKnowledge: 20,
+      coding: 20,
+      systemDesign: 0,
+      problemSolving: 20,
+      confidence: 25,
+      grammar: 30,
+      speakingFluency: 30,
+      resumeKnowledge: 0,
+      behavioralSkills: 0,
       cheatingViolation: true,
       improvements: [
         "System locked due to excessive window blurring / tab switching.",
@@ -962,11 +983,16 @@ function VoiceInterviewerWorkspace() {
       const data = await res.json();
       setAnalysis(data.analysis || {
         overallScore: 82,
-        selfIntroQuality: 85,
-        codeQuality: 80,
-        communicationClarity: 84,
-        confidenceScore: 80,
-        fillerWordScore: 88,
+        communication: 84,
+        technicalKnowledge: 80,
+        coding: 80,
+        systemDesign: 80,
+        problemSolving: 85,
+        confidence: 80,
+        grammar: 85,
+        speakingFluency: 88,
+        resumeKnowledge: 80,
+        behavioralSkills: 80,
         improvements: ["State time complexity explicitly.", "Handle empty arrays as input boundary cases."],
         strengths: ["Great speaking pace and vocabulary clarity.", "Clean logical structure in coding round."],
         aiSuggestions: ["Keep mock practicing daily to retain confidence."]
@@ -974,11 +1000,16 @@ function VoiceInterviewerWorkspace() {
     } catch {
       setAnalysis({
         overallScore: 78,
-        selfIntroQuality: 80,
-        codeQuality: 75,
-        communicationClarity: 82,
-        confidenceScore: 75,
-        fillerWordScore: 80,
+        communication: 82,
+        technicalKnowledge: 75,
+        coding: 75,
+        systemDesign: 70,
+        problemSolving: 80,
+        confidence: 75,
+        grammar: 80,
+        speakingFluency: 80,
+        resumeKnowledge: 75,
+        behavioralSkills: 75,
         improvements: ["Explicitly talk about time complexity.", "Write modular function configurations."],
         strengths: ["Answered introductory review correctly.", "Followed coding instructions cleanly."],
         aiSuggestions: ["Solve 2-3 medium coding problems weekly on arrays and trees."]
@@ -1321,7 +1352,7 @@ function VoiceInterviewerWorkspace() {
 
         {/* STEP 2: ACTIVE INTERVIEW PLAYGROUND */}
         {step === "active" && (
-          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6">
+          <div className={`grid grid-cols-1 ${interviewStage === 'coding' ? 'lg:grid-cols-[0.9fr_1.1fr]' : 'max-w-4xl mx-auto'} gap-6`}>
             
             {/* Left Panel: Conversation and Recruiter waves */}
             <div className="space-y-6 flex flex-col min-h-0">
@@ -1391,10 +1422,16 @@ function VoiceInterviewerWorkspace() {
                   totalQuestions={questionsCount}
                 />
                 
-                <InterviewProgress
-                  current={messages.filter(m => m.role === "user").length}
-                  total={questionsCount}
-                />
+                <div className={`rounded-3xl border p-5 flex flex-col justify-center ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
+                  <h3 className="font-extrabold text-xs text-foreground/50 uppercase tracking-wider mb-3">Interview Progress</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {["intro", "hr", "technical", "coding", "system_design", "behavioral", "feedback"].map((stage, idx) => (
+                      <div key={stage} className={`px-2 py-1 text-[10px] font-bold rounded-lg border flex items-center gap-1 ${interviewStage === stage ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400 shadow-sm' : 'border-foreground/10 text-foreground/40'}`}>
+                        {idx + 1}. {stage.replace("_", " ").toUpperCase()}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Workspace Action Controls */}
@@ -1410,6 +1447,7 @@ function VoiceInterviewerWorkspace() {
             </div>
 
             {/* Right Panel: Integrated Monaco Code / SQL Practice Sandbox */}
+            {interviewStage === "coding" && (
             <div className="flex flex-col min-h-0 space-y-4">
               
               {/* Question information card */}
@@ -1464,7 +1502,7 @@ function VoiceInterviewerWorkspace() {
               </div>
 
             </div>
-
+            )}
           </div>
         )}
 

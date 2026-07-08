@@ -29,21 +29,19 @@ type ScoreCategory = {
 type InterviewScorecardProps = {
   analysis: {
     overallScore: number;
-    selfIntroQuality: number;
-    codeQuality: number;
-    communicationClarity?: number;
-    fillerWordScore?: number;
-    confidenceScore?: number;
+    communication: number;
+    technicalKnowledge: number;
+    coding: number;
+    systemDesign: number;
+    problemSolving: number;
+    confidence: number;
+    grammar: number;
+    speakingFluency: number;
+    resumeKnowledge: number;
+    behavioralSkills: number;
     improvements: string[];
     strengths: string[];
     aiSuggestions?: string[];
-    starEvaluation?: {
-      situation: number;
-      task: number;
-      action: number;
-      result: number;
-      feedback: string;
-    };
     learningRecommendations?: Recommendation[];
   };
   onExportPdf: () => void;
@@ -54,34 +52,23 @@ export function InterviewScorecard({ analysis, onExportPdf, onReturn }: Intervie
   const [activeTab, setActiveTab] = useState<"overview" | "breakdown" | "recommendations">("overview");
 
   const overall = analysis.overallScore || 75;
-  const selfIntro = analysis.selfIntroQuality || 70;
-  const code = analysis.codeQuality || 75;
-  const communication = analysis.communicationClarity || 80;
-  const filler = analysis.fillerWordScore || 85;
-  const confidence = analysis.confidenceScore || 75;
-  
-  const star = analysis.starEvaluation || {
-    situation: 75,
-    task: 70,
-    action: 80,
-    result: 65,
-    feedback: "quantify your project outcomes using metrics to structure behavioral scenarios."
+
+  const star = {
+    feedback: analysis.improvements?.[0] || "quantify your project outcomes using metrics to structure behavioral scenarios."
   };
 
-  // Define 12 Core Categories
+  // Define 10 Core Categories for the radar chart and breakdown
   const categories: ScoreCategory[] = [
-    { name: "Self-Introduction", score: selfIntro, description: "Structure, impact statements, and flow of experience" },
-    { name: "Communication Clarity", score: communication, description: "Articulation, speaking pace, and direct vocabulary" },
-    { name: "Vocal Confidence", score: confidence, description: "Pitch modulation, presence, and vocal volume stability" },
-    { name: "Filler Words Avoidance", score: filler, description: "Minimal usage of distracting pauses (um, uh, like)" },
-    { name: "Technical correctness", score: code, description: "Logical accuracy of code against mock test parameters" },
-    { name: "Complexity Logic", score: Math.round(code * 0.9 + 5), description: "Verbalizing and writing optimal Big-O trade-offs" },
-    { name: "Edge-Case Handling", score: Math.round(code * 0.85 + 8), description: "Robust branching for empty inputs or extreme values" },
-    { name: "Modular Structure", score: Math.round(code * 0.95), description: "Clean functions boundaries, comments, and spacing" },
-    { name: "STAR: Situation Context", score: star.situation, description: "Setting clear scenario contexts for projects" },
-    { name: "STAR: Task Responsibility", score: star.task, description: "Stating exact engineering responsibilities assigned" },
-    { name: "STAR: Action Explanation", score: star.action, description: "Detailing modular technical implementations performed" },
-    { name: "STAR: Result Metrics", score: star.result, description: "Quantifying final business impact or performance results" },
+    { name: "Communication", score: analysis.communication || 75, description: "Ability to articulate ideas clearly and concisely" },
+    { name: "Technical Knowledge", score: analysis.technicalKnowledge || 75, description: "Depth of understanding of underlying concepts" },
+    { name: "Coding correctness", score: analysis.coding || 75, description: "Accuracy and correctness of code syntax and logic" },
+    { name: "System Design", score: analysis.systemDesign || 75, description: "Ability to scale architecture and manage components" },
+    { name: "Problem Solving", score: analysis.problemSolving || 75, description: "Analytical mindset and edge-case handling" },
+    { name: "Vocal Confidence", score: analysis.confidence || 75, description: "Tone, poise, and pitch stability under pressure" },
+    { name: "Grammar & Vocabulary", score: analysis.grammar || 75, description: "Correctness of language and professional wording" },
+    { name: "Speaking Fluency", score: analysis.speakingFluency || 75, description: "Pacing and avoidance of filler words (um, uh)" },
+    { name: "Resume Knowledge", score: analysis.resumeKnowledge || 75, description: "Ability to defend past experience accurately" },
+    { name: "Behavioral (STAR)", score: analysis.behavioralSkills || 75, description: "Structuring past situations, actions, and results" },
   ];
 
   // Radar Chart coordinates generator (Standard SVG)
@@ -90,7 +77,7 @@ export function InterviewScorecard({ analysis, onExportPdf, onReturn }: Intervie
   
   const getRadarPoints = () => {
     return categories.map((cat, idx) => {
-      const angle = (idx * 2 * Math.PI) / 12 - Math.PI / 2; // offset by 90deg to start at top
+      const angle = (idx * 2 * Math.PI) / 10 - Math.PI / 2; // offset by 90deg to start at top
       const factor = cat.score / 100;
       const x = center + maxRadius * factor * Math.cos(angle);
       const y = center + maxRadius * factor * Math.sin(angle);

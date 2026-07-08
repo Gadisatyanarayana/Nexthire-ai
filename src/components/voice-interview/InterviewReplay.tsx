@@ -24,7 +24,7 @@ export function InterviewReplay({ isOpen, onClose, title, transcript, score, fee
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setSynth(window.speechSynthesis);
     }
   }, []);

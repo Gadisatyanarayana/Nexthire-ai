@@ -3,7 +3,7 @@
 import React from "react";
 import { Camera, Mic, RefreshCw, X, ShieldAlert, CheckSquare, Settings, HelpCircle } from "lucide-react";
 
-type DeviceState = "idle" | "granted" | "denied" | "blocked" | "notFound" | "inUse";
+type DeviceState = "checking" | "idle" | "granted" | "denied" | "blocked" | "notFound" | "inUse";
 
 type PermissionRecoveryProps = {
   cameraState: DeviceState;

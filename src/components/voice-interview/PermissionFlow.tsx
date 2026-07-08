@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Mic, RefreshCw, ShieldCheck } from "lucide-react";
 import { useToast } from "./hooks";
 import { PermissionRecoveryDialog } from "./PermissionRecoveryDialog";
@@ -12,34 +12,30 @@ type PermissionFlowProps = {
 
 export function PermissionFlow({ onAllPermissionsGranted, onCancel }: PermissionFlowProps) {
   const { addToast } = useToast();
-  const [requesting, setRequesting] = useState(false);
-  const [cameraState, setCameraState] = useState<"idle" | "granted" | "denied" | "blocked" | "notFound" | "inUse">("idle");
-  const [micState, setMicState] = useState<"idle" | "granted" | "denied" | "blocked" | "notFound" | "inUse">("idle");
+  const [requesting, setRequesting] = useState(true);
+  const [cameraState, setCameraState] = useState<"checking" | "idle" | "granted" | "denied" | "blocked" | "notFound" | "inUse">("checking");
+  const [micState, setMicState] = useState<"checking" | "idle" | "granted" | "denied" | "blocked" | "notFound" | "inUse">("checking");
   const [showRecovery, setShowRecovery] = useState(false);
+  
+  // Guard to prevent multiple simultaneous requests on mount in React StrictMode
+  const requestInProgress = useRef(false);
 
   const requestPermissions = useCallback(async () => {
+    if (requestInProgress.current) return;
+    requestInProgress.current = true;
     setRequesting(true);
     setShowRecovery(false);
+    setCameraState("checking");
+    setMicState("checking");
 
     console.log("----------------------------------------");
-
-    // 1. Log current browser permission state if available
-    if (navigator.permissions && navigator.permissions.query) {
-      try {
-        const cam = await navigator.permissions.query({ name: "camera" as PermissionName });
-        console.log(`Current browser permission state: camera = ${cam.state}`);
-      } catch {
-        console.log("Current browser permission state: camera = not queryable");
-      }
-
-      try {
-        const mic = await navigator.permissions.query({ name: "microphone" as PermissionName });
-        console.log(`Current browser permission state: microphone = ${mic.state}`);
-      } catch {
-        console.log("Current browser permission state: microphone = not queryable");
-      }
-    } else {
-      console.log("Current browser permission state: Permissions API not supported");
+    
+    // Add temporary console logging for enumerateDevices()
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      console.log("enumerateDevices() success:", devices);
+    } catch (e) {
+      console.error("enumerateDevices() error:", e);
     }
 
     console.log("getUserMedia() called: requesting combined video and audio streams");
@@ -55,30 +51,25 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       audio: savedMicId ? { deviceId: { ideal: savedMicId } } : true
     };
 
-    // Try joint request first (standard browser behavior for unified prompts)
+    // Try joint request first
     try {
-      addToast("Requesting camera and microphone access...", "info", 2000);
       const combinedStream = await navigator.mediaDevices.getUserMedia(constraints);
 
       console.log("getUserMedia() succeeded: combined stream received");
       console.log("Stream received ID:", combinedStream.id);
 
-      const videoTracks = combinedStream.getVideoTracks();
-      const audioTracks = combinedStream.getAudioTracks();
-      console.log(`Video tracks count: ${videoTracks.length}`);
-      videoTracks.forEach(t => console.log(`- Track: ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
-      console.log(`Audio tracks count: ${audioTracks.length}`);
-      audioTracks.forEach(t => console.log(`- Track: ${t.label} (state: ${t.readyState}, enabled: ${t.enabled})`));
-
       setCameraState("granted");
       setMicState("granted");
-      addToast("Camera and microphone access granted", "success");
       addToast("All permissions granted", "success");
+
+      const videoTracks = combinedStream.getVideoTracks();
+      const audioTracks = combinedStream.getAudioTracks();
 
       cameraStream = new MediaStream(videoTracks);
       micStream = new MediaStream(audioTracks);
 
       setRequesting(false);
+      requestInProgress.current = false;
       onAllPermissionsGranted({ video: cameraStream, audio: micStream });
       return;
     } catch (e) {
@@ -88,19 +79,6 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       console.log("getUserMedia() failed: combined request threw an error");
       console.log(`Exact error name: ${errName}`);
       console.log(`Exact error message: ${errMsg}`);
-
-      // Handle each error separately
-      if (errName === "NotAllowedError" || errName === "PermissionDeniedError") {
-        console.log("Recovery dialog reason: Permission denied");
-      } else if (errName === "NotFoundError" || errName === "DevicesNotFoundError") {
-        console.log("Recovery dialog reason: Device unavailable");
-      } else if (errName === "NotReadableError" || errName === "TrackStartError") {
-        console.log("Recovery dialog reason: NotReadableError");
-      } else if (errName === "AbortError") {
-        console.log("Recovery dialog reason: AbortError");
-      } else if (errName === "SecurityError") {
-        console.log("Recovery dialog reason: SecurityError");
-      }
 
       console.warn("Combined request failed. Initiating fallback separate checks to isolate status...");
 
@@ -115,11 +93,7 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         setCameraState("granted");
         camPassed = true;
 
-        // Release hardware resources immediately
-        camTest.getTracks().forEach((t) => {
-          t.stop();
-          console.log(`Stopped camera track: ${t.label}`);
-        });
+        camTest.getTracks().forEach((t) => t.stop());
       } catch (e) {
         const err = e as Error;
         const name = err.name || "UnknownError";
@@ -130,21 +104,23 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         let toastMsg = "Camera permission denied";
 
         if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-          console.log("Recovery dialog reason: Permission denied");
           state = "blocked";
           toastMsg = "Camera blocked in settings";
         } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-          console.log("Recovery dialog reason: Device unavailable");
           state = "notFound";
-          toastMsg = "Camera device not found";
+          toastMsg = "Device not found.";
         } else if (name === "NotReadableError" || name === "TrackStartError") {
-          console.log("Recovery dialog reason: NotReadableError");
           state = "inUse";
-          toastMsg = "Camera is in use by another application";
+          toastMsg = "Device in use.";
+        } else if (name === "OverconstrainedError") {
+          state = "notFound";
+          toastMsg = "Camera constraints not met";
         } else if (name === "AbortError") {
-          console.log("Recovery dialog reason: AbortError");
+          state = "denied";
+          toastMsg = "Camera request aborted";
         } else if (name === "SecurityError") {
-          console.log("Recovery dialog reason: SecurityError");
+          state = "blocked";
+          toastMsg = "Camera access blocked by security policy";
         }
 
         setCameraState(state);
@@ -159,11 +135,7 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         setMicState("granted");
         micPassed = true;
 
-        // Release hardware resources immediately
-        micTest.getTracks().forEach((t) => {
-          t.stop();
-          console.log(`Stopped microphone track: ${t.label}`);
-        });
+        micTest.getTracks().forEach((t) => t.stop());
       } catch (e) {
         const err = e as Error;
         const name = err.name || "UnknownError";
@@ -174,21 +146,23 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         let toastMsg = "Microphone permission denied";
 
         if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-          console.log("Recovery dialog reason: Permission denied");
           state = "blocked";
           toastMsg = "Microphone blocked in settings";
         } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-          console.log("Recovery dialog reason: Device unavailable");
           state = "notFound";
-          toastMsg = "Microphone device not found";
+          toastMsg = "Device not found.";
         } else if (name === "NotReadableError" || name === "TrackStartError") {
-          console.log("Recovery dialog reason: NotReadableError");
           state = "inUse";
-          toastMsg = "Microphone is in use by another application";
+          toastMsg = "Device in use.";
+        } else if (name === "OverconstrainedError") {
+          state = "notFound";
+          toastMsg = "Microphone constraints not met";
         } else if (name === "AbortError") {
-          console.log("Recovery dialog reason: AbortError");
+          state = "denied";
+          toastMsg = "Microphone request aborted";
         } else if (name === "SecurityError") {
-          console.log("Recovery dialog reason: SecurityError");
+          state = "blocked";
+          toastMsg = "Microphone access blocked by security policy";
         }
 
         setMicState(state);
@@ -196,6 +170,7 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       }
 
       setRequesting(false);
+      requestInProgress.current = false;
 
       if (camPassed && micPassed) {
         console.log("Both checks passed in isolation fallback. Re-calling getUserMedia() for final combined streams...");
@@ -210,7 +185,6 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
           addToast("All permissions granted", "success");
           onAllPermissionsGranted({ video: cameraStream, audio: micStream });
         } catch (e) {
-        const err = e as Error;
           console.error("Failed final combined re-acquisition stream callback:", e);
           setShowRecovery(true);
         }
@@ -221,58 +195,19 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
     }
   }, [addToast, onAllPermissionsGranted]);
 
-  // Auto check permissions on mount (bypasses click if already granted in browser settings)
+  // Auto check permissions on mount (bypasses click if already granted in browser settings, or prompts if not)
   useEffect(() => {
-    let active = true;
-
-    const checkPermissions = async () => {
-      if (
-        !navigator.permissions ||
-        !navigator.permissions.query
-      ) {
-        return;
-      }
-
-      try {
-        const cam = await navigator.permissions.query({
-          name: "camera" as PermissionName,
-        });
-
-        const mic = await navigator.permissions.query({
-          name: "microphone" as PermissionName,
-        });
-
-        if (!active) return;
-
-        setCameraState(
-          cam.state === "granted"
-            ? "granted"
-            : cam.state === "denied"
-              ? "blocked"
-              : "idle"
-        );
-
-        setMicState(
-          mic.state === "granted"
-            ? "granted"
-            : mic.state === "denied"
-              ? "blocked"
-              : "idle"
-        );
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    checkPermissions();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+    requestPermissions();
+  }, [requestPermissions]);
 
   const getStatusBadge = (state: typeof cameraState) => {
     switch (state) {
+      case "checking":
+        return {
+          text: "Checking permissions...",
+          styles: "border-cyan-500/20 bg-cyan-500/10 text-cyan-400 animate-pulse",
+          iconStyles: "bg-cyan-500/10 text-cyan-400",
+        };
       case "granted":
         return {
           text: "Active",
@@ -287,13 +222,13 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         };
       case "notFound":
         return {
-          text: "Not Found",
+          text: "Device not found.",
           styles: "border-amber-500/20 bg-amber-500/10 text-amber-400",
           iconStyles: "bg-amber-500/10 text-amber-400",
         };
       case "inUse":
         return {
-          text: "Busy / In Use",
+          text: "Device in use.",
           styles: "border-purple-500/20 bg-purple-500/10 text-purple-400",
           iconStyles: "bg-purple-500/10 text-purple-400",
         };
@@ -369,7 +304,10 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
           </button>
         )}
         <button
-          onClick={requestPermissions}
+          onClick={() => {
+             requestInProgress.current = false;
+             requestPermissions();
+          }}
           disabled={requesting}
           className="flex-1 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black rounded-2xl py-3.5 text-xs font-extrabold transition-all flex items-center justify-center gap-2"
         >
@@ -391,7 +329,10 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
         <PermissionRecoveryDialog
           cameraState={cameraState}
           micState={micState}
-          onRetry={requestPermissions}
+          onRetry={() => {
+             requestInProgress.current = false;
+             requestPermissions();
+          }}
           onClose={() => setShowRecovery(false)}
         />
       )}
