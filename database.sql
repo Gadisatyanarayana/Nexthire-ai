@@ -774,3 +774,69 @@ CREATE TABLE IF NOT EXISTS sd_learning_path (
   updated_at timestamp DEFAULT now(),
   UNIQUE(user_id)
 );
+
+-- ========================================================
+-- SYSTEM DESIGN RLS POLICIES (Phase 4.5)
+-- ========================================================
+
+-- 1. Enable RLS for high-priority user-specific tables
+ALTER TABLE sd_mastery ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_revision_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_ai_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_ai_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_learning_path ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_question_history ENABLE ROW LEVEL SECURITY;
+
+-- Owner-only access policies for user-specific tables
+DROP POLICY IF EXISTS "sd_mastery_owner_access" ON sd_mastery;
+CREATE POLICY "sd_mastery_owner_access" ON sd_mastery
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_revision_queue_owner_access" ON sd_revision_queue;
+CREATE POLICY "sd_revision_queue_owner_access" ON sd_revision_queue
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_ai_sessions_owner_access" ON sd_ai_sessions;
+CREATE POLICY "sd_ai_sessions_owner_access" ON sd_ai_sessions
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_ai_feedback_owner_access" ON sd_ai_feedback;
+CREATE POLICY "sd_ai_feedback_owner_access" ON sd_ai_feedback
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_learning_path_owner_access" ON sd_learning_path;
+CREATE POLICY "sd_learning_path_owner_access" ON sd_learning_path
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_question_history_owner_access" ON sd_question_history;
+CREATE POLICY "sd_question_history_owner_access" ON sd_question_history
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+
+-- 2. Enable RLS for read-only content tables
+ALTER TABLE sd_modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_case_studies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_company_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Read-only access for authenticated users on content tables
+DROP POLICY IF EXISTS "sd_modules_read_access" ON sd_modules;
+CREATE POLICY "sd_modules_read_access" ON sd_modules
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "sd_lessons_read_access" ON sd_lessons;
+CREATE POLICY "sd_lessons_read_access" ON sd_lessons
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "sd_questions_read_access" ON sd_questions;
+CREATE POLICY "sd_questions_read_access" ON sd_questions
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "sd_case_studies_read_access" ON sd_case_studies;
+CREATE POLICY "sd_case_studies_read_access" ON sd_case_studies
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "sd_company_profiles_read_access" ON sd_company_profiles;
+CREATE POLICY "sd_company_profiles_read_access" ON sd_company_profiles
+  FOR SELECT USING (auth.role() = 'authenticated');
