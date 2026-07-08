@@ -66,8 +66,23 @@ export class SafeLLMClient {
    * Raw completion with retry and timeout logic
    */
   public static async createCompletion(messages: LLMMessage[], config: LLMConfig = {}): Promise<Response> {
-    const provider = config.provider || 'groq';
-    const model = config.model || (provider === 'groq' ? DEFAULT_GROQ_MODEL : DEFAULT_OPENROUTER_MODEL);
+    let provider = config.provider || 'groq';
+    let model = config.model;
+
+    if (provider === 'openrouter' && !process.env.OPENROUTER_API_KEY) {
+      logger.warn("OpenRouter API key is missing. Falling back to Groq.");
+      provider = 'groq';
+      model = process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
+    }
+
+    if (provider === 'groq') {
+      if (!model || model.includes('/') || model.includes('claude') || model.includes('gpt')) {
+        model = process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
+      }
+    } else {
+      model = model || DEFAULT_OPENROUTER_MODEL;
+    }
+
     const maxRetries = config.retries ?? 3;
     const timeoutMs = config.timeoutMs ?? 15000;
     

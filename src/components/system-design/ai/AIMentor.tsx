@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useVisualLearningStore } from '@/lib/store/visualLearningStore';
 import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import { MessageSquare, X, Send, Bot, User, Sparkles, Brain, Code, Network } from 'lucide-react';
 
 interface Message {
@@ -12,15 +13,63 @@ interface Message {
 
 export default function AIMentor() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm your AI System Design Mentor. How can I help you with this topic?" }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
+  const pathname = usePathname();
   
   const { activeLesson, visualMode, highlightedConcept } = useVisualLearningStore();
+
+  // Dynamic context detection from URL / Pathname
+  const contextInfo = useMemo(() => {
+    if (!pathname) return { type: 'General', title: 'General System Design' };
+
+    const parts = pathname.split('/');
+
+    // Case Study: /system-design/cases/case-whatsapp
+    if (pathname.includes('/system-design/cases/')) {
+      const caseId = pathname.split('/system-design/cases/')[1]?.split('/')[0] || '';
+      const formattedTitle = caseId.replace('case-', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { type: 'Case Study', title: `Case Study: ${formattedTitle || caseId}` };
+    }
+
+    // Company Path: /system-design/company-paths/google
+    if (pathname.includes('/system-design/company-paths/')) {
+      const companyId = pathname.split('/system-design/company-paths/')[1]?.split('/')[0] || '';
+      const formattedTitle = companyId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { type: 'Company Path', title: `Company Path: ${formattedTitle || companyId}` };
+    }
+
+    // Lesson: /system-design/mod-foundations/scalability
+    if (parts.length >= 4 && parts[1] === 'system-design' && parts[2] !== 'cases' && parts[2] !== 'company-paths' && parts[2] !== 'modules') {
+      const moduleId = parts[2];
+      const lessonId = parts[3];
+      const formattedLesson = lessonId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const formattedModule = moduleId.replace('mod-', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { type: 'Lesson', title: `Lesson: ${formattedLesson} (${formattedModule})` };
+    }
+
+    // Module Dashboard: /system-design/mod-foundations or /system-design/modules
+    if (parts.length >= 3 && parts[1] === 'system-design' && parts[2] !== 'cases' && parts[2] !== 'company-paths') {
+      const moduleId = parts[2];
+      const formattedModule = moduleId.replace('mod-', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { type: 'Module', title: `Module: ${formattedModule}` };
+    }
+
+    return { type: 'General', title: 'System Design Dashboard' };
+  }, [pathname]);
+
+  // Set greeting message based on context
+  useEffect(() => {
+    setMessages([
+      { 
+        role: 'assistant', 
+        content: `Hi! I'm your AI System Design Mentor. I've automatically loaded context for the ${contextInfo.type}: "${contextInfo.title}". How can I help you master this topic?` 
+      }
+    ]);
+  }, [contextInfo]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,9 +92,9 @@ export default function AIMentor() {
       const payload = {
         userId: session?.user?.email || 'anonymous',
         messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
-        lessonTitle: activeLesson || "Current Topic",
-        difficulty: "Intermediate", // In full app, pulled from lesson metadata
-        masteryScore: 45, // In full app, pulled from AdaptiveEngine API state
+        lessonTitle: contextInfo.title,
+        difficulty: "Intermediate",
+        masteryScore: 45,
         weakTopics: ["Caching"],
         mode: visualMode
       };
@@ -59,7 +108,6 @@ export default function AIMentor() {
       if (!res.ok) throw new Error("Failed to reach mentor");
       if (!res.body) throw new Error("No readable stream");
 
-      // Set up streaming reader
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let assistantContent = '';
@@ -70,8 +118,6 @@ export default function AIMentor() {
         const { done, value } = await reader.read();
         if (done) break;
         
-        // This assumes the API sends raw text stream. If it sends SSE json chunks, parsing is needed here.
-        // For simplicity in Phase 4 implementation foundation, we assume plain text chunks.
         const chunk = decoder.decode(value, { stream: true });
         assistantContent += chunk;
 
@@ -123,10 +169,10 @@ export default function AIMentor() {
       </div>
 
       {/* Context Bar */}
-      {(activeLesson || highlightedConcept) && (
+      {contextInfo.title && (
         <div className="px-4 py-2 bg-indigo-500/10 border-b border-indigo-500/20 flex items-center gap-2 text-xs font-mono text-indigo-400">
           <Network className="h-3.5 w-3.5" />
-          Context: {highlightedConcept || activeLesson || "General"}
+          Context: {contextInfo.title}
         </div>
       )}
 
@@ -142,7 +188,7 @@ export default function AIMentor() {
             </div>
           </div>
         ))}
-        {isLoading && messages[messages.length - 1].role === 'user' && (
+        {isLoading && messages[messages.length - 1]?.role === 'user' && (
           <div className="flex gap-3">
             <div className="flex-shrink-0 h-8 w-8 rounded-full bg-cyan-500/20 text-cyan-500 flex items-center justify-center">
               <Bot className="h-4 w-4" />

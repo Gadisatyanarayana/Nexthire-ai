@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ReactFlow, Controls, Background, MiniMap, Node, Edge, Panel } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Search, Filter, Maximize2, Minimize2 } from 'lucide-react';
+import { Search, Filter, Maximize2, Minimize2, Loader2 } from 'lucide-react';
 import { useVisualLearningStore } from '@/lib/store/visualLearningStore';
 
-// Mock Knowledge Graph Data for Phase 3 Foundation
-const initialNodes: Node[] = [
+// Static Fallback Graph Data
+const fallbackNodes: Node[] = [
   { id: '1', position: { x: 250, y: 0 }, data: { label: 'Distributed Systems' }, type: 'input' },
   { id: '2', position: { x: 100, y: 100 }, data: { label: 'Load Balancing' } },
   { id: '3', position: { x: 400, y: 100 }, data: { label: 'Caching' } },
@@ -16,7 +16,7 @@ const initialNodes: Node[] = [
   { id: '6', position: { x: 250, y: 300 }, data: { label: 'Database Scaling' }, type: 'output' },
 ];
 
-const initialEdges: Edge[] = [
+const fallbackEdges: Edge[] = [
   { id: 'e1-2', source: '1', target: '2', animated: true, label: 'requires' },
   { id: 'e1-3', source: '1', target: '3', animated: true, label: 'optimizes' },
   { id: 'e2-4', source: '2', target: '4', label: 'implements' },
@@ -26,21 +26,51 @@ const initialEdges: Edge[] = [
 ];
 
 export default function KnowledgeGraph() {
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+  const [nodes, setNodes] = useState<Node[]>(fallbackNodes);
+  const [edges, setEdges] = useState<Edge[]>(fallbackEdges);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { fullscreen, toggleFullscreen, setHighlightedConcept } = useVisualLearningStore();
 
+  useEffect(() => {
+    async function loadGraphData() {
+      try {
+        const response = await fetch('/api/v1/system-design/graph');
+        if (!response.ok) throw new Error("Failed to fetch graph data");
+        const data = await response.json();
+        if (data.nodes && data.edges) {
+          setNodes(data.nodes);
+          setEdges(data.edges);
+        }
+      } catch (e) {
+        console.error("Error loading knowledge graph data:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadGraphData();
+  }, []);
+
   const filteredNodes = useMemo(() => {
-    if (!searchTerm) return nodes.map(n => ({ ...n, style: { opacity: 1 } }));
+    if (!searchTerm) return nodes.map(n => ({ ...n, style: { ...n.style, opacity: 1 } }));
     return nodes.map(n => {
       const label = typeof n.data.label === 'string' ? n.data.label : String(n.data.label || '');
+      const matches = label.toLowerCase().includes(searchTerm.toLowerCase());
       return {
         ...n,
-        style: { opacity: label.toLowerCase().includes(searchTerm.toLowerCase()) ? 1 : 0.2 }
+        style: { ...n.style, opacity: matches ? 1 : 0.15 }
       };
     });
   }, [nodes, searchTerm]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-[600px] rounded-2xl border border-foreground/10 flex flex-col items-center justify-center bg-foreground/[0.02] gap-3">
+        <Loader2 className="h-8 w-8 text-cyan-500 animate-spin" />
+        <span className="text-sm opacity-70 font-mono">Building Dynamic Knowledge Graph...</span>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full transition-all duration-500 bg-background/5 ${fullscreen ? 'fixed inset-0 z-50 h-screen' : 'h-[600px] rounded-2xl border border-foreground/10 overflow-hidden'}`}>

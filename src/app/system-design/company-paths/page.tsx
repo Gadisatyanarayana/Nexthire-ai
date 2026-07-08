@@ -1,17 +1,21 @@
-"use client";
-
 import Link from "next/link";
 import { ChevronRight, Building2 } from "lucide-react";
+import { getV2CompanyProfiles } from "@/lib/api/systemDesignV2";
 
-export default function CompanyPathsListPage() {
-  const companies = [
-    { id: "google", name: "Google", difficulty: "Extreme", focus: "Scalability, Consistency, Novel Data Structures" },
-    { id: "amazon", name: "Amazon", difficulty: "High", focus: "OOD, Microservices, Scalable AWS Architecture" },
-    { id: "meta", name: "Meta", difficulty: "High", focus: "High Throughput, Low Latency, Social Graphs" },
-    { id: "netflix", name: "Netflix", difficulty: "High", focus: "CDN, Global Replication, Fault Tolerance" },
-    { id: "uber", name: "Uber", difficulty: "High", focus: "Geospatial Data, Pub/Sub, Real-time matching" },
-    { id: "tcs-digital", name: "TCS Digital", difficulty: "Medium", focus: "Standard Architecture, SQL vs NoSQL, Caching" },
-  ];
+export default async function CompanyPathsListPage() {
+  let companies = await getV2CompanyProfiles();
+  
+  if (!companies || companies.length === 0) {
+    // Fallback if DB is empty
+    companies = [
+      { id: "google", name: "Google", difficulty: "Extreme", focus: "Scalability, Consistency, Novel Data Structures" },
+      { id: "amazon", name: "Amazon", difficulty: "High", focus: "OOD, Microservices, Scalable AWS Architecture" },
+      { id: "meta", name: "Meta", difficulty: "High", focus: "High Throughput, Low Latency, Social Graphs" },
+      { id: "netflix", name: "Netflix", difficulty: "High", focus: "CDN, Global Replication, Fault Tolerance" },
+      { id: "uber", name: "Uber", difficulty: "High", focus: "Geospatial Data, Pub/Sub, Real-time matching" },
+      { id: "tcs-digital", name: "TCS Digital", difficulty: "Medium", focus: "Standard Architecture, SQL vs NoSQL, Caching" },
+    ];
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Target, Flame, TrendingUp, CheckCircle, Activity, Play } from "lucide-react";
+import KnowledgeGraph from "@/components/system-design/KnowledgeGraph";
 
 export default function SystemDesignDashboard() {
   return (
@@ -54,18 +55,16 @@ export default function SystemDesignDashboard() {
         </div>
       </section>
 
-      {/* Topic Mastery Heatmap Placeholder */}
-      <section className="p-6 rounded-2xl border border-foreground/10 bg-foreground/[0.02]">
-        <div className="flex items-center justify-between mb-4">
+      {/* Topic Mastery Heatmap / Knowledge Graph */}
+      <section className="p-6 rounded-2xl border border-foreground/10 bg-foreground/[0.02] space-y-4">
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-indigo-400" />
-            Topic Mastery Map
+            Topic Mastery Map & Knowledge Graph
           </h2>
           <span className="text-xs px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-md font-semibold">Beta</span>
         </div>
-        <div className="h-32 flex items-center justify-center border border-dashed border-foreground/20 rounded-xl opacity-60 bg-foreground/5">
-          <p className="text-sm">Heatmap visualization will unlock after 50 questions.</p>
-        </div>
+        <KnowledgeGraph />
       </section>
 
       {/* Recommended Next Lesson */}

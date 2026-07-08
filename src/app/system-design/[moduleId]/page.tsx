@@ -1,13 +1,32 @@
 import Link from "next/link";
 import { BookOpen, CheckCircle, ChevronRight, Lock } from "lucide-react";
 import { getV2Modules } from "@/lib/api/systemDesignV2";
+import { MODULES } from "@/lib/systemDesignContent";
 
-export default async function ModuleOverviewPage({ params }: { params: { moduleId: string } }) {
+export default async function ModuleOverviewPage(props: { params: Promise<{ moduleId: string }> }) {
+  const params = await props.params;
   const { moduleId } = params;
   
   // Fetch from the DB
   const modules = await getV2Modules();
-  const moduleData = modules.find((m: any) => m.id === moduleId);
+  let moduleData: any = modules.find((m: any) => m.id === moduleId);
+
+  // Fallback to legacy content if not found in DB
+  if (!moduleData) {
+    const legacyModule = MODULES.find(m => m.id === moduleId);
+    if (legacyModule) {
+      moduleData = {
+        id: legacyModule.id,
+        title: legacyModule.title,
+        sd_lessons: legacyModule.lessons.map(l => ({
+          id: l.id,
+          title: l.title,
+          reading_time: l.readingTime,
+          difficulty: l.difficulty
+        }))
+      };
+    }
+  }
 
   if (!moduleData) {
     return (

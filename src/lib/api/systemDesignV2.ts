@@ -23,7 +23,6 @@ export async function getV2Modules() {
     .order("level_order", { ascending: true });
 
   if (error) {
-    console.error("Error fetching modules:", error);
     return [];
   }
   return data;
@@ -49,7 +48,9 @@ export async function getV2Lesson(lessonId: string) {
     .single();
 
   if (error) {
-    console.error("Error fetching lesson:", error);
+    if (error.code !== 'PGRST116') {
+      console.error("Error fetching lesson:", error);
+    }
     return null;
   }
   return data;
@@ -61,7 +62,6 @@ export async function getV2CaseStudies() {
     .select("id, title, target_scale");
 
   if (error) {
-    console.error("Error fetching cases:", error);
     return [];
   }
   return data;
@@ -75,7 +75,36 @@ export async function getV2CaseStudy(caseId: string) {
     .single();
 
   if (error) {
-    console.error("Error fetching case study:", error);
+    if (error.code !== 'PGRST116') {
+      console.error("Error fetching case study:", error);
+    }
+    return null;
+  }
+  return data;
+}
+
+export async function getV2CompanyProfiles() {
+  const { data, error } = await supabaseAdmin
+    .from("sd_company_profiles")
+    .select("*");
+
+  if (error) {
+    return [];
+  }
+  return data;
+}
+
+export async function getV2CompanyProfile(companyId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("sd_company_profiles")
+    .select("*")
+    .eq("id", companyId)
+    .single();
+
+  if (error) {
+    if (error.code !== 'PGRST116') {
+      console.error("Error fetching company profile:", error);
+    }
     return null;
   }
   return data;

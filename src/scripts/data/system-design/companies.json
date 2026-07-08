@@ -1,0 +1,781 @@
+[
+  {
+    "id": "google",
+    "name": "Google",
+    "difficulty": "Extreme",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Google.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Google's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "amazon",
+    "name": "Amazon",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Amazon.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Amazon's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "microsoft",
+    "name": "Microsoft",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Microsoft.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Microsoft's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "meta",
+    "name": "Meta",
+    "difficulty": "Extreme",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Meta.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Meta's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "apple",
+    "name": "Apple",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Apple.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Apple's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "netflix",
+    "name": "Netflix",
+    "difficulty": "Extreme",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Netflix.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Netflix's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "uber",
+    "name": "Uber",
+    "difficulty": "Extreme",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Uber.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Uber's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "airbnb",
+    "name": "Airbnb",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Airbnb.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Airbnb's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "linkedin",
+    "name": "Linkedin",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Linkedin.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Linkedin's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "atlassian",
+    "name": "Atlassian",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Atlassian.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Atlassian's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "adobe",
+    "name": "Adobe",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Adobe.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Adobe's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "oracle",
+    "name": "Oracle",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Oracle.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Oracle's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "tcs",
+    "name": "Tcs",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Tcs.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Tcs's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "infosys",
+    "name": "Infosys",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Infosys.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Infosys's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "accenture",
+    "name": "Accenture",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Accenture.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Accenture's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "deloitte",
+    "name": "Deloitte",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Deloitte.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Deloitte's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "capgemini",
+    "name": "Capgemini",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Capgemini.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Capgemini's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "cognizant",
+    "name": "Cognizant",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Cognizant.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Cognizant's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  },
+  {
+    "id": "wipro",
+    "name": "Wipro",
+    "difficulty": "High",
+    "focus": "Focus areas: high-throughput caching, geospatial indexing, consistency limits, and cloud architecture at Wipro.",
+    "rubric": {
+      "interviewRounds": [
+        "Round 1: Screening. Standard data structures, algorithms, and system design basics.",
+        "Round 2: High Level Design (HLD). Focus on scaling, components routing, and databases.",
+        "Round 3: Low Level Design (LLD). Class diagrams, code patterns, and object-oriented design.",
+        "Round 4: Behavioral & Architecture trade-offs."
+      ],
+      "hldFocus": "High Level focus: horizontal scalability, caching strategies, rate limiting, and eliminating Single Points of Failure.",
+      "lldFocus": "Low Level focus: clean coding principles, design patterns (Observer, Strategy), database normalization, and multi-threading models.",
+      "frequentTopics": [
+        "Load Balancing & Reverse Proxies",
+        "Consistent Hashing & Dynamic Partitioning",
+        "Caching Topologies (Redis, Memcached)",
+        "NoSQL vs SQL Database Scaling"
+      ],
+      "previousQuestions": [
+        "Design a system matching Wipro's core engineering pipeline, such as a distributed messaging broker or global file storage sync server.",
+        "Describe how you would implement a rate limiter at the gateway layer."
+      ],
+      "preparationRoadmap": [
+        "Step 1: Master basic networking, REST APIs, and database replication.",
+        "Step 2: Study high-level architectures (WhatsApp, Netflix, Uber).",
+        "Step 3: Practice mock design boards and back-of-the-envelope estimations."
+      ],
+      "recommendedLessons": [
+        "scalability",
+        "load-balancers",
+        "cap-pacelc"
+      ],
+      "mockRoadmap": [
+        "Stage 1: Foundational knowledge evaluation.",
+        "Stage 2: Drawing component designs and outlining storage capacity.",
+        "Stage 3: Solving edge-case partition scenarios under CAP guidelines."
+      ]
+    }
+  }
+]

@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { Database, Network, ChevronRight, Activity, Code, Scale } from "lucide-react";
 import { getV2CaseStudies } from "@/lib/api/systemDesignV2";
+import { CASE_STUDIES } from "@/lib/systemDesignContent";
 
 export default async function CaseStudiesIndexPage() {
-  const cases = await getV2CaseStudies();
+  let cases = await getV2CaseStudies();
+  if (!cases || cases.length === 0) {
+    cases = CASE_STUDIES.map(c => ({
+      id: c.id,
+      title: c.title,
+      target_scale: c.targetScale
+    }));
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl">
@@ -48,11 +56,7 @@ export default async function CaseStudiesIndexPage() {
           </Link>
         ))}
 
-        {cases.length === 0 && (
-          <div className="col-span-full p-12 text-center rounded-2xl border border-dashed border-foreground/20 text-sm opacity-60">
-            No case studies found. Run the database seed script to populate V2 architectures.
-          </div>
-        )}
+
       </div>
     </div>
   );

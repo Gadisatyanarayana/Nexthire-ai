@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookOpen, CheckCircle, ChevronRight, Lock, BrainCircuit } from "lucide-react";
 import { getV2Lesson } from "@/lib/api/systemDesignV2";
+import { MODULES } from "@/lib/systemDesignContent";
 import AIMentor from "@/components/system-design/ai/AIMentor";
 import DesignReviewPanel from "@/components/system-design/ai/DesignReviewPanel";
 import LessonVisualsSwitcher from "@/components/system-design/LessonVisualsSwitcher";
@@ -32,10 +33,34 @@ const mockAnimations = [
   { id: '4', label: 'Cache', description: 'Checks Redis cache (Miss)', componentType: 'cache' },
   { id: '5', label: 'Database', description: 'Queries PostgreSQL', componentType: 'database' }
 ];
-export default async function LessonTheoryPage({ params }: { params: { moduleId: string, lessonId: string } }) {
+export default async function LessonTheoryPage(props: { params: Promise<{ moduleId: string, lessonId: string }> }) {
+  const params = await props.params;
   const { moduleId, lessonId } = params;
   
-  const lessonData = await getV2Lesson(lessonId);
+  let lessonData = await getV2Lesson(lessonId);
+
+  // Fallback to legacy content if not found in DB
+  if (!lessonData) {
+    const legacyModule = MODULES.find(m => m.id === moduleId);
+    const legacyLesson = legacyModule?.lessons.find(l => l.id === lessonId);
+    if (legacyLesson) {
+      lessonData = {
+        id: legacyLesson.id,
+        title: legacyLesson.title,
+        difficulty: legacyLesson.difficulty,
+        reading_time: legacyLesson.readingTime,
+        sd_modules: { title: legacyModule?.title },
+        content: {
+          theory: legacyLesson.theory,
+          advantages: legacyLesson.advantages,
+          disadvantages: legacyLesson.disadvantages,
+          tradeoffs: legacyLesson.tradeoffs,
+          mistakes: legacyLesson.mistakes,
+          summary: legacyLesson.takeaways.join(" ")
+        }
+      };
+    }
+  }
 
   if (!lessonData) {
     return (

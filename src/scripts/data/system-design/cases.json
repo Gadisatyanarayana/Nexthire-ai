@@ -1,0 +1,1058 @@
+[
+  {
+    "id": "case-whatsapp",
+    "title": "Design WhatsApp (Real-time Messaging)",
+    "target_scale": "1 Billion Users, 50 Billion Messages/Day",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 1 Billion Users, 50 Billion Messages/Day. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/whatsapp/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/whatsapp/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/whatsapp/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-instagram",
+    "title": "Design Instagram (High-Scale Distributed System)",
+    "target_scale": "500 Million DAU, 100 Million Photos/Day",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 500 Million DAU, 100 Million Photos/Day. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/instagram/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/instagram/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/instagram/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-facebook",
+    "title": "Design Facebook (High-Scale Distributed System)",
+    "target_scale": "2.9 Billion MAU, Social Graph Operations",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 2.9 Billion MAU, Social Graph Operations. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/facebook/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/facebook/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/facebook/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-twitter",
+    "title": "Design Twitter/X (High-Scale Distributed System)",
+    "target_scale": "300 Million active users, 500 Million Tweets/Day",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 300 Million active users, 500 Million Tweets/Day. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/twitter/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/twitter/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/twitter/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-netflix",
+    "title": "Design Netflix (Video Streaming)",
+    "target_scale": "200 Million subscribers, 100 Million hours/Day streaming",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 200 Million subscribers, 100 Million hours/Day streaming. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/netflix/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/netflix/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/netflix/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-youtube",
+    "title": "Design YouTube (Video Streaming)",
+    "target_scale": "2 Billion active users, 500 hours uploaded/minute",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 2 Billion active users, 500 hours uploaded/minute. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/youtube/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/youtube/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/youtube/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-spotify",
+    "title": "Design Spotify (High-Scale Distributed System)",
+    "target_scale": "350 Million users, 70 Million tracks, audio streaming",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 350 Million users, 70 Million tracks, audio streaming. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/spotify/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/spotify/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/spotify/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-uber",
+    "title": "Design Uber (High-Scale Distributed System)",
+    "target_scale": "15 Million trips/Day, real-time geospatial dispatch",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 15 Million trips/Day, real-time geospatial dispatch. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/uber/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/uber/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/uber/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-swiggy",
+    "title": "Design Swiggy (High-Scale Distributed System)",
+    "target_scale": "2 Million orders/Day, Hyperlocal food delivery",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 2 Million orders/Day, Hyperlocal food delivery. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/swiggy/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/swiggy/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/swiggy/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-zomato",
+    "title": "Design Zomato (High-Scale Distributed System)",
+    "target_scale": "2 Million orders/Day, Restaurant search and delivery",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 2 Million orders/Day, Restaurant search and delivery. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/zomato/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/zomato/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/zomato/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-amazon",
+    "title": "Design Amazon (High-Scale Distributed System)",
+    "target_scale": "100 Million products, transaction volume, shopping cart",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 100 Million products, transaction volume, shopping cart. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/amazon/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/amazon/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/amazon/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-flipkart",
+    "title": "Design Flipkart (High-Scale Distributed System)",
+    "target_scale": "80 Million products, high flash sale traffic peaks",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 80 Million products, high flash sale traffic peaks. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/flipkart/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/flipkart/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/flipkart/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-dropbox",
+    "title": "Design Dropbox (High-Scale Distributed System)",
+    "target_scale": "700 Million users, file storage, sync, incremental changes",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 700 Million users, file storage, sync, incremental changes. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/dropbox/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/dropbox/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/dropbox/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-googledrive",
+    "title": "Design Google Drive (High-Scale Distributed System)",
+    "target_scale": "1 Billion users, collaborative editing, sync",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 1 Billion users, collaborative editing, sync. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/googledrive/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/googledrive/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/googledrive/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-discord",
+    "title": "Design Discord (Real-time Messaging)",
+    "target_scale": "150 Million MAU, VoIP, real-time chat, gaming communities",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 150 Million MAU, VoIP, real-time chat, gaming communities. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/discord/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/discord/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/discord/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-slack",
+    "title": "Design Slack (Real-time Messaging)",
+    "target_scale": "12 Million DAU, enterprise messaging, threads, status updates",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 12 Million DAU, enterprise messaging, threads, status updates. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/slack/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/slack/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/slack/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-zoom",
+    "title": "Design Zoom (High-Scale Distributed System)",
+    "target_scale": "300 Million daily meeting participants, real-time video streaming",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 300 Million daily meeting participants, real-time video streaming. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/zoom/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/zoom/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/zoom/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-googlemeet",
+    "title": "Design Google Meet (High-Scale Distributed System)",
+    "target_scale": "100 Million daily meeting participants, calendar sync",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 100 Million daily meeting participants, calendar sync. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/googlemeet/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/googlemeet/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/googlemeet/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-paytm",
+    "title": "Design Paytm (High-Scale Distributed System)",
+    "target_scale": "300 Million wallet users, payments gateway, wallet ledger",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 300 Million wallet users, payments gateway, wallet ledger. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/paytm/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/paytm/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/paytm/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-phonepe",
+    "title": "Design PhonePe (High-Scale Distributed System)",
+    "target_scale": "350 Million users, UPI payments transaction routing",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 350 Million users, UPI payments transaction routing. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/phonepe/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/phonepe/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/phonepe/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-upi",
+    "title": "Design UPI (High-Scale Distributed System)",
+    "target_scale": "6 Billion transactions/month, banking network interoperability",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 6 Billion transactions/month, banking network interoperability. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/upi/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/upi/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/upi/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  },
+  {
+    "id": "case-chatgpt",
+    "title": "Design ChatGPT (High-Scale Distributed System)",
+    "target_scale": "100 Million users, large language model inference pipelines",
+    "content": {
+      "functionalSpecs": [
+        "Core requirement: Support targeted business functionality at high scale.",
+        "Core requirement: Low-latency client notifications and state synchronization.",
+        "Core requirement: Secure resource management and transaction consistency."
+      ],
+      "nonFunctionalSpecs": [
+        "High availability: 99.99% uptime via geo-replication.",
+        "Low latency: Under 200ms read/write response boundaries.",
+        "Consistency: Tunable eventual consistency (AP) or transactional ACID (CP) based on context."
+      ],
+      "outOfScope": [
+        "Third-party billing pipelines and automated marketing campaigns.",
+        "Legacy browser support and offline client app compilations."
+      ],
+      "capacityEstimation": "Assume active scale metrics: 100 Million users, large language model inference pipelines. Write QPS: 10,000 requests/sec. Read QPS: 100,000 requests/sec. Net egress bandwidth: 40 Gbps. Total storage: 50 TB/day metadata logging.",
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/chatgpt/active",
+          "desc": "Fetch primary status or content dashboard"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/chatgpt/update",
+          "desc": "Publish state changes or submit actions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/chatgpt/delete",
+          "desc": "Soft-delete records and invalidate associated cache entries"
+        }
+      ],
+      "highLevelDesign": "The system uses a Geo-DNS layer directing traffic to regional load balancers (Layer 7). API Gateways handle authentication, rate limiting, and request routing to stateless microservices. Writes are pushed to a Kafka event stream, while reads are serviced by a Redis cluster backing the primary databases.",
+      "lowLevelDesign": "Detailed components: microservice instances utilize connection pooling libraries to relational read-replicas or partitioned DynamoDB tables. Push notification gateways manage long-lived connections (WebSockets or Server-Sent Events) with connection registry stores in Redis.",
+      "databaseSchema": "Users (id uuid PRIMARY KEY, name varchar, email varchar UNIQUE, created_at timestamp)\nProfiles (id uuid PRIMARY KEY, user_id uuid, metadata jsonb, updated_at timestamp)\nTransactions (id uuid, user_id uuid, amount numeric, status varchar, created_at timestamp)",
+      "dataFlow": "1. User performs action -> 2. Load balancer routes request to API Gateway -> 3. Gateway verifies JWT -> 4. Microservice queries Redis -> 5. If cache miss, queries database and backfills cache -> 6. Success payload returned to client.",
+      "cachingStrategy": "Redis distributed cluster using consistent hashing ring. Static asset caching via CDN edge points. Dynamic response caches with 60-second TTL limits.",
+      "scalability": "API layer scales out automatically based on CPU limits. Database partitioned using hash-based sharding on user_id key to eliminate single-node bottlenecks.",
+      "faultTolerance": "Primary-replica database clustering across multiple availability zones. Circuit breaker pattern to stop cascading service failures. Retries with exponential backoff on client.",
+      "tradeoffs": "We choose Eventual Consistency (AP) for feed updates to keep write latencies sub-20ms, trading off strong immediate read consistency. Accounts and transactions use relational strict ACID (CP) properties.",
+      "futureExtensions": "[Future Expansion] Detailed configuration rules, edge ML sorting algorithms, and automated load-testing benchmarks will be updated in the next release."
+    }
+  }
+]

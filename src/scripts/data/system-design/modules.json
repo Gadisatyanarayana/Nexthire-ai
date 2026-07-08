@@ -1,0 +1,67 @@
+[
+  {
+    "id": "mod-intro",
+    "title": "Level 0 - Introduction",
+    "level_order": 1
+  },
+  {
+    "id": "mod-foundations",
+    "title": "Level 1 - Foundations",
+    "level_order": 2
+  },
+  {
+    "id": "mod-networking",
+    "title": "Level 2 - Networking",
+    "level_order": 3
+  },
+  {
+    "id": "mod-databases",
+    "title": "Level 3 - Databases",
+    "level_order": 4
+  },
+  {
+    "id": "mod-caching",
+    "title": "Level 4 - Caching",
+    "level_order": 5
+  },
+  {
+    "id": "mod-scalability",
+    "title": "Level 5 - Scalability",
+    "level_order": 6
+  },
+  {
+    "id": "mod-distributed",
+    "title": "Level 6 - Distributed Systems",
+    "level_order": 7
+  },
+  {
+    "id": "mod-cloud",
+    "title": "Level 7 - Cloud",
+    "level_order": 8
+  },
+  {
+    "id": "mod-microservices",
+    "title": "Level 8 - Microservices",
+    "level_order": 9
+  },
+  {
+    "id": "mod-security",
+    "title": "Level 9 - Security",
+    "level_order": 10
+  },
+  {
+    "id": "mod-monitoring",
+    "title": "Level 10 - Monitoring",
+    "level_order": 11
+  },
+  {
+    "id": "mod-real-world",
+    "title": "Level 11 - Real World System Designs",
+    "level_order": 12
+  },
+  {
+    "id": "mod-interview",
+    "title": "Level 12 - Interview Mastery",
+    "level_order": 13
+  }
+]
