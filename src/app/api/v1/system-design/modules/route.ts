@@ -1,3 +1,4 @@
+export const revalidate = 3600; // Edge cache for 1 hour
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
