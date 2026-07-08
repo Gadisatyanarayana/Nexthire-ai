@@ -840,3 +840,95 @@ CREATE POLICY "sd_case_studies_read_access" ON sd_case_studies
 DROP POLICY IF EXISTS "sd_company_profiles_read_access" ON sd_company_profiles;
 CREATE POLICY "sd_company_profiles_read_access" ON sd_company_profiles
   FOR SELECT USING (auth.role() = 'authenticated');
+
+-- ========================================================
+-- SYSTEM DESIGN PHASE 5: PLACEMENT ECOSYSTEM
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS sd_certificates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  type text NOT NULL, -- 'Foundation', 'Intermediate', 'Advanced', 'Professional', 'Interview Ready', 'FAANG Ready', 'Expert System Designer'
+  issue_date timestamp DEFAULT now(),
+  verification_id text UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sd_badges (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  badge_type text NOT NULL, -- e.g., 'Foundation Complete', '100 Lessons', 'Company Ready'
+  unlocked_at timestamp DEFAULT now(),
+  UNIQUE(user_id, badge_type)
+);
+
+CREATE TABLE IF NOT EXISTS sd_company_readiness (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  company_id text NOT NULL,
+  readiness_score float NOT NULL DEFAULT 0,
+  weak_topics jsonb NOT NULL DEFAULT '[]'::jsonb,
+  strong_topics jsonb NOT NULL DEFAULT '[]'::jsonb,
+  updated_at timestamp DEFAULT now(),
+  UNIQUE(user_id, company_id)
+);
+
+CREATE TABLE IF NOT EXISTS sd_mock_interviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  score float NOT NULL DEFAULT 0,
+  transcript jsonb NOT NULL DEFAULT '[]'::jsonb,
+  feedback jsonb NOT NULL DEFAULT '{}'::jsonb,
+  company_target text NOT NULL,
+  date timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_learning_reports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  report_url text,
+  report_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sd_leaderboard (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  xp integer NOT NULL DEFAULT 0,
+  level integer NOT NULL DEFAULT 1,
+  title text NOT NULL DEFAULT 'Novice',
+  current_streak integer NOT NULL DEFAULT 0,
+  longest_streak integer NOT NULL DEFAULT 0,
+  last_activity timestamp DEFAULT now()
+);
+
+-- RLS Policies for Phase 5
+ALTER TABLE sd_certificates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_company_readiness ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_mock_interviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_learning_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sd_leaderboard ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "sd_certificates_owner_access" ON sd_certificates;
+CREATE POLICY "sd_certificates_owner_access" ON sd_certificates
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_badges_owner_access" ON sd_badges;
+CREATE POLICY "sd_badges_owner_access" ON sd_badges
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_company_readiness_owner_access" ON sd_company_readiness;
+CREATE POLICY "sd_company_readiness_owner_access" ON sd_company_readiness
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_mock_interviews_owner_access" ON sd_mock_interviews;
+CREATE POLICY "sd_mock_interviews_owner_access" ON sd_mock_interviews
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_learning_reports_owner_access" ON sd_learning_reports;
+CREATE POLICY "sd_learning_reports_owner_access" ON sd_learning_reports
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "sd_leaderboard_owner_access" ON sd_leaderboard;
+CREATE POLICY "sd_leaderboard_owner_access" ON sd_leaderboard
+  FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
