@@ -133,7 +133,11 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json({ nodes, edges });
+    // Deduplicate nodes and edges to prevent React keys collision
+    const uniqueNodes = Array.from(new Map(nodes.map(n => [n.id, n])).values());
+    const uniqueEdges = Array.from(new Map(edges.map(e => [e.id, e])).values());
+
+    return NextResponse.json({ nodes: uniqueNodes, edges: uniqueEdges });
   } catch (error: any) {
     console.error("Failed to build Knowledge Graph dynamic relations:", error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });

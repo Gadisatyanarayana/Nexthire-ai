@@ -1,0 +1,72 @@
+[
+  {
+    "topic_id": "lesson-apt-0",
+    "formula_text": "Basic formula for Time & Work: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-1",
+    "formula_text": "Basic formula for Time & Distance: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-2",
+    "formula_text": "Basic formula for Profit & Loss: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-3",
+    "formula_text": "Basic formula for Percentage: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-4",
+    "formula_text": "Basic formula for Simple & Compound Interest: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-5",
+    "formula_text": "Basic formula for Problems on Ages: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-6",
+    "formula_text": "Basic formula for Average: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-7",
+    "formula_text": "Basic formula for Ratio & Proportion: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-8",
+    "formula_text": "Basic formula for Alphabetical Sequences: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  },
+  {
+    "topic_id": "lesson-apt-9",
+    "formula_text": "Basic formula for Alphanumeric Puzzle Sets: X = Y + Z",
+    "example_q": "Find X if Y=10 and Z=5.",
+    "example_a": "X = 15.",
+    "status": "draft"
+  }
+]

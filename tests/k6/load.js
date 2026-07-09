@@ -12,7 +12,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function loadTest() {
   const BASE_URL = 'http://localhost:3000/api/v1/system-design';
   
   // Dashboard Load Test

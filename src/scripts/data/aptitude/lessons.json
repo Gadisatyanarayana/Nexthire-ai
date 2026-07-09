@@ -1,0 +1,132 @@
+[
+  {
+    "id": "lesson-apt-0",
+    "module_id": "mod-1",
+    "title": "Time & Work",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Time & Work for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-1",
+    "module_id": "mod-1",
+    "title": "Time & Distance",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Time & Distance for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-2",
+    "module_id": "mod-1",
+    "title": "Profit & Loss",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Profit & Loss for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-3",
+    "module_id": "mod-1",
+    "title": "Percentage",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Percentage for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-4",
+    "module_id": "mod-1",
+    "title": "Simple & Compound Interest",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Simple & Compound Interest for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-5",
+    "module_id": "mod-1",
+    "title": "Problems on Ages",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Problems on Ages for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-6",
+    "module_id": "mod-1",
+    "title": "Average",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Average for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-7",
+    "module_id": "mod-1",
+    "title": "Ratio & Proportion",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Ratio & Proportion for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-8",
+    "module_id": "mod-1",
+    "title": "Alphabetical Sequences",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Alphabetical Sequences for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  },
+  {
+    "id": "lesson-apt-9",
+    "module_id": "mod-1",
+    "title": "Alphanumeric Puzzle Sets",
+    "difficulty": "Beginner to Advanced",
+    "reading_time": "45 mins",
+    "content": {
+      "overview": "A complete guide to Alphanumeric Puzzle Sets for placement preparation.",
+      "theory": "Concept Explanation, Mathematical Theory, Shortcuts, Tricks...",
+      "mistakes": "Common mistakes and how to avoid them."
+    },
+    "status": "draft"
+  }
+]

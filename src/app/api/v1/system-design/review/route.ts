@@ -1,80 +1,54 @@
-import { NextRequest } from 'next/server';
-import { SafeLLMClient, LLMMessage } from '@/lib/llm/SafeLLMClient';
-import { getReviewerPrompt, PROMPT_VERSION } from '@/lib/prompts/systemDesignPrompts';
-import { supabaseAdmin } from '@/lib/api/systemDesignV2';
+import { NextResponse } from 'next/server';
+import { SafeLLMClient } from '@/lib/llm/SafeLLMClient';
 import { z } from 'zod';
 
 export const runtime = 'edge';
 
-// Strict Zod schema for the AI to return
-const ReviewResponseSchema = z.object({
-  scores: z.object({
-    correctness: z.number().min(0).max(10),
-    scalability: z.number().min(0).max(10),
-    faultTolerance: z.number().min(0).max(10),
-    costEfficiency: z.number().min(0).max(10),
+const ReviewerSchema = z.object({
+  score: z.number().min(0).max(100),
+  summary: z.string(),
+  rubric_evaluation: z.object({
+    scalability: z.object({ rating: z.string(), comments: z.string() }),
+    security: z.object({ rating: z.string(), comments: z.string() }),
+    maintainability: z.object({ rating: z.string(), comments: z.string() }),
+    observability: z.object({ rating: z.string(), comments: z.string() }),
+    consistency: z.object({ rating: z.string(), comments: z.string() }),
+    caching: z.object({ rating: z.string(), comments: z.string() }),
+    apis: z.object({ rating: z.string(), comments: z.string() }),
+    databases: z.object({ rating: z.string(), comments: z.string() }),
+    fault_tolerance: z.object({ rating: z.string(), comments: z.string() }),
   }),
-  feedback: z.object({
-    strengths: z.array(z.string()),
-    weaknesses: z.array(z.string()),
-    criticalFlaws: z.array(z.string()).optional(),
-  }),
-  overallSummary: z.string(),
-  suggestedResources: z.array(z.string()),
+  mistakes: z.array(z.string()),
+  missing_components: z.array(z.string()),
+  optimizations: z.array(z.string()),
+  interviewer_feedback: z.string(),
 });
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { userId, lessonId, submissionPayload, lessonTitle } = await req.json();
+    const { architectureData, format } = await req.json();
 
-    if (!submissionPayload || !userId || !lessonId) {
-      return new Response(JSON.stringify({ error: 'Missing required payload (submission, userId, lessonId)' }), { status: 400 });
+    if (!architectureData) {
+      return NextResponse.json({ error: 'Architecture data is required' }, { status: 400 });
     }
 
-    const systemPrompt = getReviewerPrompt();
+    const systemPrompt = `You are a strict Staff Engineer at a FAANG company interviewing a candidate.
+Evaluate the provided architecture (${format || 'JSON/Diagram nodes'}).
+Rate each rubric criteria accurately. 
+Respond EXACTLY matching the JSON schema provided.`;
 
-    const messages: LLMMessage[] = [
-      {
-        role: 'system',
-        content: `${systemPrompt}\n[PROMPT_VERSION: ${PROMPT_VERSION}]\nTopic: ${lessonTitle}`
-      },
-      {
-        role: 'user',
-        content: `Please review my architecture design submission:\n\n${JSON.stringify(submissionPayload, null, 2)}`
-      }
-    ];
+    const data = await SafeLLMClient.generateStructuredJSON(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: JSON.stringify(architectureData) }
+      ],
+      ReviewerSchema,
+      { provider: 'openrouter', temperature: 0.2 } // Use openrouter for heavy reasoning if possible, or fallback
+    );
 
-    // Using OpenRouter for heavy architecture reviews
-    const result = await SafeLLMClient.generateStructuredJSON(messages, ReviewResponseSchema, {
-      provider: 'openrouter',
-      model: 'anthropic/claude-3.5-sonnet', // Advanced reasoning for HLD
-      temperature: 0.2, // Low variance for strict reviews
-      timeoutMs: 30000, // Longer timeout for deep analysis
-      retries: 2
-    });
-
-    // Real flow, insert into sd_ai_feedback table using supabaseAdmin
-    const { error: insertError } = await supabaseAdmin.from('sd_ai_feedback').insert({
-      user_id: userId,
-      lesson_id: lessonId,
-      submission_payload: submissionPayload,
-      ai_review: result,
-      prompt_version: PROMPT_VERSION,
-      model_name: 'anthropic/claude-3.5-sonnet',
-      confidence: 0.95 // Claude is usually very confident with structured output
-    });
-
-    if (insertError) {
-      console.warn("Failed to persist AI Review", insertError);
-    }
-
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-
+    return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Review API Error:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), { status: 500 });
+    console.error("Architecture Review Error:", error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

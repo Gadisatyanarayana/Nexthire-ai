@@ -1,0 +1,22 @@
+[
+  {
+    "id": "mod-0",
+    "title": "Basics",
+    "level_order": 0
+  },
+  {
+    "id": "mod-1",
+    "title": "Arithmetic",
+    "level_order": 1
+  },
+  {
+    "id": "mod-2",
+    "title": "Algebra",
+    "level_order": 2
+  },
+  {
+    "id": "mod-3",
+    "title": "Geometry",
+    "level_order": 3
+  }
+]

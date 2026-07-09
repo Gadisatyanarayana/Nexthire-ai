@@ -930,5 +930,279 @@ CREATE POLICY "sd_learning_reports_owner_access" ON sd_learning_reports
   FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
 
 DROP POLICY IF EXISTS "sd_leaderboard_owner_access" ON sd_leaderboard;
+DROP POLICY IF EXISTS "sd_leaderboard_owner_access" ON sd_leaderboard;
 CREATE POLICY "sd_leaderboard_owner_access" ON sd_leaderboard
   FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+-- ========================================================
+-- APTITUDE PLATFORM V2 TABLES (Phase 1)
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS apt_modules (
+  id text PRIMARY KEY,
+  title text NOT NULL,
+  level_order integer NOT NULL,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_lessons (
+  id text PRIMARY KEY,
+  module_id text REFERENCES apt_modules(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  difficulty text NOT NULL,
+  reading_time text NOT NULL,
+  content jsonb NOT NULL DEFAULT '{}'::jsonb,
+  status text NOT NULL DEFAULT 'draft',
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_formulas (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  topic_id text REFERENCES apt_lessons(id) ON DELETE CASCADE,
+  formula_text text NOT NULL,
+  example_q text,
+  example_a text,
+  status text NOT NULL DEFAULT 'draft',
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_questions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id text REFERENCES apt_lessons(id) ON DELETE CASCADE,
+  question text NOT NULL,
+  options jsonb NOT NULL,
+  correct_index integer NOT NULL,
+  explanation text NOT NULL,
+  difficulty text NOT NULL,
+  status text NOT NULL DEFAULT 'draft',
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_company_tags (
+  question_id uuid REFERENCES apt_questions(id) ON DELETE CASCADE,
+  company_name text NOT NULL,
+  created_at timestamp DEFAULT now(),
+  PRIMARY KEY (question_id, company_name)
+);
+
+CREATE TABLE IF NOT EXISTS apt_topic_mastery (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  topic_id text NOT NULL,
+  mastery_score numeric NOT NULL DEFAULT 0.0,
+  questions_attempted integer NOT NULL DEFAULT 0,
+  last_reviewed_at timestamp DEFAULT now(),
+  UNIQUE(user_id, topic_id)
+);
+
+CREATE TABLE IF NOT EXISTS apt_revision_queue (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  topic_id text NOT NULL,
+  next_review_date timestamp NOT NULL,
+  interval integer NOT NULL DEFAULT 1,
+  ease_factor float NOT NULL DEFAULT 2.5,
+  review_count integer NOT NULL DEFAULT 0,
+  created_at timestamp DEFAULT now(),
+  updated_at timestamp DEFAULT now(),
+  UNIQUE(user_id, topic_id)
+);
+
+CREATE TABLE IF NOT EXISTS apt_question_attempts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  question_id uuid REFERENCES apt_questions(id) ON DELETE CASCADE,
+  is_correct boolean NOT NULL,
+  time_taken_ms integer NOT NULL,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_question_analytics (
+  question_id uuid PRIMARY KEY REFERENCES apt_questions(id) ON DELETE CASCADE,
+  total_attempts integer NOT NULL DEFAULT 0,
+  correct_attempts integer NOT NULL DEFAULT 0,
+  avg_time_taken_ms integer NOT NULL DEFAULT 0,
+  updated_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_bookmarks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  target_id text NOT NULL,
+  target_type text NOT NULL,
+  created_at timestamp DEFAULT now(),
+  UNIQUE(user_id, target_id, target_type)
+);
+
+CREATE TABLE IF NOT EXISTS apt_notes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  target_id text NOT NULL,
+  content text NOT NULL,
+  updated_at timestamp DEFAULT now(),
+  UNIQUE(user_id, target_id)
+);
+
+CREATE TABLE IF NOT EXISTS apt_mock_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  start_time timestamp NOT NULL DEFAULT now(),
+  end_time timestamp,
+  score float NOT NULL DEFAULT 0,
+  session_data jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE TABLE IF NOT EXISTS apt_ai_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  session_type text NOT NULL,
+  messages jsonb NOT NULL DEFAULT '[]'::jsonb,
+  created_at timestamp DEFAULT now(),
+  updated_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_ai_feedback (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  session_id uuid REFERENCES apt_ai_sessions(id) ON DELETE CASCADE,
+  feedback jsonb NOT NULL,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_learning_reports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  report_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_company_readiness (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  company_id text NOT NULL,
+  readiness_score float NOT NULL DEFAULT 0,
+  updated_at timestamp DEFAULT now(),
+  UNIQUE(user_id, company_id)
+);
+
+CREATE TABLE IF NOT EXISTS apt_certificates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  type text NOT NULL,
+  issue_date timestamp DEFAULT now(),
+  verification_id text UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS apt_badges (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  badge_type text NOT NULL,
+  unlocked_at timestamp DEFAULT now(),
+  UNIQUE(user_id, badge_type)
+);
+
+CREATE TABLE IF NOT EXISTS apt_lesson_revisions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id text REFERENCES apt_lessons(id) ON DELETE CASCADE,
+  content jsonb NOT NULL,
+  version integer NOT NULL,
+  author text NOT NULL,
+  created_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_draft_content (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_type text NOT NULL,
+  entity_id text,
+  draft_data jsonb NOT NULL,
+  created_at timestamp DEFAULT now(),
+  updated_at timestamp DEFAULT now()
+);
+
+-- Full Text Search Indexes
+ALTER TABLE apt_lessons ADD COLUMN IF NOT EXISTS fts_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', title || ' ' || (content->>'theory'))) STORED;
+CREATE INDEX IF NOT EXISTS apt_lessons_fts_idx ON apt_lessons USING GIN (fts_vector);
+
+CREATE INDEX IF NOT EXISTS apt_questions_difficulty_idx ON apt_questions(difficulty);
+CREATE INDEX IF NOT EXISTS apt_questions_status_idx ON apt_questions(status);
+CREATE INDEX IF NOT EXISTS apt_company_tags_company_idx ON apt_company_tags(company_name);
+
+-- RLS Policies
+
+ALTER TABLE apt_modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_formulas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_company_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_topic_mastery ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_revision_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_question_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_question_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_bookmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_mock_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_ai_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_ai_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_learning_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_company_readiness ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_certificates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_lesson_revisions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_draft_content ENABLE ROW LEVEL SECURITY;
+
+-- Read-only access for content
+DROP POLICY IF EXISTS "apt_modules_read_access" ON apt_modules;
+CREATE POLICY "apt_modules_read_access" ON apt_modules FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "apt_lessons_read_access" ON apt_lessons;
+CREATE POLICY "apt_lessons_read_access" ON apt_lessons FOR SELECT USING (auth.role() = 'authenticated' AND status != 'draft');
+
+DROP POLICY IF EXISTS "apt_formulas_read_access" ON apt_formulas;
+CREATE POLICY "apt_formulas_read_access" ON apt_formulas FOR SELECT USING (auth.role() = 'authenticated' AND status != 'draft');
+
+DROP POLICY IF EXISTS "apt_questions_read_access" ON apt_questions;
+CREATE POLICY "apt_questions_read_access" ON apt_questions FOR SELECT USING (auth.role() = 'authenticated' AND status != 'draft');
+
+DROP POLICY IF EXISTS "apt_company_tags_read_access" ON apt_company_tags;
+CREATE POLICY "apt_company_tags_read_access" ON apt_company_tags FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "apt_question_analytics_read_access" ON apt_question_analytics;
+CREATE POLICY "apt_question_analytics_read_access" ON apt_question_analytics FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Owner access for user data tables
+DROP POLICY IF EXISTS "apt_topic_mastery_owner" ON apt_topic_mastery;
+CREATE POLICY "apt_topic_mastery_owner" ON apt_topic_mastery FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_revision_queue_owner" ON apt_revision_queue;
+CREATE POLICY "apt_revision_queue_owner" ON apt_revision_queue FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_question_attempts_owner" ON apt_question_attempts;
+CREATE POLICY "apt_question_attempts_owner" ON apt_question_attempts FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_bookmarks_owner" ON apt_bookmarks;
+CREATE POLICY "apt_bookmarks_owner" ON apt_bookmarks FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_notes_owner" ON apt_notes;
+CREATE POLICY "apt_notes_owner" ON apt_notes FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_mock_sessions_owner" ON apt_mock_sessions;
+CREATE POLICY "apt_mock_sessions_owner" ON apt_mock_sessions FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_ai_sessions_owner" ON apt_ai_sessions;
+CREATE POLICY "apt_ai_sessions_owner" ON apt_ai_sessions FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_ai_feedback_owner" ON apt_ai_feedback;
+CREATE POLICY "apt_ai_feedback_owner" ON apt_ai_feedback FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_learning_reports_owner" ON apt_learning_reports;
+CREATE POLICY "apt_learning_reports_owner" ON apt_learning_reports FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_company_readiness_owner" ON apt_company_readiness;
+CREATE POLICY "apt_company_readiness_owner" ON apt_company_readiness FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_certificates_owner" ON apt_certificates;
+CREATE POLICY "apt_certificates_owner" ON apt_certificates FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+DROP POLICY IF EXISTS "apt_badges_owner" ON apt_badges;
+CREATE POLICY "apt_badges_owner" ON apt_badges FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
