@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { AdaptiveLearningEngine } from "@/lib/aptitude/AdaptiveLearningEngine";
+import { SpacedRepetitionEngine } from "@/lib/aptitude/SpacedRepetitionEngine";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -13,6 +15,9 @@ const SubmitAttemptSchema = z.object({
   is_correct: z.boolean(),
   time_taken_ms: z.number(),
   topic_id: z.string().optional(),
+  difficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
+  hint_used: z.boolean().default(false),
+  confidence_score: z.number().min(1).max(5).default(3) // 1-5 rating mapping to SM-2 quality (0-5 internally, we map 1-5 straight or with an offset)
 });
 
 export async function POST(request: NextRequest) {
@@ -29,12 +34,8 @@ export async function POST(request: NextRequest) {
         .select("id")
         .eq("email", email)
         .single();
-      
-      if (userRecord?.id) {
-        userId = userRecord.id;
-      } else {
-        userId = null;
-      }
+      if (userRecord?.id) userId = userRecord.id;
+      else userId = null;
     }
 
     if (!userId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
@@ -56,8 +57,9 @@ export async function POST(request: NextRequest) {
       
     if (attemptErr) throw attemptErr;
 
-    // 2. Update topic mastery
+    // 2. Adaptive Learning & SM-2 Mastery Updates
     if (parsed.topic_id) {
+      // Fetch current mastery
       const { data: currentMastery } = await supabase
         .from("apt_topic_mastery")
         .select("mastery_score, questions_attempted")
@@ -65,22 +67,56 @@ export async function POST(request: NextRequest) {
         .eq("topic_id", parsed.topic_id)
         .single();
         
-      let newScore = parsed.is_correct ? 5 : 0;
-      let newAttempted = 1;
+      const currentScore = currentMastery?.mastery_score || 0;
+      const currentAttempts = currentMastery?.questions_attempted || 0;
       
-      if (currentMastery) {
-        newAttempted = currentMastery.questions_attempted + 1;
-        newScore = (currentMastery.mastery_score * currentMastery.questions_attempted + (parsed.is_correct ? 100 : 0)) / newAttempted;
-      }
-      
+      const newMasteryScore = AdaptiveLearningEngine.calculateNewMastery({
+        isCorrect: parsed.is_correct,
+        difficulty: parsed.difficulty,
+        timeTakenMs: parsed.time_taken_ms,
+        hintUsed: parsed.hint_used,
+        confidenceScore: parsed.confidence_score,
+        currentMasteryScore: currentScore,
+        totalAttempts: currentAttempts
+      });
+
       await supabase
         .from("apt_topic_mastery")
         .upsert({
           user_id: userId,
           topic_id: parsed.topic_id,
-          mastery_score: newScore,
-          questions_attempted: newAttempted,
+          mastery_score: newMasteryScore,
+          questions_attempted: currentAttempts + 1,
           last_reviewed_at: new Date().toISOString()
+        }, { onConflict: "user_id,topic_id" });
+
+      // Fetch current revision queue state
+      const { data: currentRevision } = await supabase
+        .from("apt_revision_queue")
+        .select("interval, ease_factor, review_count, next_review_date")
+        .eq("user_id", userId)
+        .eq("topic_id", parsed.topic_id)
+        .single();
+
+      // SM-2 quality score map (1-5 user input maps directly to 1-5 SM-2, 0 implies blackout which we map to incorrect)
+      const sm2Quality = parsed.is_correct ? parsed.confidence_score : Math.max(0, parsed.confidence_score - 3);
+
+      const sm2Result = SpacedRepetitionEngine.calculateNextReview(sm2Quality, {
+        repetitions: currentRevision?.review_count || 0,
+        interval: currentRevision?.interval || 0,
+        easeFactor: currentRevision?.ease_factor || 2.5
+      });
+
+      await supabase
+        .from("apt_revision_queue")
+        .upsert({
+          user_id: userId,
+          topic_id: parsed.topic_id,
+          next_review_date: sm2Result.nextReviewDate,
+          interval: sm2Result.interval,
+          ease_factor: sm2Result.easeFactor,
+          review_count: sm2Result.repetitions,
+          updated_at: new Date().toISOString()
         }, { onConflict: "user_id,topic_id" });
     }
 
@@ -95,3 +131,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
