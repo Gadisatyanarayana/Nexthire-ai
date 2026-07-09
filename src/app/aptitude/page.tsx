@@ -39,10 +39,16 @@ export default async function AptitudeHubPage() {
           <div className="flex gap-4 items-center">
             <SearchButton />
             <Link
-              href="/placement-hub"
+              href="/aptitude/company"
               className="rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 px-6 py-3 text-sm font-semibold transition"
             >
-              Back to Hub
+              Company Prep
+            </Link>
+            <Link
+              href="/aptitude/mock-tests"
+              className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-6 py-3 text-sm font-semibold transition"
+            >
+              Mock Tests
             </Link>
           </div>
         </header>
