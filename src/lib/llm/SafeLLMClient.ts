@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import pino from 'pino'; // Assuming pino is available from package.json
+import pino from 'pino';
+import { AIObservability } from '../aptitude/AIObservability';
 
 const logger = pino({ name: 'SafeLLMClient' });
 
@@ -86,10 +87,8 @@ export class SafeLLMClient {
     const maxRetries = config.retries ?? 3;
     const timeoutMs = config.timeoutMs ?? 15000;
     
-    // We intentionally don't cache Streams here to avoid breaking SSE formatting, 
-    // but we can cache structured JSON calls in generateStructuredJSON.
-
     let attempt = 0;
+    const startTime = Date.now();
     
     while (attempt <= maxRetries) {
       const controller = new AbortController();
@@ -105,7 +104,7 @@ export class SafeLLMClient {
             temperature: config.temperature ?? 0.7,
             max_tokens: config.maxTokens ?? 2000,
             stream: config.stream ?? false,
-            response_format: config.stream ? undefined : { type: "json_object" } // Assume we generally want structured data if not streaming
+            response_format: config.stream ? undefined : { type: "json_object" }
           }),
           signal: controller.signal
         });
@@ -117,7 +116,22 @@ export class SafeLLMClient {
           throw new Error(`HTTP ${response.status}: ${errBody}`);
         }
 
-        return response; // Return raw response (could be a stream or json)
+        const duration = Date.now() - startTime;
+        if (!config.stream) {
+          AIObservability.logEvent({
+            provider,
+            model,
+            tokensIn: JSON.stringify(messages).length / 4,
+            tokensOut: 0,
+            responseTimeMs: duration,
+            retryCount: attempt,
+            isCacheHit: false,
+            isFallback: false,
+            success: true
+          });
+        }
+
+        return response;
       } catch (error: unknown) {
         clearTimeout(timeoutId);
         const errMessage = error instanceof Error ? error.message : String(error);
@@ -125,10 +139,22 @@ export class SafeLLMClient {
         
         if (attempt === maxRetries) {
           logger.error("LLM maximum retries exceeded.");
+          AIObservability.logEvent({
+            provider,
+            model,
+            tokensIn: JSON.stringify(messages).length / 4,
+            tokensOut: 0,
+            responseTimeMs: Date.now() - startTime,
+            retryCount: attempt,
+            isCacheHit: false,
+            errorType: errMessage,
+            isFallback: false,
+            success: false
+          });
           throw error;
         }
 
-        const delayMs = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s...
+        const delayMs = Math.pow(2, attempt) * 1000;
         await this.delay(delayMs);
         attempt++;
       }
@@ -136,25 +162,35 @@ export class SafeLLMClient {
     throw new Error("Unreachable");
   }
 
-  /**
-   * Strongly typed JSON generator
-   */
   public static async generateStructuredJSON<T>(
     messages: LLMMessage[], 
     schema: z.ZodSchema<T>, 
     config: LLMConfig = {}
   ): Promise<T> {
+    const startTime = Date.now();
+    const provider = config.provider || 'groq';
+    const model = config.model || DEFAULT_GROQ_MODEL;
+
     const cacheKey = JSON.stringify({ messages, model: config.model, provider: config.provider });
     const cached = this.responseCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) {
       logger.info('LLM Cache hit');
+      AIObservability.logEvent({
+          provider,
+          model,
+          tokensIn: JSON.stringify(messages).length / 4,
+          tokensOut: 0,
+          responseTimeMs: Date.now() - startTime,
+          retryCount: 0,
+          isCacheHit: true,
+          isFallback: false,
+          success: true
+      });
       return cached.data as T;
     }
 
-    // Force JSON mode on config
     const safeConfig = { ...config, stream: false };
     
-    // Explicitly prompt the model to return JSON matching the schema
     const formatPrompt: LLMMessage = {
       role: 'system',
       content: `Respond EXCLUSIVELY in valid JSON format. Ensure your response perfectly matches this structure/schema constraints. No markdown wrapping or explanation text outside the JSON object.`
@@ -168,13 +204,40 @@ export class SafeLLMClient {
     
     try {
       const parsed = JSON.parse(content);
-      const validatedData = schema.parse(parsed); // Zod validation
+      const validatedData = schema.parse(parsed);
       
       this.responseCache.set(cacheKey, { data: validatedData, timestamp: Date.now() });
+
+      AIObservability.logEvent({
+        provider,
+        model,
+        tokensIn: JSON.stringify(finalMessages).length / 4,
+        tokensOut: content.length / 4,
+        responseTimeMs: Date.now() - startTime,
+        retryCount: 0,
+        isCacheHit: false,
+        isFallback: false,
+        success: true
+      });
+
       return validatedData;
     } catch (e: unknown) {
       const errMessage = e instanceof Error ? e.message : String(e);
       logger.error(`Failed to parse structured JSON from LLM: ${content}`);
+      
+      AIObservability.logEvent({
+        provider,
+        model,
+        tokensIn: JSON.stringify(finalMessages).length / 4,
+        tokensOut: content.length / 4,
+        responseTimeMs: Date.now() - startTime,
+        retryCount: 0,
+        isCacheHit: false,
+        errorType: errMessage,
+        isFallback: false,
+        success: false
+      });
+
       throw new Error(`LLM output did not match required schema: ${errMessage}`);
     }
   }

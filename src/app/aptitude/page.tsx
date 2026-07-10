@@ -6,6 +6,10 @@ import { LessonProgress } from "@/components/aptitude/LessonProgress";
 import { SearchButton } from "@/components/aptitude/SearchButton";
 import { RevisionList } from "@/components/aptitude/RevisionList";
 import { WeakTopicsList } from "@/components/aptitude/WeakTopicsList";
+import { AITutorWidget } from "@/components/aptitude/AITutorWidget";
+import { StudyPlanCard } from "@/components/aptitude/StudyPlanCard";
+import { RecommendedQuizCard } from "@/components/aptitude/RecommendedQuizCard";
+import { ConversationHistory } from "@/components/aptitude/ConversationHistory";
 
 export const revalidate = 3600;
 
@@ -97,6 +101,25 @@ export default async function AptitudeHubPage() {
           </div>
         </div>
 
+        {/* AI Coaching Section (Phase 5) */}
+        {userId && (
+          <div className="mb-12 space-y-6">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Zap className="w-6 h-6 text-indigo-500" />
+              AI Intelligent Coaching
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <StudyPlanCard />
+              </div>
+              <div className="space-y-6">
+                <RecommendedQuizCard />
+                <ConversationHistory />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modules Grid */}
         <div className="space-y-8">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -125,6 +148,7 @@ export default async function AptitudeHubPage() {
           </div>
         </div>
 
+        <AITutorWidget />
       </div>
     </div>
   );
