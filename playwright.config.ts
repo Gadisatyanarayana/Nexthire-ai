@@ -21,7 +21,7 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: 'set PORT=3001 && npm run build && npm start',
+    command: 'set PORT=3001 && npm start',
     url: 'http://localhost:3001',
     reuseExistingServer: false,
     timeout: 300000,

@@ -33,3 +33,9 @@ export interface PluginManifest {
   minimumDatabaseVersion: string;
   apiVersion: string;
 }
+export interface IPlugin {
+  getManifest(): PluginManifest;
+  initialize(): Promise<void>;
+  getState(): PluginState;
+  shutdown(): Promise<void>;
+}

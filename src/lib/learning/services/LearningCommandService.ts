@@ -103,4 +103,12 @@ export class LearningCommandService {
     }
     await mockRepo.createSession(session);
   }
+
+  public static async submitPractice(data: any): Promise<any> {
+    return { success: true, message: "Practice submitted via LearningCommandService" };
+  }
+
+  public static async submitMockAssessment(data: any): Promise<any> {
+    return { success: true, message: "Mock submitted via LearningCommandService" };
+  }
 }

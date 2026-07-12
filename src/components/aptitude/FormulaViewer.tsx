@@ -2,8 +2,7 @@ import React from "react";
 import { AptitudeFormula } from "@/models/aptitude";
 import { Calculator, Lightbulb, AlertTriangle, BookOpen } from "lucide-react";
 import { FormulaVisualizer } from "./FormulaVisualizer";
-import { LearningService } from "@/lib/learning/services/LearningService";
-const { FormulaEngine } = LearningService;
+import { FormulaEngine } from "@/lib/learning/engines/legacy/FormulaEngine";
 
 export function FormulaViewer({ formulas }: { formulas: AptitudeFormula[] }) {
   if (!formulas || formulas.length === 0) return null;

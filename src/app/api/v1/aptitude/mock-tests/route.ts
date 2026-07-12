@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createClient } from "@supabase/supabase-js";
 import { LearningService } from "@/lib/learning/services/LearningService";
+import { LearningQueryService } from "@/lib/learning/services/LearningQueryService";
 const { CompanyEngine, MockTestEngine } = LearningService;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = LearningQueryService.getRawClient();
 
 export async function POST(request: NextRequest) {
   try {

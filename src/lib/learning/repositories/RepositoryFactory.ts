@@ -9,28 +9,39 @@ import {
 } from "./Interfaces";
 
 export class RepositoryFactory {
-  public static getLessonRepository(): ILessonRepository {
+  public static getLessonRepository(subject: string = "aptitude"): ILessonRepository {
     Bootstrap.boot();
-    return DependencyContainer.resolve<ILessonRepository>("ILessonRepository");
+    return subject === "reasoning" 
+      ? DependencyContainer.resolve<ILessonRepository>("IReasoningLessonRepository")
+      : DependencyContainer.resolve<ILessonRepository>("ILessonRepository");
   }
 
-  public static getQuestionRepository(): IQuestionRepository {
+  public static getQuestionRepository(subject: string = "aptitude"): IQuestionRepository {
     Bootstrap.boot();
-    return DependencyContainer.resolve<IQuestionRepository>("IQuestionRepository");
+    return subject === "reasoning"
+      ? DependencyContainer.resolve<IQuestionRepository>("IReasoningQuestionRepository")
+      : DependencyContainer.resolve<IQuestionRepository>("IQuestionRepository");
   }
 
-  public static getMockRepository(): IMockRepository {
+  public static getMockRepository(subject: string = "aptitude"): IMockRepository {
     Bootstrap.boot();
-    return DependencyContainer.resolve<IMockRepository>("IMockRepository");
+    return subject === "reasoning"
+      ? DependencyContainer.resolve<IMockRepository>("IReasoningMockRepository")
+      : DependencyContainer.resolve<IMockRepository>("IMockRepository");
   }
 
-  public static getMasteryRepository(): IMasteryRepository {
+  public static getMasteryRepository(subject: string = "aptitude"): IMasteryRepository {
     Bootstrap.boot();
-    return DependencyContainer.resolve<IMasteryRepository>("IMasteryRepository");
+    return subject === "reasoning"
+      ? DependencyContainer.resolve<IMasteryRepository>("IReasoningMasteryRepository")
+      : DependencyContainer.resolve<IMasteryRepository>("IMasteryRepository");
   }
 
-  public static getCompanyRepository(): ICompanyRepository {
+  public static getCompanyRepository(subject: string = "aptitude"): ICompanyRepository {
     Bootstrap.boot();
-    return DependencyContainer.resolve<ICompanyRepository>("ICompanyRepository");
+    return subject === "reasoning"
+      ? DependencyContainer.resolve<ICompanyRepository>("IReasoningCompanyRepository")
+      : DependencyContainer.resolve<ICompanyRepository>("ICompanyRepository");
   }
 }
+

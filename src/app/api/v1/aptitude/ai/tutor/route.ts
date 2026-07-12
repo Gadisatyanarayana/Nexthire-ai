@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { SafeLLMClient, LLMMessage } from "@/lib/llm/SafeLLMClient";
 import { z } from "zod";
 import { LearningService } from "@/lib/learning/services/LearningService";
+import { LearningQueryService } from "@/lib/learning/services/LearningQueryService";
 const { AITutorEngine } = LearningService;
 
 const TutorRequestSchema = z.object({
@@ -31,10 +32,7 @@ export async function POST(request: NextRequest) {
     const { message, history, context } = result.data;
 
     // Identifier Resolution & Personalization Fetch
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = LearningQueryService.getRawClient();
 
     let personalization = {
       style: 'Standard',

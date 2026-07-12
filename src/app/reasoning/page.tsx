@@ -1,357 +1,195 @@
-"use client";
-
+import React from "react";
 import Link from "next/link";
-import { useState, useEffect, useMemo } from "react";
-import {
-  BookOpen, Clock, Award, CheckCircle, XCircle, ChevronRight,
-  Zap, ArrowRight, RefreshCw, Eye, EyeOff, BookOpenCheck, HelpCircle
-} from "lucide-react";
-import { getReasoningQuestions, REASONING_TOPICS, type ReasoningQuestion } from "@/lib/reasoningGenerator";
+import { Zap, BookOpen, ArrowRight, Activity, Clock, AlertTriangle } from "lucide-react";
+import { getModules, getServerUserId, getUserTopicMastery } from "@/lib/api/reasoningV2";
+import { LessonProgress } from "@/components/reasoning/LessonProgress";
+import { SearchButton } from "@/components/reasoning/SearchButton";
+import { RevisionList } from "@/components/reasoning/RevisionList";
+import { WeakTopicsList } from "@/components/reasoning/WeakTopicsList";
+import { AITutorWidget } from "@/components/reasoning/AITutorWidget";
+import { ContinueLearningCard } from "@/components/reasoning/ContinueLearningCard";
+import { StudyPlanCard } from "@/components/reasoning/StudyPlanCard";
+import { RecommendedQuizCard } from "@/components/reasoning/RecommendedQuizCard";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { KnowledgeGraphEngine } = LearningService;
 
-export default function ReasoningPrepPage() {
-  const [isDark, setIsDark] = useState(true);
-  const [selectedTopic, setSelectedTopic] = useState<string>("Syllogism");
-  const [activeTab, setActiveTab] = useState<"learn" | "practice">("practice");
-  const [answersRevealed, setAnswersRevealed] = useState<Record<string, boolean>>({});
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
-  const [practPage, setPractPage] = useState(1);
-  const PAGE_SIZE = 20;
+export const revalidate = 3600;
 
-  // Theme Sync
-  useEffect(() => {
-    const root = document.documentElement;
-    const syncTheme = () => setIsDark(root.getAttribute("data-theme") === "dark");
-    syncTheme();
-    const observer = new MutationObserver(syncTheme);
-    observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => observer.disconnect();
-  }, []);
+export default async function AptitudeHubPage() {
+  const modules = await getModules();
+  
+  const userId = await getServerUserId();
+  let mastery: any[] = [];
+  let allLessons: any[] = [];
+  
+  if (userId) {
+    mastery = await getUserTopicMastery(userId);
+  }
+  
+  // We need lessons for the progress and continue learning
+  try {
+    const { getAllLessons } = await import("@/lib/api/reasoningV2");
+    allLessons = await getAllLessons();
+  } catch (e) {
+    console.error("Failed to fetch all lessons", e);
+  }
 
-  // Fetch reasoning questions dynamically from the generator bank
-  const questions = useMemo(() => {
-    return getReasoningQuestions(selectedTopic);
-  }, [selectedTopic]);
+  const totalLessons = allLessons.length > 0 ? allLessons.length : modules.reduce((acc, m) => acc + ((m as any).reasoning_lessons?.length || 5), 0);
+  const completedLessons = mastery.filter(m => m.mastery_score >= 80).length;
 
-  // Cheatsheet notes for Learn tab
-  const topicCheatsheet = useMemo(() => {
-    switch (selectedTopic) {
-      case "Syllogism":
-        return {
-          formulas: [
-            "Use Euler Diagrams / Venn Diagrams to map statements.",
-            "Verify all logical paths (e.g. some A are B, all B are C).",
-            "Be careful with negative conclusions (e.g. 'No A is C')."
-          ],
-          workedExample: {
-            q: "Statements: All cats are animals. All animals are mammals.\nConclusion: I. All cats are mammals.",
-            a: "Cats is a subset of Animals. Animals is a subset of Mammals. Therefore, Cats is a subset of Mammals, so Conclusion I holds true."
-          }
-        };
-      case "Blood Relations":
-        return {
-          formulas: [
-            "Draw a family tree diagram (squares for males, circles for females).",
-            "Use standard connection notations (e.g. double lines for spouses, single branch for siblings).",
-            "Solve the relation from the end of the sentence backward."
-          ],
-          workedExample: {
-            q: "Pointing to a man, a woman says 'He is the son of my father's only son'. How is the man related to the woman?",
-            a: "The woman's father's only son is her brother. The man is her brother's son, which makes her his Aunt, and the man her Nephew."
-          }
-        };
-      case "Coding-Decoding":
-        return {
-          formulas: [
-            "Write down alphabetical indexes: A=1, B=2, ..., Z=26.",
-            "Look for shift patterns (+1, -2, alternate).",
-            "Check opposite letters (e.g. A-Z, B-Y, C-X)."
-          ],
-          workedExample: {
-            q: "If RED is coded as 18-5-4, how is BLUE coded?",
-            a: "B=2, L=12, U=21, E=5. The code is 2-12-21-5."
-          }
-        };
-      case "Series Completion":
-        return {
-          formulas: [
-            "Find differences between consecutive terms.",
-            "Look for prime numbers, square series, or cube series.",
-            "Check for alternating double series."
-          ],
-          workedExample: {
-            q: "Complete the series: 3, 6, 12, 24, ?",
-            a: "Each term is multiplied by 2. Next term is 24 * 2 = 48."
-          }
-        };
-      case "Analogy":
-        return {
-          formulas: [
-            "Identify the exact logical relation of the first pair.",
-            "Map that relation (cause-effect, worker-tool, state-capital) to the second pair."
-          ],
-          workedExample: {
-            q: "Thermometer : Temperature :: Hygrometer : ?",
-            a: "A thermometer measures temperature. A hygrometer measures humidity. Thus, answer is Humidity."
-          }
-        };
-      case "Direction Sense":
-        return {
-          formulas: [
-            "Draw a cardinal directions cross (North Up, South Down, East Right, West Left).",
-            "Always trace movements from a central start point.",
-            "Apply the Pythagorean Theorem (a^2 + b^2 = c^2) for straight-line distances."
-          ],
-          workedExample: {
-            q: "A person goes 3m North and then 4m East. What is the shortest distance from the start?",
-            a: "Shortest distance = sqrt(3^2 + 4^2) = sqrt(9 + 16) = sqrt(25) = 5 meters."
-          }
-        };
-      default:
-        return {
-          formulas: ["Concept guidelines not found for this topic."],
-          workedExample: { q: "N/A", a: "N/A" }
-        };
-    }
-  }, [selectedTopic]);
-
-  const handleSelectOption = (qId: string, oIdx: number) => {
-    setSelectedOptions(prev => ({ ...prev, [qId]: oIdx }));
-    setAnswersRevealed(prev => ({ ...prev, [qId]: true }));
-  };
+  let nextAction = null;
+  if (allLessons.length > 0) {
+    nextAction = KnowledgeGraphEngine.getNextActionPriority(modules, allLessons, mastery);
+  }
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-black text-white" : "bg-slate-50 text-black"} transition-colors duration-300`}>
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8">
+    <div className="min-h-screen bg-black text-white">
+      <div className="mx-auto w-full max-w-7xl px-4 py-12 md:px-8">
         
         {/* Header */}
-        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl flex items-center gap-2">
-              <Zap className="h-8 w-8 text-amber-400" />
-              Reasoning Prep Pathway
+            <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl flex items-center gap-3">
+              <Zap className="h-10 w-10 text-emerald-500" />
+              Aptitude Hub
             </h1>
-            <p className={`mt-1.5 text-sm ${isDark ? "text-white/70" : "text-black/70"}`}>
-              Solve Logical, Verbal, and Analytical reasoning drills tailored for placement screening tests.
+            <p className="mt-3 text-lg text-zinc-400 max-w-2xl">
+              Master quantitative reasoning, logical deduction, and verbal ability through our structured curriculum.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-4 items-center">
+            <SearchButton />
             <Link
-              href="/placement-hub"
-              className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${isDark ? "border-white/20 bg-white/5 hover:bg-white/10" : "border-black/10 bg-white hover:bg-slate-100"}`}
+              href="/reasoning/company"
+              className="rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 px-6 py-3 text-sm font-semibold transition"
             >
-              Back to Hub
+              Company Prep
+            </Link>
+            <Link
+              href="/reasoning/mock-tests"
+              className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-6 py-3 text-sm font-semibold transition"
+            >
+              Mock Tests
             </Link>
           </div>
         </header>
 
-        {/* Workspace Layout grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {nextAction && (
+          <div className="mb-8">
+            <ContinueLearningCard action={nextAction} />
+          </div>
+        )}
+
+        {/* Dashboard Intelligence Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           
-          {/* Topic Navigation Sidebar */}
-          <div className={`lg:col-span-1 rounded-3xl border p-5 space-y-4 no-scrollbar overflow-y-auto max-h-[75vh] ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}>
-            <h3 className="font-bold text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-              <BookOpen className="h-4 w-4" />
-              Course Syllabus
-            </h3>
-            <div className="space-y-1.5">
-              {REASONING_TOPICS.map(topic => (
-                <button
-                  key={topic}
-                  onClick={() => {
-                    setSelectedTopic(topic);
-                    setAnswersRevealed({});
-                    setSelectedOptions({});
-                    setPractPage(1);
-                  }}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-between ${selectedTopic === topic ? "bg-amber-500 border-amber-500 text-black" : isDark ? "border-white/10 bg-zinc-900/30 text-white/80 hover:bg-white/5" : "border-black/10 bg-white text-black/80 hover:bg-slate-100"}`}
-                >
-                  <span>{topic}</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              ))}
+          {/* Main Progress Card (Spans 2 columns on lg) */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 lg:col-span-2 flex flex-col justify-center">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-emerald-500/10 rounded-xl">
+                <Activity className="w-6 h-6 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg">Overall Progress</h3>
+                <p className="text-zinc-400 text-sm">Keep up the momentum!</p>
+              </div>
             </div>
+            <LessonProgress completed={completedLessons} total={totalLessons} />
           </div>
 
-          {/* Main workspace section */}
-          <div className="lg:col-span-3 space-y-6">
-            
-            {/* Learn & Practice Tabs */}
-            <div className="flex border-b border-foreground/10 pb-px">
-              <button
-                onClick={() => setActiveTab("practice")}
-                className={`px-6 py-3 text-xs font-bold tracking-wider uppercase border-b-2 transition ${activeTab === "practice" ? "border-amber-500 text-amber-500 font-extrabold" : "border-transparent text-foreground/50 hover:text-foreground"}`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <HelpCircle className="h-4 w-4" />
-                  Practice ({questions.length} questions)
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab("learn")}
-                className={`px-6 py-3 text-xs font-bold tracking-wider uppercase border-b-2 transition ${activeTab === "learn" ? "border-amber-500 text-amber-500 font-extrabold" : "border-transparent text-foreground/50 hover:text-foreground"}`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <BookOpenCheck className="h-4 w-4" />
-                  Learn Theory & Logic
-                </span>
-              </button>
+          {/* Today's Revision */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col">
+            <div className="flex items-center gap-3 mb-4">
+              <Clock className="w-5 h-5 text-blue-400" />
+              <h3 className="text-white font-bold text-lg">Today's Review</h3>
             </div>
-
-            {/* TAB CONTENTS */}
-            <div className="no-scrollbar overflow-y-auto max-h-[70vh] pr-1 space-y-6">
-              
-              {activeTab === "learn" ? (
-                <div className="space-y-6">
-                  {/* Formulas Card */}
-                  <div className={`rounded-3xl border p-6 ${isDark ? "border-white/10 bg-zinc-950/40" : "border-black/5 bg-white shadow-sm"}`}>
-                    <h3 className="font-bold text-sm text-amber-400 mb-4 uppercase tracking-wider flex items-center gap-1.5">
-                      <BookOpen className="h-4 w-4" />
-                      Analytical Guidelines & Rules
-                    </h3>
-                    <ul className="space-y-3">
-                      {topicCheatsheet.formulas.map((formula, idx) => (
-                        <li key={idx} className="text-xs leading-relaxed flex items-start gap-2 text-foreground/80">
-                          <span className="text-amber-500 font-bold shrink-0">•</span>
-                          <span>{formula}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Worked Example */}
-                  <div className={`rounded-3xl border p-6 ${isDark ? "border-white/10 bg-zinc-950/40" : "border-black/5 bg-white shadow-sm"}`}>
-                    <h3 className="font-bold text-sm text-cyan-400 mb-4 uppercase tracking-wider flex items-center gap-1.5">
-                      <CheckCircle className="h-4 w-4" />
-                      Worked Example
-                    </h3>
-                    <div className="space-y-4 text-xs">
-                      <div>
-                        <p className="font-semibold text-foreground mb-1.5">Question Scenario:</p>
-                        <p className="bg-foreground/5 p-4 rounded-xl border border-foreground/10 font-medium leading-relaxed">
-                          {topicCheatsheet.workedExample.q}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground mb-1.5">Logical Proof:</p>
-                        <p className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10 leading-relaxed text-foreground/80">
-                          {topicCheatsheet.workedExample.a}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                <div className="space-y-4">
-                  {/* Practice Questions list with pagination */}
-                  {questions.slice((practPage - 1) * PAGE_SIZE, practPage * PAGE_SIZE).map((q, idx) => {
-                    const revealed = answersRevealed[q.id];
-                    const selectedOpt = selectedOptions[q.id];
-                    const isCorrect = selectedOpt === q.correctAnswer;
-
-                    return (
-                      <div
-                        key={q.id}
-                        className={`rounded-3xl border p-6 space-y-4 transition ${isDark ? "border-white/10 bg-zinc-950/20" : "border-black/5 bg-white shadow-xs"}`}
-                      >
-                        {/* Tags */}
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded">
-                            Question {idx + 1} ({q.difficulty})
-                          </span>
-                          <div className="flex gap-1.5">
-                            {q.companies.map(company => (
-                              <span key={company} className={`text-[10px] font-bold px-2 py-0.5 rounded ${isDark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"}`}>
-                                {company}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Question Text */}
-                        <div className="text-sm font-semibold leading-relaxed text-foreground/90 whitespace-pre-line">
-                          {q.question}
-                        </div>
-
-                        {/* Multiple Choice Options */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {q.options.map((opt, oIdx) => {
-                            let borderClass = isDark ? "border-white/10 bg-white/5 hover:bg-white/10 text-white/80" : "border-black/10 bg-white hover:bg-slate-50 text-black/80";
-                            
-                            if (revealed) {
-                              if (oIdx === q.correctAnswer) {
-                                borderClass = "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold";
-                              } else if (selectedOpt === oIdx) {
-                                borderClass = "border-red-500 bg-red-500/10 text-red-400";
-                              }
-                            }
-
-                            return (
-                              <button
-                                key={oIdx}
-                                disabled={revealed}
-                                onClick={() => handleSelectOption(q.id, oIdx)}
-                                className={`text-left p-3.5 rounded-xl border text-xs font-semibold transition ${borderClass}`}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Explanation block */}
-                        {revealed && (
-                          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-950/5 p-4 text-xs space-y-2">
-                            <div className="flex items-center gap-1.5">
-                              {isCorrect ? (
-                                <span className="text-emerald-400 font-bold flex items-center gap-1">
-                                  <CheckCircle className="h-4.5 w-4.5" /> Correct Answer!
-                                </span>
-                              ) : (
-                                <span className="text-red-400 font-bold flex items-center gap-1">
-                                  <XCircle className="h-4.5 w-4.5" /> Incorrect.
-                                </span>
-                              )}
-                            </div>
-                            <p className="font-semibold text-foreground/80">Explanation:</p>
-                            <p className="leading-relaxed text-foreground/60">
-                              {q.explanation}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Pagination Controls */}
-                {activeTab === "practice" && questions.length > PAGE_SIZE && (
-                  <div className="flex items-center justify-between pt-2 pb-4">
-                    <button
-                      onClick={() => { setPractPage(p => Math.max(1, p - 1)); setAnswersRevealed({}); setSelectedOptions({}); }}
-                      disabled={practPage === 1}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold transition ${practPage === 1 ? 'opacity-30 cursor-not-allowed' : ''} ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white' : 'border-black/10 bg-white hover:bg-slate-100 text-black'}`}
-                    >
-                      ← Prev
-                    </button>
-                    <span className={`text-xs font-semibold ${isDark ? 'text-white/50' : 'text-black/50'}`}>
-                      Page {practPage} of {Math.ceil(questions.length / PAGE_SIZE)} &nbsp;·&nbsp; {questions.length} questions
-                    </span>
-                    <button
-                      onClick={() => { setPractPage(p => Math.min(Math.ceil(questions.length / PAGE_SIZE), p + 1)); setAnswersRevealed({}); setSelectedOptions({}); }}
-                      disabled={practPage === Math.ceil(questions.length / PAGE_SIZE)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold transition ${practPage === Math.ceil(questions.length / PAGE_SIZE) ? 'opacity-30 cursor-not-allowed' : ''} ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white' : 'border-black/10 bg-white hover:bg-slate-100 text-black'}`}
-                    >
-                      Next →
-                    </button>
-                  </div>
-                )}
-              </>)}
+            {userId ? (
+              <RevisionList userId={userId} />
+            ) : (
+              <p className="text-zinc-500 text-sm italic">Sign in to track revisions.</p>
+            )}
+          </div>
+          
+          {/* Weak Topics */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 lg:col-span-3">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              <h3 className="text-white font-bold text-lg">Topics Needing Attention</h3>
             </div>
-            
+            {userId ? (
+              <WeakTopicsList userId={userId} />
+            ) : (
+              <p className="text-zinc-500 text-sm italic">Sign in to analyze weak topics.</p>
+            )}
           </div>
         </div>
 
+        {/* AI Coaching Section (Phase 5) */}
+        {userId && (
+          <div className="mb-12 space-y-6">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Zap className="w-6 h-6 text-indigo-500" />
+              AI Intelligent Coaching
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <StudyPlanCard />
+              </div>
+              <div className="space-y-6">
+                <RecommendedQuizCard />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modules Grid */}
+        <div className="space-y-8">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-emerald-500" />
+            Curriculum Modules
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {modules.map((module) => {
+              const { locked } = KnowledgeGraphEngine.isModuleLocked(module.id, modules, allLessons, mastery);
+
+              return (
+                <div key={module.id} className="relative">
+                  <Link 
+                    href={locked ? "#" : `/reasoning/learn/${module.id}`}
+                    className={`block group relative bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6 transition-all ${
+                      locked ? "opacity-60 cursor-not-allowed" : "hover:border-emerald-500/50 hover:bg-zinc-900 cursor-pointer"
+                    }`}
+                  >
+                    {!locked && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+                    )}
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-4">
+                        <span className="px-2.5 py-1 bg-zinc-800 text-emerald-400 text-xs font-semibold uppercase tracking-wider rounded-md">
+                          Level {module.level_order}
+                        </span>
+                        {locked ? (
+                          <div className="p-1.5 bg-zinc-800/80 rounded-lg" title="Complete previous level to unlock">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          </div>
+                        ) : (
+                          <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-emerald-500 transition-colors" />
+                        )}
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                        {module.title}
+                        {!locked && <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>}
+                      </h3>
+                      {locked && <p className="text-xs text-red-400 mt-2">Locked: Complete Level {module.level_order - 1} to unlock</p>}
+                    </div>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <AITutorWidget />
       </div>
     </div>
   );

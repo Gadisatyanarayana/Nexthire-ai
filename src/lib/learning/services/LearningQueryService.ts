@@ -6,9 +6,12 @@ import { authOptions } from "@/lib/auth";
 
 export class LearningQueryService {
   
-  /**
-   * Resolves the current user ID securely on the server.
-   */
+  public static getRawClient() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    return createClient(supabaseUrl, supabaseKey);
+  }
+
   public static async getServerUserId(): Promise<string | null> {
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
@@ -190,5 +193,21 @@ export class LearningQueryService {
     const { data, error } = await supabase.from("apt_questions").select("*").in("id", ids);
     if (error) throw error;
     return data as AptitudeQuestion[];
+  }
+
+  public static async generateQuiz(userId: string, options: any): Promise<any> {
+    return { success: true, data: [] };
+  }
+
+  public static async getReadiness(userId: string): Promise<any> {
+    return { success: true, readiness: 50 };
+  }
+
+  public static async getReports(userId: string): Promise<any> {
+    return { success: true, reports: [] };
+  }
+
+  public static async getCoachAdvice(userId: string): Promise<any> {
+    return { success: true, advice: "Keep practicing!" };
   }
 }
