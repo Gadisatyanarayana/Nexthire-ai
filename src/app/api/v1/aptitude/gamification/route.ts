@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { GamificationEngine } from '@/lib/aptitude/GamificationEngine';
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { GamificationEngine } = LearningService;
 
 const gamificationSchema = z.object({
   action: z.enum(['award_xp']),

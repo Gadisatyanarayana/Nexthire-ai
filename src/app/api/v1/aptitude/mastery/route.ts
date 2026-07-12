@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { KnowledgeGraphEngine, SmartRevisionEngine } = LearningService;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -96,7 +98,6 @@ export async function POST(request: NextRequest) {
 
     // Give a computed score based on accuracy (min 60 if they passed the barrier)
     const computedScore = Math.max(existing?.mastery_score || 0, Math.max(60, accuracy));
-    const { KnowledgeGraphEngine } = await import("@/lib/aptitude/KnowledgeGraphEngine");
     const mastery_level = KnowledgeGraphEngine.getMasteryLevel(computedScore);
 
     await supabase.from("apt_topic_mastery").upsert({
@@ -116,7 +117,6 @@ export async function POST(request: NextRequest) {
       .eq("topic_id", topicId)
       .single();
 
-    const { SmartRevisionEngine } = await import("@/lib/aptitude/SmartRevisionEngine");
     
     // Attempting to calculate confidence based on payload or defaulting to a mid-range.
     const confidenceScore = (request as any).confidenceScore || 3;

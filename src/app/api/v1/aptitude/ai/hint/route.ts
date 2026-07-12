@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { HintEngine } from "@/lib/aptitude/HintEngine";
 import { z } from "zod";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { HintEngine } = LearningService;
 
 const HintRequestSchema = z.object({
   question: z.string().min(1),

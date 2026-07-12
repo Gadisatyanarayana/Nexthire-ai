@@ -3,8 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { AdaptiveLearningEngine } from "@/lib/aptitude/AdaptiveLearningEngine";
-import { SpacedRepetitionEngine } from "@/lib/aptitude/SpacedRepetitionEngine";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { AdaptiveLearningEngine, SpacedRepetitionEngine } = LearningService;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;

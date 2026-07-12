@@ -2,6 +2,8 @@ import React from "react";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { Building2, Target, BookOpen, Clock, Activity } from "lucide-react";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { KnowledgeGraphEngine } = LearningService;
 
 export const revalidate = 0; // Dynamic because it fetches user readiness
 
@@ -50,7 +52,6 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     return <div className="p-8 text-center text-white">Company not found.</div>;
   }
 
-  const { KnowledgeGraphEngine } = await import("@/lib/aptitude/KnowledgeGraphEngine");
 
   return (
     <div className="min-h-screen bg-black text-white pb-32">

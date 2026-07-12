@@ -2,11 +2,12 @@ import React from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getModule, getLessonsByModule, getModules, getAllLessons, getServerUserId, getUserTopicMastery } from "@/lib/api/aptitudeV2";
-import { KnowledgeGraphEngine } from "@/lib/aptitude/KnowledgeGraphEngine";
 import { TopicSidebar } from "@/components/aptitude/TopicSidebar";
 import { ContinueLearningCard } from "@/components/aptitude/ContinueLearningCard";
 import { BookOpen, CheckSquare } from "lucide-react";
 import { DifficultyBadge } from "@/components/aptitude/DifficultyBadge";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { KnowledgeGraphEngine } = LearningService;
 
 export const revalidate = 3600;
 

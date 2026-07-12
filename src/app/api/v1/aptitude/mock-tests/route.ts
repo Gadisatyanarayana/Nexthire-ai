@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
-import { CompanyEngine } from "@/lib/aptitude/CompanyEngine";
-import { MockTestEngine } from "@/lib/aptitude/MockTestEngine";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { CompanyEngine, MockTestEngine } = LearningService;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;

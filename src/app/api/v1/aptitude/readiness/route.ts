@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { PlacementReadinessEngine } from '@/lib/aptitude/PlacementReadinessEngine';
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { PlacementReadinessEngine } = LearningService;
 
 const readinessSchema = z.object({
   companyId: z.string().min(1)

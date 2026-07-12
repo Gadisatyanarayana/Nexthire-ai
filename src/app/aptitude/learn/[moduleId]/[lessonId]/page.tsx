@@ -4,9 +4,10 @@ import Link from "next/link";
 import { getLesson, getModule, getFormulasByLesson, getQuestionPreview, getModules, getServerUserId, getUserTopicMastery } from "@/lib/api/aptitudeV2";
 import { TopicSidebar } from "@/components/aptitude/TopicSidebar";
 import { LessonViewer } from "@/components/aptitude/LessonViewer";
-import { KnowledgeGraphEngine } from "@/lib/aptitude/KnowledgeGraphEngine";
 import { AITutorWidget } from "@/components/aptitude/AITutorWidget";
 import { Lock } from "lucide-react";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { KnowledgeGraphEngine } = LearningService;
 
 export const revalidate = 3600;
 

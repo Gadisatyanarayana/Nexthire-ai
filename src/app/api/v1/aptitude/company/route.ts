@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { CompanyEngine } from "@/lib/aptitude/CompanyEngine";
 import { createClient } from "@supabase/supabase-js";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { CompanyEngine } = LearningService;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;

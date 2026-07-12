@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getAdminClient } from "@/lib/supabaseAdmin";
-import { FeatureFlags } from '@/lib/aptitude/FeatureFlags';
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { FeatureFlags } = LearningService;
 
 export async function GET() {
   try {

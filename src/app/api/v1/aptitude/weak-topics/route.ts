@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
-import { AnalyticsEngine } from "@/lib/aptitude/AnalyticsEngine";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { AnalyticsEngine } = LearningService;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     
     // For weak topics, we just return the weak topics from the analytics engine
     // attached with the lesson titles fetched via the join
-    const enrichedWeakTopics = analytics.weakTopics.map(wt => ({
+    const enrichedWeakTopics = analytics.weakTopics.map((wt: any) => ({
       ...wt,
       lesson_title: wt.apt_lessons?.title,
       module_id: wt.apt_lessons?.module_id

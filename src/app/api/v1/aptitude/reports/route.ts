@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { ReportingEngine } from '@/lib/aptitude/ReportingEngine';
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { ReportingEngine } = LearningService;
 
 export async function GET(req: Request) {
   try {

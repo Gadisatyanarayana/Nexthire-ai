@@ -10,6 +10,8 @@ import { AITutorWidget } from "@/components/aptitude/AITutorWidget";
 import { ContinueLearningCard } from "@/components/aptitude/ContinueLearningCard";
 import { StudyPlanCard } from "@/components/aptitude/StudyPlanCard";
 import { RecommendedQuizCard } from "@/components/aptitude/RecommendedQuizCard";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { KnowledgeGraphEngine } = LearningService;
 
 export const revalidate = 3600;
 
@@ -37,7 +39,6 @@ export default async function AptitudeHubPage() {
 
   let nextAction = null;
   if (allLessons.length > 0) {
-    const { KnowledgeGraphEngine } = await import("@/lib/aptitude/KnowledgeGraphEngine");
     nextAction = KnowledgeGraphEngine.getNextActionPriority(modules, allLessons, mastery);
   }
 
@@ -149,7 +150,6 @@ export default async function AptitudeHubPage() {
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {modules.map((module) => {
-              const { KnowledgeGraphEngine } = require("@/lib/aptitude/KnowledgeGraphEngine");
               const { locked } = KnowledgeGraphEngine.isModuleLocked(module.id, modules, allLessons, mastery);
 
               return (

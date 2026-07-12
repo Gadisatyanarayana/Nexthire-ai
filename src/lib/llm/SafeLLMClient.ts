@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import pino from 'pino';
-import { AIObservability } from '../aptitude/AIObservability';
+import { AIObservability } from '../learning/engines/legacy/AIObservability';
 
 const logger = pino({ name: 'SafeLLMClient' });
 
@@ -242,3 +242,4 @@ export class SafeLLMClient {
     }
   }
 }
+

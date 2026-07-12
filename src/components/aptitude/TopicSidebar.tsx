@@ -3,7 +3,8 @@ import Link from "next/link";
 import { AptitudeModule, AptitudeLesson } from "@/models/aptitude";
 import { BookOpen, CheckCircle2, Lock } from "lucide-react";
 import { DifficultyBadge } from "./DifficultyBadge";
-import { KnowledgeGraphEngine } from "@/lib/aptitude/KnowledgeGraphEngine";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { KnowledgeGraphEngine } = LearningService;
 
 export function TopicSidebar({ 
   modules, 

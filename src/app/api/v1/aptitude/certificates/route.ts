@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { CertificationEngine } from '@/lib/aptitude/CertificationEngine';
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { CertificationEngine } = LearningService;
 
 const issueSchema = z.object({
   moduleId: z.string().uuid(),

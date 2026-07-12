@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { SafeLLMClient, LLMMessage } from "@/lib/llm/SafeLLMClient";
-import { AITutorEngine } from "@/lib/aptitude/AITutorEngine";
 import { z } from "zod";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { AITutorEngine } = LearningService;
 
 const TutorRequestSchema = z.object({
   message: z.string().min(1).max(2000),

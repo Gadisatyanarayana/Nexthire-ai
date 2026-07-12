@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { AITutorEngine } from "@/lib/aptitude/AITutorEngine";
 import { z } from "zod";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { AITutorEngine } = LearningService;
 
 const ExplainRequestSchema = z.object({
   formulaName: z.string().min(1).max(200),

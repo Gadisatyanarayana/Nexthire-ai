@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Bot, User } from "lucide-react";
 import { LLMMessage } from "@/lib/llm/SafeLLMClient";
-import { MemoryManager } from "@/lib/aptitude/MemoryManager";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { MemoryManager } = LearningService;
 
 export function TutorChat({ initialContext }: { initialContext?: any }) {
   const [messages, setMessages] = useState<LLMMessage[]>([]);

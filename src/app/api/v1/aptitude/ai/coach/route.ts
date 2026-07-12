@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { WeakTopicCoach } from "@/lib/aptitude/WeakTopicCoach";
 import { createClient } from "@supabase/supabase-js";
+import { LearningService } from "@/lib/learning/services/LearningService";
+const { WeakTopicCoach } = LearningService;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
