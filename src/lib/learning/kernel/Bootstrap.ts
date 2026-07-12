@@ -9,12 +9,21 @@ import {
   SupabaseMasteryRepository, 
   SupabaseCompanyRepository 
 } from "../repositories/SupabaseRepositories";
+import { PluginManager } from "../../plugins/PluginManager";
+import { LogicalReasoningPlugin } from "../../plugins/reasoning/LogicalReasoningPlugin";
 
 export class Bootstrap {
   private static isInitialized = false;
 
   public static boot(): void {
-    if (this.isInitialized && DependencyContainer.has("ILessonRepository")) return;
+    if (this.isInitialized && DependencyContainer.has("ILessonRepository")) {
+      if (!DependencyContainer.has("IReasoningMasteryRepository")) {
+        console.log("[Kernel] Core booted but plugins missing. Initializing plugins...");
+        PluginManager.registerPlugin(new LogicalReasoningPlugin());
+        PluginManager.initializeAll();
+      }
+      return;
+    }
 
     console.log("[Kernel] Initializing NextHire AI Learning Platform...");
     
@@ -24,6 +33,10 @@ export class Bootstrap {
     DependencyContainer.register("IMockRepository", new SupabaseMockRepository());
     DependencyContainer.register("IMasteryRepository", new SupabaseMasteryRepository());
     DependencyContainer.register("ICompanyRepository", new SupabaseCompanyRepository());
+
+    // Register and initialize subject plugins
+    PluginManager.registerPlugin(new LogicalReasoningPlugin());
+    PluginManager.initializeAll();
 
     this.isInitialized = true;
     console.log("[Kernel] Learning system boot completed successfully.");
