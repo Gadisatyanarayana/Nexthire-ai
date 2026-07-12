@@ -64,12 +64,12 @@ export async function POST(request: NextRequest) {
       
       // Context Resolution for Active Question
       if (context && context.questionId) {
-        const { data: qData } = await supabase.from('apt_questions').select('question_text, options, correct_option, explanation, difficulty').eq('id', context.questionId).single();
+        const { data: qData } = await supabase.from('apt_questions').select('question, options, correct_index, explanation, difficulty').eq('id', context.questionId).single();
         if (qData) {
           context.activeQuestionData = {
-            question: qData.question_text,
+            question: qData.question,
             options: qData.options,
-            correctOption: qData.correct_option,
+            correctOption: qData.correct_index,
             explanation: qData.explanation,
             difficulty: qData.difficulty
           };

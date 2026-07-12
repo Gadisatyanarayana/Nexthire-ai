@@ -1,22 +1,14 @@
 import React from "react";
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
 import { CheckCircle, XCircle, ArrowLeft, Lightbulb } from "lucide-react";
+import { LearningService } from "@/lib/learning/services/LearningService";
 
 export const revalidate = 0;
 
 export default async function MockResultsPage({ params }: { params: Promise<{ testId: string }> }) {
   const { testId } = await params;
   
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const { data: session } = await supabase
-    .from("apt_mock_sessions")
-    .select("*")
-    .eq("id", testId)
-    .single();
+  const session = await LearningService.queries.getMockSession(testId);
 
   if (!session) {
     return <div className="p-8 text-center text-white">Session not found.</div>;
@@ -27,10 +19,7 @@ export default async function MockResultsPage({ params }: { params: Promise<{ te
   const qIds = session.session_data.paper_ids || [];
   
   // Fetch questions
-  const { data: questions } = await supabase
-    .from("apt_questions")
-    .select("*")
-    .in("id", qIds);
+  const questions = await LearningService.queries.getQuestionsByIds(qIds);
 
   const qMap = new Map(questions?.map(q => [q.id, q]));
 

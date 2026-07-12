@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // 2. Fetch the actual questions to verify answers
     const { data: questions, error: qError } = await supabase
       .from("apt_questions")
-      .select("id, correct_option, difficulty, lesson_id")
+      .select("id, correct_index, difficulty, lesson_id")
       .in("id", paperIds);
 
     if (qError || !questions) {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         question_id: sub.question_id,
         selected_option: sub.selected_option,
         time_taken_ms: sub.time_taken_ms || 0,
-        is_correct: dbQ ? dbQ.correct_option === sub.selected_option : false,
+        is_correct: dbQ ? dbQ.correct_index === sub.selected_option : false,
         difficulty: dbQ ? dbQ.difficulty : "medium",
         topic_id: dbQ ? dbQ.lesson_id : "unknown"
       };

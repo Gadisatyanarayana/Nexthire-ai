@@ -1,0 +1,12 @@
+export enum LearningContentType {
+  LESSON,
+  FORMULA,
+  RULE,
+  PATTERN,
+  FLASHCARD,
+  PRACTICE,
+  ASSESSMENT,
+  REVISION,
+  COMPANY_NOTE,
+  AI_NOTE
+}
