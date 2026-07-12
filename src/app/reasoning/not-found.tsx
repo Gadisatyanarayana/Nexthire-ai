@@ -14,7 +14,7 @@ export default function NotFound() {
         href="/reasoning"
         className="px-8 py-3 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-600 transition-colors"
       >
-        Return to Aptitude Hub
+        Return to Logical Reasoning Hub
       </Link>
     </div>
   );

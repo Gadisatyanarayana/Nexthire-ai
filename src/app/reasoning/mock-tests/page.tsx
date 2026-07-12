@@ -60,7 +60,7 @@ export default function MockTestsPage() {
         <header className="mb-12 flex justify-between items-end">
           <div>
             <Link href="/reasoning" className="text-zinc-400 hover:text-white mb-4 block text-sm transition-colors">
-              &larr; Back to Aptitude Hub
+              &larr; Back to Logical Reasoning Hub
             </Link>
             <h1 className="text-4xl font-extrabold flex items-center gap-3">
               <PlayCircle className="w-10 h-10 text-emerald-500" />

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Clock, Bookmark, ChevronLeft, ChevronRight, CheckCircle, Flag, AlertCircle } from "lucide-react";
-import { AptitudeQuestion } from "@/models/reasoning";
+import { ReasoningQuestion } from "@/models/reasoning";
 
 type QuestionStatus = "unvisited" | "visited" | "answered" | "marked";
 
@@ -15,7 +15,7 @@ export default function TimedAssessmentPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [session, setSession] = useState<any>(null);
-  const [questions, setQuestions] = useState<AptitudeQuestion[]>([]);
+  const [questions, setQuestions] = useState<ReasoningQuestion[]>([]);
   
   const [currentIdx, setCurrentIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0); // in seconds

@@ -15,7 +15,7 @@ const { KnowledgeGraphEngine } = LearningService;
 
 export const revalidate = 3600;
 
-export default async function AptitudeHubPage() {
+export default async function LogicalReasoningHubPage() {
   const modules = await getModules();
   
   const userId = await getServerUserId();
@@ -51,10 +51,10 @@ export default async function AptitudeHubPage() {
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl flex items-center gap-3">
               <Zap className="h-10 w-10 text-emerald-500" />
-              Aptitude Hub
+              Logical Reasoning Hub
             </h1>
             <p className="mt-3 text-lg text-zinc-400 max-w-2xl">
-              Master quantitative reasoning, logical deduction, and verbal ability through our structured curriculum.
+              Master syllogisms, blood relations, seating arrangements, and logical deductions through our structured curriculum.
             </p>
           </div>
           <div className="flex gap-4 items-center">

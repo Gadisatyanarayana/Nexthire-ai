@@ -23,7 +23,7 @@ export default async function CompanyGridPage() {
       <div className="max-w-7xl mx-auto px-4 py-12 md:px-8">
         <header className="mb-12">
           <Link href="/reasoning" className="text-zinc-400 hover:text-white mb-4 block text-sm transition-colors">
-            &larr; Back to Aptitude Hub
+            &larr; Back to Logical Reasoning Hub
           </Link>
           <h1 className="text-4xl font-extrabold flex items-center gap-3">
             <Building2 className="w-10 h-10 text-emerald-500" />

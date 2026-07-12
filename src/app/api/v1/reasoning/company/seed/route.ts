@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { LearningQueryService } from "@/lib/learning/services/LearningQueryService";
 
 const supabase = LearningQueryService.getRawClient();
 

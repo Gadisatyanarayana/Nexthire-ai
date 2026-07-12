@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchAptitudeLessons, searchAptitudeFormulas } from "@/lib/api/reasoningV2";
+import { searchReasoningLessons, searchReasoningFormulas } from "@/lib/api/reasoningV2";
 
 export async function GET(req: Request) {
   try {
@@ -11,8 +11,8 @@ export async function GET(req: Request) {
     }
 
     const [lessons, formulas] = await Promise.all([
-      searchAptitudeLessons(query),
-      searchAptitudeFormulas(query)
+      searchReasoningLessons(query),
+      searchReasoningFormulas(query)
     ]);
 
     return NextResponse.json({
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
       formulas
     });
   } catch (error: any) {
-    console.error("Aptitude Search API Error:", error);
+    console.error("Reasoning Search API Error:", error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

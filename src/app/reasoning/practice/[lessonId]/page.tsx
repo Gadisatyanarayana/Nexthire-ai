@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AptitudeQuestion } from "@/models/reasoning";
+import { ReasoningQuestion } from "@/models/reasoning";
 import { CheckCircle, XCircle, ArrowLeft, Loader2, HelpCircle, Clock, Lightbulb } from "lucide-react";
 import { DifficultyBadge } from "@/components/reasoning/DifficultyBadge";
 import Link from "next/link";
@@ -12,7 +12,7 @@ export default function AdaptivePracticePage() {
   const router = useRouter();
   const lessonId = params.lessonId as string;
 
-  const [questions, setQuestions] = useState<AptitudeQuestion[]>([]);
+  const [questions, setQuestions] = useState<ReasoningQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [currentIdx, setCurrentIdx] = useState(0);
