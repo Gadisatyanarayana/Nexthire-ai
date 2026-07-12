@@ -6,9 +6,10 @@ export class AITutorEngine {
   public static buildChatPrompt(
     userMessage: string,
     history: LLMMessage[] = [],
-    context: any = {}
+    context: any = {},
+    personalization: any = {}
   ): LLMMessage[] {
-    const systemPrompt = AIPromptManager.getTutorPrompt(context);
+    const systemPrompt = AIPromptManager.getTutorPrompt(context, personalization);
 
     return [
       systemPrompt,

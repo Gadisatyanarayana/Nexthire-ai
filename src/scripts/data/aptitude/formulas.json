@@ -1,72 +1,2082 @@
 [
   {
+    "id": "e46965ec-5ad8-41cc-a956-8702f091b473",
     "topic_id": "lesson-apt-0",
-    "formula_text": "Basic formula for Time & Work: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 0 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "c517797d-a614-4fba-ab15-bb7ce8f12637",
     "topic_id": "lesson-apt-1",
-    "formula_text": "Basic formula for Time & Distance: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 1 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "6f99c706-4751-4c39-a3d2-4b3e491416f2",
     "topic_id": "lesson-apt-2",
-    "formula_text": "Basic formula for Profit & Loss: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 2 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "20e06366-aebb-4626-a95e-c51fc6996665",
     "topic_id": "lesson-apt-3",
-    "formula_text": "Basic formula for Percentage: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 3 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "1c6a6056-be15-4932-a97c-3031f5f4459f",
     "topic_id": "lesson-apt-4",
-    "formula_text": "Basic formula for Simple & Compound Interest: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 4 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "1e64e260-ca4e-40d6-abef-2ac0766e3abd",
     "topic_id": "lesson-apt-5",
-    "formula_text": "Basic formula for Problems on Ages: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 5 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "4c23065e-079f-4c47-a56d-18ec5f176935",
     "topic_id": "lesson-apt-6",
-    "formula_text": "Basic formula for Average: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 6 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "71734868-e051-4568-ae39-74a430a01f4b",
     "topic_id": "lesson-apt-7",
-    "formula_text": "Basic formula for Ratio & Proportion: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 7 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "f5c1eb71-e392-48ac-a410-15efa0196c12",
     "topic_id": "lesson-apt-8",
-    "formula_text": "Basic formula for Alphabetical Sequences: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 8 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   },
   {
+    "id": "cfb394bb-3764-4d25-afc2-f168d74fcd2e",
     "topic_id": "lesson-apt-9",
-    "formula_text": "Basic formula for Alphanumeric Puzzle Sets: X = Y + Z",
-    "example_q": "Find X if Y=10 and Z=5.",
-    "example_a": "X = 15.",
+    "formula_text": "Advanced formula 9 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "ccbe4a73-ac6e-483d-a131-4fd489378263",
+    "topic_id": "lesson-apt-10",
+    "formula_text": "Advanced formula 10 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "8fa468d5-4a5f-4438-a912-39706c2fc3b0",
+    "topic_id": "lesson-apt-11",
+    "formula_text": "Advanced formula 11 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a1f5fef7-3d27-4ced-aa5e-1d6c3df07226",
+    "topic_id": "lesson-apt-12",
+    "formula_text": "Advanced formula 12 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e94363fd-fc78-4b03-ac10-4708fd9406df",
+    "topic_id": "lesson-apt-13",
+    "formula_text": "Advanced formula 13 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "78b0c81f-a9bc-4882-af40-5d163b82d1f2",
+    "topic_id": "lesson-apt-14",
+    "formula_text": "Advanced formula 14 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "1f6ebb7d-91c2-4961-a8af-de55d93abe52",
+    "topic_id": "lesson-apt-15",
+    "formula_text": "Advanced formula 15 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7da9fba4-0ab0-4500-ac79-f7244a73fb08",
+    "topic_id": "lesson-apt-16",
+    "formula_text": "Advanced formula 16 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "83463730-daef-42cd-abc1-4d010ab7bbf6",
+    "topic_id": "lesson-apt-17",
+    "formula_text": "Advanced formula 17 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "49bf2b9e-f7e9-4f03-a8ef-b54483dc3685",
+    "topic_id": "lesson-apt-18",
+    "formula_text": "Advanced formula 18 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a06d2a51-5534-4062-a47e-2a4ff852e743",
+    "topic_id": "lesson-apt-19",
+    "formula_text": "Advanced formula 19 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "73caa970-6b7d-43f8-adf0-f5ece76f29c5",
+    "topic_id": "lesson-apt-20",
+    "formula_text": "Advanced formula 20 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5dc49b7f-4d7e-4981-a66d-9a4779de84c2",
+    "topic_id": "lesson-apt-21",
+    "formula_text": "Advanced formula 21 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b0dca5fb-5f5b-4fc7-aa7c-f130c66d0417",
+    "topic_id": "lesson-apt-22",
+    "formula_text": "Advanced formula 22 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b2718b90-ff31-4ff8-a674-93ad8daff6c0",
+    "topic_id": "lesson-apt-23",
+    "formula_text": "Advanced formula 23 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a7cf949e-07e0-4cc9-ae85-df51e1ff3b24",
+    "topic_id": "lesson-apt-24",
+    "formula_text": "Advanced formula 24 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b7cc8d76-289d-4a8b-a1d0-c6139a8e6d42",
+    "topic_id": "lesson-apt-25",
+    "formula_text": "Advanced formula 25 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4fe6c7cf-6502-4208-a06d-e0c198a84dd8",
+    "topic_id": "lesson-apt-26",
+    "formula_text": "Advanced formula 26 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b5973f6f-ec33-4d8e-acca-db60ea675223",
+    "topic_id": "lesson-apt-27",
+    "formula_text": "Advanced formula 27 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "04fb84b0-d6ac-426b-ad7c-3fd89171d17b",
+    "topic_id": "lesson-apt-28",
+    "formula_text": "Advanced formula 28 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b9d2fca7-893d-41f2-aaf8-a4426e1f4af8",
+    "topic_id": "lesson-apt-29",
+    "formula_text": "Advanced formula 29 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c660a3ad-5e36-4975-a619-a3370e41121e",
+    "topic_id": "lesson-apt-30",
+    "formula_text": "Advanced formula 30 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "645a2fed-0cb5-42f4-a241-42f9c9ec0999",
+    "topic_id": "lesson-apt-31",
+    "formula_text": "Advanced formula 31 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "491bafa4-8871-445d-adf3-7c050cc6305a",
+    "topic_id": "lesson-apt-32",
+    "formula_text": "Advanced formula 32 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "12b5fd24-a8b3-40b8-aab2-4bc9c5bd8cc1",
+    "topic_id": "lesson-apt-33",
+    "formula_text": "Advanced formula 33 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "fdcc2c63-2faf-4db6-a989-f4dfe4d5c67a",
+    "topic_id": "lesson-apt-34",
+    "formula_text": "Advanced formula 34 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0158f06a-c376-4cc5-a3a5-8741ae490753",
+    "topic_id": "lesson-apt-35",
+    "formula_text": "Advanced formula 35 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "01b54444-b7d8-42ae-a5db-d8b119a94465",
+    "topic_id": "lesson-apt-36",
+    "formula_text": "Advanced formula 36 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0c1eb018-6dd5-4f2c-ae13-c7597d14a3b3",
+    "topic_id": "lesson-apt-37",
+    "formula_text": "Advanced formula 37 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "6fbfdebe-7163-4344-a362-bab93dfe8eee",
+    "topic_id": "lesson-apt-38",
+    "formula_text": "Advanced formula 38 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "3afd291b-893b-47f5-a750-9b507c8eab06",
+    "topic_id": "lesson-apt-39",
+    "formula_text": "Advanced formula 39 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a9cc0723-011c-4ab9-a462-29c7dc92141e",
+    "topic_id": "lesson-apt-40",
+    "formula_text": "Advanced formula 40 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "be875683-ea26-4707-a3c2-afcd4a462b64",
+    "topic_id": "lesson-apt-41",
+    "formula_text": "Advanced formula 41 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f8269542-37ca-44cc-abd9-11aa8bf451dd",
+    "topic_id": "lesson-apt-42",
+    "formula_text": "Advanced formula 42 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5839b9a2-0855-46db-acf3-63cf7b49c261",
+    "topic_id": "lesson-apt-43",
+    "formula_text": "Advanced formula 43 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a1f6f086-6f92-4ec2-a1ca-971128d3c6b6",
+    "topic_id": "lesson-apt-44",
+    "formula_text": "Advanced formula 44 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c42041ab-6cb5-42da-ad25-e224733ed1a3",
+    "topic_id": "lesson-apt-45",
+    "formula_text": "Advanced formula 45 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e7b6b119-2156-434d-aa47-d6c9bbf97491",
+    "topic_id": "lesson-apt-46",
+    "formula_text": "Advanced formula 46 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4f76b66d-c5b9-497a-adb9-f87de602b9f6",
+    "topic_id": "lesson-apt-47",
+    "formula_text": "Advanced formula 47 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "d63fb955-69bb-45ab-a632-598011ea27fd",
+    "topic_id": "lesson-apt-48",
+    "formula_text": "Advanced formula 48 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7c745a4f-0527-45a3-a4ee-f4685277c61e",
+    "topic_id": "lesson-apt-49",
+    "formula_text": "Advanced formula 49 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "225cb859-d0b9-4fa6-a6fe-1a2b8ae2f007",
+    "topic_id": "lesson-apt-50",
+    "formula_text": "Advanced formula 50 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "8bade67f-b9bb-420a-a15e-d4e17143d29d",
+    "topic_id": "lesson-apt-51",
+    "formula_text": "Advanced formula 51 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "52daf4a5-9bc5-4011-ac9e-06e5b39202c4",
+    "topic_id": "lesson-apt-52",
+    "formula_text": "Advanced formula 52 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "330ced77-980a-49a3-a378-b19729619a10",
+    "topic_id": "lesson-apt-53",
+    "formula_text": "Advanced formula 53 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c975389a-d286-41fd-a994-cca8ed6fde28",
+    "topic_id": "lesson-apt-54",
+    "formula_text": "Advanced formula 54 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "85d2d9fc-26fd-41d2-a1bf-b3d65c1663a8",
+    "topic_id": "lesson-apt-55",
+    "formula_text": "Advanced formula 55 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "bf21fcc7-d449-45c4-addc-0c6905d6b79f",
+    "topic_id": "lesson-apt-56",
+    "formula_text": "Advanced formula 56 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2b99a475-ca44-46cd-a95f-aac017e55a1b",
+    "topic_id": "lesson-apt-57",
+    "formula_text": "Advanced formula 57 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a942ea19-3b1c-4a31-a976-2bff88a14dcd",
+    "topic_id": "lesson-apt-58",
+    "formula_text": "Advanced formula 58 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b3940c1f-0439-443e-ad01-6c7cd151adcc",
+    "topic_id": "lesson-apt-59",
+    "formula_text": "Advanced formula 59 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "ef3204ac-ac02-41de-ab15-7b9f4c36cbd5",
+    "topic_id": "lesson-apt-60",
+    "formula_text": "Advanced formula 60 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "72e3cfb0-330a-41a9-abdb-5e6a0d72770a",
+    "topic_id": "lesson-apt-61",
+    "formula_text": "Advanced formula 61 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "9ec9caf2-93d7-47eb-accf-1f1379f5e63a",
+    "topic_id": "lesson-apt-62",
+    "formula_text": "Advanced formula 62 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "80dad095-adf5-4a63-a891-a69c8b541f62",
+    "topic_id": "lesson-apt-63",
+    "formula_text": "Advanced formula 63 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f8bd4ce9-048d-4381-a6bc-3bd7990d0a88",
+    "topic_id": "lesson-apt-64",
+    "formula_text": "Advanced formula 64 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "256e01f1-0827-43b0-aaa0-e204d8fc4952",
+    "topic_id": "lesson-apt-65",
+    "formula_text": "Advanced formula 65 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "962732d1-ecb6-4bce-a853-77aced0f1836",
+    "topic_id": "lesson-apt-66",
+    "formula_text": "Advanced formula 66 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5c4af858-da80-4dd3-aa32-e4ee1a724b58",
+    "topic_id": "lesson-apt-67",
+    "formula_text": "Advanced formula 67 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a486c9f4-65e9-406a-a548-28a486929a76",
+    "topic_id": "lesson-apt-68",
+    "formula_text": "Advanced formula 68 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "fbd628b3-1e92-4a07-a76f-9338db833256",
+    "topic_id": "lesson-apt-69",
+    "formula_text": "Advanced formula 69 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b278c6db-5b92-46a7-afbf-e0ac3419a5de",
+    "topic_id": "lesson-apt-70",
+    "formula_text": "Advanced formula 70 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "814ae748-3357-4c10-a5f2-0d50976a72b5",
+    "topic_id": "lesson-apt-71",
+    "formula_text": "Advanced formula 71 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7f44fc64-8ca9-46f4-a60a-d559372b0697",
+    "topic_id": "lesson-apt-72",
+    "formula_text": "Advanced formula 72 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b76ee99e-5e08-4ba1-aa21-cddd5ef87aca",
+    "topic_id": "lesson-apt-73",
+    "formula_text": "Advanced formula 73 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5dd6693a-6fcc-4c2f-a5d4-da1c3696a305",
+    "topic_id": "lesson-apt-74",
+    "formula_text": "Advanced formula 74 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7ef021be-7c0a-4e50-aa8f-201b288ba834",
+    "topic_id": "lesson-apt-75",
+    "formula_text": "Advanced formula 75 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "73666301-4483-4b31-ae5a-34ed4cd1a944",
+    "topic_id": "lesson-apt-76",
+    "formula_text": "Advanced formula 76 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "97f09d0a-cb78-4bdd-aa29-26edb4b3578b",
+    "topic_id": "lesson-apt-77",
+    "formula_text": "Advanced formula 77 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "55c07554-72bf-47f9-aa15-a601e49ddcd2",
+    "topic_id": "lesson-apt-78",
+    "formula_text": "Advanced formula 78 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "d74c2103-be6b-414f-a6bc-803321b2fc1d",
+    "topic_id": "lesson-apt-79",
+    "formula_text": "Advanced formula 79 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "352f6ef8-ac6e-4765-ab28-a78aa0f306a6",
+    "topic_id": "lesson-apt-80",
+    "formula_text": "Advanced formula 80 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a1a1e214-734d-425b-a2b8-3a8188ae9454",
+    "topic_id": "lesson-apt-81",
+    "formula_text": "Advanced formula 81 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "aa380cfb-a31b-496d-aff7-da729030f840",
+    "topic_id": "lesson-apt-82",
+    "formula_text": "Advanced formula 82 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c6334c38-c5d2-4a88-af38-acc94c03718a",
+    "topic_id": "lesson-apt-83",
+    "formula_text": "Advanced formula 83 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "63a64dab-bb72-47cb-afbc-8cc340828967",
+    "topic_id": "lesson-apt-84",
+    "formula_text": "Advanced formula 84 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f2501193-bad9-446f-a3a7-e44bb9f22d2a",
+    "topic_id": "lesson-apt-85",
+    "formula_text": "Advanced formula 85 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "ee1c0d40-0802-41b4-a6dc-9555fbbfcf74",
+    "topic_id": "lesson-apt-86",
+    "formula_text": "Advanced formula 86 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "cd6da7ad-6919-4868-abf7-c5d97d1e51ae",
+    "topic_id": "lesson-apt-87",
+    "formula_text": "Advanced formula 87 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "75cd4982-ca32-4586-ab69-79347a81896e",
+    "topic_id": "lesson-apt-88",
+    "formula_text": "Advanced formula 88 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "271ea884-16d2-45c3-ac6b-5d786e2dc314",
+    "topic_id": "lesson-apt-89",
+    "formula_text": "Advanced formula 89 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "44ece22d-b6d0-498f-a5c1-68c93e807b89",
+    "topic_id": "lesson-apt-90",
+    "formula_text": "Advanced formula 90 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "217395f7-caed-420e-ab74-f179f6e2f4c7",
+    "topic_id": "lesson-apt-91",
+    "formula_text": "Advanced formula 91 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0ab2bccb-3d47-4236-aac0-b8036122e18e",
+    "topic_id": "lesson-apt-92",
+    "formula_text": "Advanced formula 92 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "95d8cd8f-ae71-4c10-a2e1-cd6e31d8ad69",
+    "topic_id": "lesson-apt-93",
+    "formula_text": "Advanced formula 93 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "d60e784c-fc6b-4fd8-adc6-481840470d0b",
+    "topic_id": "lesson-apt-94",
+    "formula_text": "Advanced formula 94 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "1e93f38e-9258-4f66-a8fd-a6b5a5a93aa8",
+    "topic_id": "lesson-apt-95",
+    "formula_text": "Advanced formula 95 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "72d181ea-b875-40c4-afb7-29ee47af01ad",
+    "topic_id": "lesson-apt-96",
+    "formula_text": "Advanced formula 96 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a5af462e-5fb8-4a80-a86c-2758040e945e",
+    "topic_id": "lesson-apt-97",
+    "formula_text": "Advanced formula 97 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2d1ef19b-b2c2-40fb-a9d1-ecb94a5b9bf1",
+    "topic_id": "lesson-apt-98",
+    "formula_text": "Advanced formula 98 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "1052735a-d257-44a1-a79e-3f5430ef25cf",
+    "topic_id": "lesson-apt-99",
+    "formula_text": "Advanced formula 99 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a7112b2c-778b-4c89-a5bc-63d78297a368",
+    "topic_id": "lesson-apt-100",
+    "formula_text": "Advanced formula 100 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f76c95ff-3e6d-4e56-a90c-00edf7bd9c36",
+    "topic_id": "lesson-apt-101",
+    "formula_text": "Advanced formula 101 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2f673762-5b21-4486-a88a-244848dc67ca",
+    "topic_id": "lesson-apt-102",
+    "formula_text": "Advanced formula 102 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "6f946c72-b3c5-46e8-afeb-e08e3eddb523",
+    "topic_id": "lesson-apt-103",
+    "formula_text": "Advanced formula 103 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "8dd56999-90c0-4f3b-a2e3-f0552fd63277",
+    "topic_id": "lesson-apt-104",
+    "formula_text": "Advanced formula 104 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c7bcbbc8-2b61-4343-a4dc-3004e4bd98d7",
+    "topic_id": "lesson-apt-105",
+    "formula_text": "Advanced formula 105 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "59fdf1a2-ab37-46d2-a0fa-de34f4339016",
+    "topic_id": "lesson-apt-106",
+    "formula_text": "Advanced formula 106 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "cef8de1c-ccac-4540-a733-401e3b6b5bdd",
+    "topic_id": "lesson-apt-107",
+    "formula_text": "Advanced formula 107 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2788cac3-0161-49f0-a49f-c86ef82f1ca5",
+    "topic_id": "lesson-apt-108",
+    "formula_text": "Advanced formula 108 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "d106912b-c2a1-4e2a-afaa-10771c669b72",
+    "topic_id": "lesson-apt-109",
+    "formula_text": "Advanced formula 109 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "69995074-c8b4-4b98-a4cc-54967c0810b1",
+    "topic_id": "lesson-apt-110",
+    "formula_text": "Advanced formula 110 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2110969c-ea24-4970-aeee-35235f50d0cb",
+    "topic_id": "lesson-apt-111",
+    "formula_text": "Advanced formula 111 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "232ac18d-6131-4072-a4f7-d7ef36494e33",
+    "topic_id": "lesson-apt-112",
+    "formula_text": "Advanced formula 112 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "58cf74f2-004a-40a8-a941-779c029ba7db",
+    "topic_id": "lesson-apt-113",
+    "formula_text": "Advanced formula 113 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "86734a2f-8ccc-4a47-a5fe-103a82ecce48",
+    "topic_id": "lesson-apt-114",
+    "formula_text": "Advanced formula 114 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "d78efc9a-22f0-4bb8-a201-bbd772519dc0",
+    "topic_id": "lesson-apt-115",
+    "formula_text": "Advanced formula 115 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "448f2f95-28c3-4ad1-ab2c-27f92432322a",
+    "topic_id": "lesson-apt-116",
+    "formula_text": "Advanced formula 116 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2ee598d3-a06d-4454-ad38-9c75514edb7b",
+    "topic_id": "lesson-apt-117",
+    "formula_text": "Advanced formula 117 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "df3f5add-e76d-4f04-a5b7-cf051b4f683e",
+    "topic_id": "lesson-apt-118",
+    "formula_text": "Advanced formula 118 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "9a67d71b-d974-40cc-ae96-ce944b95b226",
+    "topic_id": "lesson-apt-119",
+    "formula_text": "Advanced formula 119 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c57289b0-21a2-40da-a1b2-a865c3adc4e6",
+    "topic_id": "lesson-apt-120",
+    "formula_text": "Advanced formula 120 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "71650a61-a70e-4da3-a4f5-ea160a0d208d",
+    "topic_id": "lesson-apt-121",
+    "formula_text": "Advanced formula 121 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "d244e24b-f2d8-43b4-ab58-2873e7c65597",
+    "topic_id": "lesson-apt-122",
+    "formula_text": "Advanced formula 122 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f8620766-3499-4b1f-ace9-5b7f6868be8c",
+    "topic_id": "lesson-apt-123",
+    "formula_text": "Advanced formula 123 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "19da6906-9e54-4bd8-a3b0-b8a60eaa9178",
+    "topic_id": "lesson-apt-124",
+    "formula_text": "Advanced formula 124 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "ec54ddc8-78ac-4cec-a4f7-0bf8c364baa3",
+    "topic_id": "lesson-apt-125",
+    "formula_text": "Advanced formula 125 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e22a34d3-761e-4365-ae7e-4b01c680cddb",
+    "topic_id": "lesson-apt-126",
+    "formula_text": "Advanced formula 126 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c9a5f90b-52a3-4e50-ada8-c64ab6d967d1",
+    "topic_id": "lesson-apt-127",
+    "formula_text": "Advanced formula 127 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4f48538e-1733-461c-a03a-20b452506261",
+    "topic_id": "lesson-apt-128",
+    "formula_text": "Advanced formula 128 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "33e4aea0-7ebd-426e-a7a3-f162d3766e18",
+    "topic_id": "lesson-apt-129",
+    "formula_text": "Advanced formula 129 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5d50241a-1076-45c0-ae16-7bd1055165e7",
+    "topic_id": "lesson-apt-130",
+    "formula_text": "Advanced formula 130 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "92609a80-03b3-479d-afa0-9130690eed24",
+    "topic_id": "lesson-apt-131",
+    "formula_text": "Advanced formula 131 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "792c76d5-03e6-41d1-a9f3-8e99cd5d4102",
+    "topic_id": "lesson-apt-132",
+    "formula_text": "Advanced formula 132 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e0d13b82-2dc8-4ba0-ae89-3e2401675f44",
+    "topic_id": "lesson-apt-133",
+    "formula_text": "Advanced formula 133 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "50f1622d-2cf3-4122-aa9f-ee5efffd3868",
+    "topic_id": "lesson-apt-134",
+    "formula_text": "Advanced formula 134 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f2877cc0-990a-4760-a5d2-9976dc020763",
+    "topic_id": "lesson-apt-135",
+    "formula_text": "Advanced formula 135 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "cecf1a27-3878-4d36-adee-63f0f6fc460f",
+    "topic_id": "lesson-apt-136",
+    "formula_text": "Advanced formula 136 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e8cdd4bb-aa54-46cc-a1e4-2a7ec46e8551",
+    "topic_id": "lesson-apt-137",
+    "formula_text": "Advanced formula 137 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4e6af935-4db3-469a-a009-41a69f73640e",
+    "topic_id": "lesson-apt-138",
+    "formula_text": "Advanced formula 138 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5f66b998-727d-4155-a6b2-6c9942828570",
+    "topic_id": "lesson-apt-139",
+    "formula_text": "Advanced formula 139 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b55c337b-d761-4234-a370-909cdade9d36",
+    "topic_id": "lesson-apt-140",
+    "formula_text": "Advanced formula 140 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2674f0b1-1b73-43c9-a073-3a51e91fc745",
+    "topic_id": "lesson-apt-141",
+    "formula_text": "Advanced formula 141 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "ddb7f215-8698-4550-ab19-7cf328733ac0",
+    "topic_id": "lesson-apt-142",
+    "formula_text": "Advanced formula 142 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f93ec3b6-b29d-441a-a4ea-81ab926ceac7",
+    "topic_id": "lesson-apt-143",
+    "formula_text": "Advanced formula 143 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "dfd8f8c0-1c6b-4afc-a105-d5c95788b98d",
+    "topic_id": "lesson-apt-144",
+    "formula_text": "Advanced formula 144 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "d01dbdb5-494a-4e81-a60c-45cee7b36ae6",
+    "topic_id": "lesson-apt-145",
+    "formula_text": "Advanced formula 145 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c2f1df7d-58f6-4c7e-a72f-81ea2f5ab559",
+    "topic_id": "lesson-apt-146",
+    "formula_text": "Advanced formula 146 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "6fa89aca-c9e5-46a8-a6b1-9659a64ac472",
+    "topic_id": "lesson-apt-147",
+    "formula_text": "Advanced formula 147 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "42d3b6d2-99c0-4d8a-a727-5c68507c75ad",
+    "topic_id": "lesson-apt-148",
+    "formula_text": "Advanced formula 148 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c6b549bb-959c-4998-a27a-a39ff2242397",
+    "topic_id": "lesson-apt-149",
+    "formula_text": "Advanced formula 149 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "76ea5e57-4b0d-426c-a706-4854a3843fb1",
+    "topic_id": "lesson-apt-150",
+    "formula_text": "Advanced formula 150 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "83c87556-bbc2-4dcb-ae8a-3ea9a429ea51",
+    "topic_id": "lesson-apt-151",
+    "formula_text": "Advanced formula 151 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0f3c7324-381f-45df-a97d-34565c1bda55",
+    "topic_id": "lesson-apt-152",
+    "formula_text": "Advanced formula 152 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a9c993db-49c0-4efc-a058-be7c7cc2658c",
+    "topic_id": "lesson-apt-153",
+    "formula_text": "Advanced formula 153 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0542c5b9-8640-4907-aba3-abf03c983172",
+    "topic_id": "lesson-apt-154",
+    "formula_text": "Advanced formula 154 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "53678aef-1af3-4b84-a996-6a846de59906",
+    "topic_id": "lesson-apt-155",
+    "formula_text": "Advanced formula 155 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b7013fd1-44ab-46ca-a0d5-7fe2e27201d1",
+    "topic_id": "lesson-apt-156",
+    "formula_text": "Advanced formula 156 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "97006486-dc2f-46fe-a5fb-f1db2845a864",
+    "topic_id": "lesson-apt-157",
+    "formula_text": "Advanced formula 157 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "590a2a0e-240a-4b00-aec1-a439ff8193e9",
+    "topic_id": "lesson-apt-158",
+    "formula_text": "Advanced formula 158 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4522379b-9c75-42bf-a69e-1fdc620dac18",
+    "topic_id": "lesson-apt-159",
+    "formula_text": "Advanced formula 159 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "68c1a0fe-bc71-45ee-abed-d99b3a83818a",
+    "topic_id": "lesson-apt-160",
+    "formula_text": "Advanced formula 160 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f3713a72-861d-4e44-a1b7-7277ad98c414",
+    "topic_id": "lesson-apt-161",
+    "formula_text": "Advanced formula 161 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7f96d288-fc47-4529-abed-bbbe3f34cecd",
+    "topic_id": "lesson-apt-162",
+    "formula_text": "Advanced formula 162 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7c75410e-d5b5-4c78-a749-791e56f18d77",
+    "topic_id": "lesson-apt-163",
+    "formula_text": "Advanced formula 163 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "918dda22-df55-4c82-a8b0-2f8bcce2451d",
+    "topic_id": "lesson-apt-164",
+    "formula_text": "Advanced formula 164 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "33feb4c8-43ac-4123-afb4-0df00e607eea",
+    "topic_id": "lesson-apt-165",
+    "formula_text": "Advanced formula 165 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7b35a089-5bd8-4a9d-a7d8-948a1f240d87",
+    "topic_id": "lesson-apt-166",
+    "formula_text": "Advanced formula 166 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5183f652-f214-4c32-ae10-2df727700972",
+    "topic_id": "lesson-apt-167",
+    "formula_text": "Advanced formula 167 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c5249951-c05a-432d-a472-cf93f735c38f",
+    "topic_id": "lesson-apt-168",
+    "formula_text": "Advanced formula 168 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "534ac2ce-9634-463e-ae60-ad73df8620f9",
+    "topic_id": "lesson-apt-169",
+    "formula_text": "Advanced formula 169 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "31d91a48-5dca-4a40-ac5d-a7a5e3e6723b",
+    "topic_id": "lesson-apt-170",
+    "formula_text": "Advanced formula 170 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "3ab2e42e-9bda-49de-aa5c-102fbcb4e9cb",
+    "topic_id": "lesson-apt-171",
+    "formula_text": "Advanced formula 171 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4bf82e29-8802-4a2f-a880-3bcd6411a38b",
+    "topic_id": "lesson-apt-172",
+    "formula_text": "Advanced formula 172 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "dafa8087-91fa-4bb2-a529-ca7ffc39ee8d",
+    "topic_id": "lesson-apt-173",
+    "formula_text": "Advanced formula 173 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "cac84ce9-37e2-4c2a-a308-01aafb5469f3",
+    "topic_id": "lesson-apt-174",
+    "formula_text": "Advanced formula 174 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e17d8d6a-382c-4c42-a4f1-a07e214fcd3b",
+    "topic_id": "lesson-apt-175",
+    "formula_text": "Advanced formula 175 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "bd3002da-4f32-41b6-a552-6764bdebc879",
+    "topic_id": "lesson-apt-176",
+    "formula_text": "Advanced formula 176 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4b764c94-a5df-46a7-a0c2-b0f5b076c36f",
+    "topic_id": "lesson-apt-177",
+    "formula_text": "Advanced formula 177 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "958124a7-2269-4086-a348-5b9d66873fda",
+    "topic_id": "lesson-apt-178",
+    "formula_text": "Advanced formula 178 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "780f6d1b-3a72-42b5-a778-17baea0c7b80",
+    "topic_id": "lesson-apt-179",
+    "formula_text": "Advanced formula 179 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c8ce1fa5-4173-4ac8-adfd-bc3799480f7e",
+    "topic_id": "lesson-apt-180",
+    "formula_text": "Advanced formula 180 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "29187d6b-0ee6-4ac8-a3b1-f3d58c578a4c",
+    "topic_id": "lesson-apt-181",
+    "formula_text": "Advanced formula 181 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "aae8a34a-86c2-4b81-a8d4-f2c11ceed647",
+    "topic_id": "lesson-apt-182",
+    "formula_text": "Advanced formula 182 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4357d21c-b77c-4c49-a149-fe0c28fdf630",
+    "topic_id": "lesson-apt-183",
+    "formula_text": "Advanced formula 183 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c2b49c96-4e9c-4e81-afe2-65bbaadfae04",
+    "topic_id": "lesson-apt-184",
+    "formula_text": "Advanced formula 184 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "386e25c8-d4f0-4181-a80f-ef3922aa8035",
+    "topic_id": "lesson-apt-185",
+    "formula_text": "Advanced formula 185 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c680e405-014c-44ba-a2aa-48b16f212c92",
+    "topic_id": "lesson-apt-186",
+    "formula_text": "Advanced formula 186 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "791cf087-ca8b-49e7-adb0-2d572d545208",
+    "topic_id": "lesson-apt-187",
+    "formula_text": "Advanced formula 187 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0ba7ea5e-9b46-4c1d-a12a-79bc4319897f",
+    "topic_id": "lesson-apt-188",
+    "formula_text": "Advanced formula 188 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "54faf7e0-c31b-4f9f-a75b-f1caf6cdc429",
+    "topic_id": "lesson-apt-189",
+    "formula_text": "Advanced formula 189 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c2a186c7-c692-4542-a6ce-101a7796a0d5",
+    "topic_id": "lesson-apt-190",
+    "formula_text": "Advanced formula 190 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "d0241de2-5a71-4a39-a8aa-4e40d97d5828",
+    "topic_id": "lesson-apt-191",
+    "formula_text": "Advanced formula 191 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "dcc4e60d-9620-47c3-a8b9-b0f582497645",
+    "topic_id": "lesson-apt-192",
+    "formula_text": "Advanced formula 192 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "441b7094-2dc0-4241-a690-b93423cb4ebc",
+    "topic_id": "lesson-apt-193",
+    "formula_text": "Advanced formula 193 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "3c8ebc89-e1a9-4f6b-a4f1-42cc7d028ebe",
+    "topic_id": "lesson-apt-194",
+    "formula_text": "Advanced formula 194 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b2873d18-896e-4b40-a78a-1319f197abc3",
+    "topic_id": "lesson-apt-195",
+    "formula_text": "Advanced formula 195 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "31374b01-0386-4fcb-acae-8cdeff10b4b4",
+    "topic_id": "lesson-apt-196",
+    "formula_text": "Advanced formula 196 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "9c070be1-8ee4-4fba-a4ca-e01bca943734",
+    "topic_id": "lesson-apt-197",
+    "formula_text": "Advanced formula 197 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "85459dc3-ba25-4c2e-ab43-7edb731996fb",
+    "topic_id": "lesson-apt-198",
+    "formula_text": "Advanced formula 198 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4b62852d-261e-4827-a7a6-b7dbcf8891c0",
+    "topic_id": "lesson-apt-199",
+    "formula_text": "Advanced formula 199 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "1de74445-5c2f-4eaf-a173-abe635cab223",
+    "topic_id": "lesson-apt-200",
+    "formula_text": "Advanced formula 200 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "cc5cd39c-42b7-4484-a27c-c04adada8aa6",
+    "topic_id": "lesson-apt-201",
+    "formula_text": "Advanced formula 201 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0c6a04a6-9ffc-4c8c-a67c-2aef7a33ca69",
+    "topic_id": "lesson-apt-202",
+    "formula_text": "Advanced formula 202 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "74fc5fd3-917b-4c4e-a7ec-4bb1893a01c1",
+    "topic_id": "lesson-apt-203",
+    "formula_text": "Advanced formula 203 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b8f2dcbb-e243-42b1-a0f6-ea25e6bc6433",
+    "topic_id": "lesson-apt-204",
+    "formula_text": "Advanced formula 204 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7c9c6345-f038-4829-a565-ef6fd6cca3e2",
+    "topic_id": "lesson-apt-205",
+    "formula_text": "Advanced formula 205 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f34e9253-d768-4d04-abc6-e3bb5636d313",
+    "topic_id": "lesson-apt-206",
+    "formula_text": "Advanced formula 206 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5572024b-d54c-4424-a4a0-99c6ed8102aa",
+    "topic_id": "lesson-apt-207",
+    "formula_text": "Advanced formula 207 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "da18401d-f36f-45f8-a75f-6e876fbd314b",
+    "topic_id": "lesson-apt-208",
+    "formula_text": "Advanced formula 208 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "26848ce7-0df8-4140-afb5-497f51139a10",
+    "topic_id": "lesson-apt-209",
+    "formula_text": "Advanced formula 209 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "adb8b89f-640c-4a02-a15a-5f02fd469dc3",
+    "topic_id": "lesson-apt-210",
+    "formula_text": "Advanced formula 210 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b1afa95f-11c4-4907-ac32-02a2d82f3eab",
+    "topic_id": "lesson-apt-211",
+    "formula_text": "Advanced formula 211 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e09f131a-5579-4366-a285-70f86122da5e",
+    "topic_id": "lesson-apt-212",
+    "formula_text": "Advanced formula 212 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "112ca02a-5f94-45a2-aacf-ff8864ffc880",
+    "topic_id": "lesson-apt-213",
+    "formula_text": "Advanced formula 213 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "16d67fe2-ef90-49c6-ab9c-c5aeb2a00352",
+    "topic_id": "lesson-apt-214",
+    "formula_text": "Advanced formula 214 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "5b79397e-b116-49fa-aeb3-f155a3edd834",
+    "topic_id": "lesson-apt-215",
+    "formula_text": "Advanced formula 215 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "67ee4905-73ec-4eef-a076-53282f3b05a8",
+    "topic_id": "lesson-apt-216",
+    "formula_text": "Advanced formula 216 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e2b8f386-1fa0-4c51-a535-395420a8979c",
+    "topic_id": "lesson-apt-217",
+    "formula_text": "Advanced formula 217 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "df8b4bac-da28-45a9-af51-8da6c613394e",
+    "topic_id": "lesson-apt-218",
+    "formula_text": "Advanced formula 218 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "8dfaa86c-8f24-40a0-a84a-8df018f7fb35",
+    "topic_id": "lesson-apt-219",
+    "formula_text": "Advanced formula 219 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a4dcb635-4ac5-4716-a929-1602ec8286c5",
+    "topic_id": "lesson-apt-220",
+    "formula_text": "Advanced formula 220 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c6979b59-3cc9-4385-a2da-2c87e5c9a4bc",
+    "topic_id": "lesson-apt-221",
+    "formula_text": "Advanced formula 221 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "ad330526-564b-417f-abc5-f03923c44cca",
+    "topic_id": "lesson-apt-222",
+    "formula_text": "Advanced formula 222 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "a22e7b98-57d4-4d47-a3fa-c2c5d523d829",
+    "topic_id": "lesson-apt-223",
+    "formula_text": "Advanced formula 223 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f6523ae1-13af-48db-afd6-cd301f7e0c82",
+    "topic_id": "lesson-apt-224",
+    "formula_text": "Advanced formula 224 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "b11201e6-3c8a-4cf1-ad04-d02f65630fb1",
+    "topic_id": "lesson-apt-225",
+    "formula_text": "Advanced formula 225 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4bb3f020-ab7c-423f-a452-5f0673757480",
+    "topic_id": "lesson-apt-226",
+    "formula_text": "Advanced formula 226 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4c1143c9-a4fa-40cb-a77c-0da65f2a56f1",
+    "topic_id": "lesson-apt-227",
+    "formula_text": "Advanced formula 227 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "3122b3df-01a5-4ecf-a5c7-43a3a2fd8a80",
+    "topic_id": "lesson-apt-228",
+    "formula_text": "Advanced formula 228 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "59613043-72cd-464d-a108-f6e70f3cff72",
+    "topic_id": "lesson-apt-229",
+    "formula_text": "Advanced formula 229 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2a0f0d6f-96a5-49ed-ae7b-997cb7983f1e",
+    "topic_id": "lesson-apt-230",
+    "formula_text": "Advanced formula 230 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "73ab555c-ae89-4127-a6c8-7bb629197303",
+    "topic_id": "lesson-apt-231",
+    "formula_text": "Advanced formula 231 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "4f80baed-bde7-4002-a82f-d34c7ce26fcb",
+    "topic_id": "lesson-apt-232",
+    "formula_text": "Advanced formula 232 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c92b44a7-9877-4a38-a76c-01ed21661da6",
+    "topic_id": "lesson-apt-233",
+    "formula_text": "Advanced formula 233 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "bed7bc3b-36c1-4ff8-aa6a-48d9644d3a1a",
+    "topic_id": "lesson-apt-234",
+    "formula_text": "Advanced formula 234 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e0ea324d-e136-4b09-a6a2-f979e82b6432",
+    "topic_id": "lesson-apt-235",
+    "formula_text": "Advanced formula 235 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "1f0c873a-e1ba-4945-a97a-7576a0ba16d4",
+    "topic_id": "lesson-apt-236",
+    "formula_text": "Advanced formula 236 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "86aebfcb-2004-4951-af95-8db7f9096a1b",
+    "topic_id": "lesson-apt-237",
+    "formula_text": "Advanced formula 237 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "8bc685d1-5741-4566-a006-bc8ae6944cf3",
+    "topic_id": "lesson-apt-238",
+    "formula_text": "Advanced formula 238 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7e804f95-6084-46d0-aca4-cbb6a0216d09",
+    "topic_id": "lesson-apt-239",
+    "formula_text": "Advanced formula 239 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "f5d10e8d-a1fa-4ba8-af7e-2e6b456e8496",
+    "topic_id": "lesson-apt-240",
+    "formula_text": "Advanced formula 240 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "3ccbe7e1-4bd7-4ab0-a6f5-2410cbae12f9",
+    "topic_id": "lesson-apt-241",
+    "formula_text": "Advanced formula 241 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "6b117da7-bfb5-4d13-ad63-15726a6a05d4",
+    "topic_id": "lesson-apt-242",
+    "formula_text": "Advanced formula 242 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "2ade92f0-cc9c-49a5-a7ec-88b1effddfd6",
+    "topic_id": "lesson-apt-243",
+    "formula_text": "Advanced formula 243 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "59183226-5766-413e-a4fa-34efe12bcc68",
+    "topic_id": "lesson-apt-244",
+    "formula_text": "Advanced formula 244 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "58b5ba22-dfa8-4374-ae5d-2af49ce2171f",
+    "topic_id": "lesson-apt-245",
+    "formula_text": "Advanced formula 245 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "27647dcc-5f23-460b-a22c-0026801780e2",
+    "topic_id": "lesson-apt-246",
+    "formula_text": "Advanced formula 246 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "e642d0c0-ca50-41de-a240-5f6ebba55172",
+    "topic_id": "lesson-apt-247",
+    "formula_text": "Advanced formula 247 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "8e1c63a0-36c4-449c-af19-bf8a4d3a8732",
+    "topic_id": "lesson-apt-248",
+    "formula_text": "Advanced formula 248 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0bf59173-acc5-4f7c-a783-532a0ee2432c",
+    "topic_id": "lesson-apt-249",
+    "formula_text": "Advanced formula 249 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "0daf24c2-66fe-4e7b-a029-55700864ea1a",
+    "topic_id": "lesson-apt-250",
+    "formula_text": "Advanced formula 250 for Time & Work",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "44cccb2a-9056-4018-ac1b-9369abcf0553",
+    "topic_id": "lesson-apt-251",
+    "formula_text": "Advanced formula 251 for Time & Distance",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "21b790e7-c496-48d2-ad50-180c0e5a5854",
+    "topic_id": "lesson-apt-252",
+    "formula_text": "Advanced formula 252 for Profit & Loss",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "970a111d-289e-4fcf-a75c-4a896cf827ba",
+    "topic_id": "lesson-apt-253",
+    "formula_text": "Advanced formula 253 for Percentage",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "951dfea2-dee1-4420-a4f0-170e186f513c",
+    "topic_id": "lesson-apt-254",
+    "formula_text": "Advanced formula 254 for Simple & Compound Interest",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c8cf0d7b-6222-47f9-a345-5ecace17b36e",
+    "topic_id": "lesson-apt-255",
+    "formula_text": "Advanced formula 255 for Problems on Ages",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "214bbd3c-124d-4fca-a964-fe81a7400e44",
+    "topic_id": "lesson-apt-256",
+    "formula_text": "Advanced formula 256 for Average",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "c94c7aef-ecaf-4232-a651-db42b4e3f4a0",
+    "topic_id": "lesson-apt-257",
+    "formula_text": "Advanced formula 257 for Ratio & Proportion",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "1d2d03d3-4099-43ba-aec1-61f1694b467a",
+    "topic_id": "lesson-apt-258",
+    "formula_text": "Advanced formula 258 for Alphabetical Sequences",
+    "example_q": "Find X",
+    "example_a": "X = 15",
+    "status": "draft"
+  },
+  {
+    "id": "7b0a9d07-1a76-4644-a148-2d6112d25b2a",
+    "topic_id": "lesson-apt-259",
+    "formula_text": "Advanced formula 259 for Alphanumeric Puzzle Sets",
+    "example_q": "Find X",
+    "example_a": "X = 15",
     "status": "draft"
   }
 ]

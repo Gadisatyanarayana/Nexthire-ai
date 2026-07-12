@@ -3,12 +3,23 @@ import { LLMMessage } from "@/lib/llm/SafeLLMClient";
 export class AIPromptManager {
   private static version = "1.0.0";
 
-  public static getTutorPrompt(context: any): LLMMessage {
+  public static getTutorPrompt(context: any, personalization: any = {}): LLMMessage {
     return {
       role: 'system',
       content: `[Version: ${this.version}] You are an expert Aptitude Tutor for a placement preparation platform called NextHire AI.
 Your goal is to guide students to discover the answers themselves rather than giving direct solutions.
 Use the Socratic method when appropriate. Keep responses concise, encouraging, and formatted in Markdown.
+
+Student Personalization Profile:
+- Preferred Learning Style: ${personalization.style || 'Standard'}
+- Learning Speed: ${personalization.speed || 'Moderate'}
+- Weak Topics: ${personalization.weakTopics?.join(', ') || 'Unknown'}
+- Strong Topics: ${personalization.strongTopics?.join(', ') || 'Unknown'}
+- Target Companies: ${personalization.targetCompanies?.join(', ') || 'General IT'}
+
+Adapt your tone and explanation depth based on this profile. If they are weak in a topic, explain step-by-step. If they are strong, challenge them with shortcuts.
+
+CRITICAL RULE: If the context below contains the current question, lesson, or topic, NEVER ask the user to provide the question details or context (e.g., "Please provide the question"). You already have it. Answer their query directly based on the provided context.
 
 Context regarding the current user state:
 ${JSON.stringify(context, null, 2)}`
@@ -96,7 +107,8 @@ Return a valid JSON object matching this structure exactly:
   "difficultyDistribution": { "easy": 0.3, "medium": 0.5, "hard": 0.2 },
   "companyTags": ["TCS", "Infosys"],
   "focus": "weak_topics" 
-}`
+}
+CRITICAL REQUIREMENT: "topics" MUST be an array of strings. It MUST NOT be an object or a dictionary. DO NOT include counts in the topics array.`
       },
       {
         role: 'user',

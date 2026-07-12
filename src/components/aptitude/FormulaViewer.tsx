@@ -2,6 +2,7 @@ import React from "react";
 import { AptitudeFormula } from "@/models/aptitude";
 import { Calculator, Lightbulb, AlertTriangle, BookOpen } from "lucide-react";
 import { FormulaVisualizer } from "./FormulaVisualizer";
+import { FormulaEngine } from "@/lib/aptitude/FormulaEngine";
 
 export function FormulaViewer({ formulas }: { formulas: AptitudeFormula[] }) {
   if (!formulas || formulas.length === 0) return null;
@@ -13,7 +14,8 @@ export function FormulaViewer({ formulas }: { formulas: AptitudeFormula[] }) {
         Key Formulas
       </h3>
 
-      {formulas.map((formula, idx) => {
+      {formulas.map((rawFormula, idx) => {
+        const formula = FormulaEngine.parseMetadata(rawFormula);
         const f = formula as any;
         return (
         <div key={formula.id} className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 shadow-sm">

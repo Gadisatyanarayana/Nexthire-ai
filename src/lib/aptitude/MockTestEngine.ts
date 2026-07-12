@@ -55,18 +55,34 @@ export class MockTestEngine {
     const medQs = allQuestions.filter(q => q.difficulty === "medium");
     const hardQs = allQuestions.filter(q => q.difficulty === "hard");
 
-    // Shuffle and slice
-    const selectRandom = (arr: AptitudeQuestion[], count: number) => {
-      return [...arr].sort(() => 0.5 - Math.random()).slice(0, count);
+    const shuffle = (array: any[]) => {
+      let currentIndex = array.length, randomIndex;
+      while (currentIndex > 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+      }
+      return array;
     };
 
-    const paper = [
+    const selectRandom = (arr: AptitudeQuestion[], count: number) => {
+      return shuffle([...arr]).slice(0, count);
+    };
+
+    let paper = [
       ...selectRandom(easyQs, easyCount),
       ...selectRandom(medQs, medCount),
       ...selectRandom(hardQs, hardCount)
     ];
 
+    // Backfill if we didn't hit total_questions (due to bucket shortages)
+    if (paper.length < config.total_questions) {
+      const remainingNeeded = config.total_questions - paper.length;
+      const unusedQs = allQuestions.filter(q => !paper.find(p => p.id === q.id));
+      paper.push(...selectRandom(unusedQs, remainingNeeded));
+    }
+
     // Shuffle the final paper
-    return paper.sort(() => 0.5 - Math.random());
+    return shuffle(paper);
   }
 }

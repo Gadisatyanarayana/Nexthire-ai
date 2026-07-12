@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const lessonId = searchParams.get("lesson_id");
+    const companyId = searchParams.get("company_id");
     const difficulty = searchParams.get("difficulty");
     const limit = parseInt(searchParams.get("limit") || "20", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
@@ -17,10 +18,26 @@ export async function GET(request: NextRequest) {
       .from("apt_questions")
       .select(`
         *,
-        apt_company_tags (company_name)
+        apt_company_tags!inner (company_name)
       `, { count: "exact" });
       
     if (lessonId) query = query.eq("lesson_id", lessonId);
+    if (companyId) {
+       const { data: comp } = await supabase.from("apt_companies").select("name").ilike("id", companyId).single();
+       if (comp) {
+         query = query.ilike("apt_company_tags.company_name", comp.name);
+       }
+    } else {
+       // Only remove !inner if we are not filtering by company, so we get all questions
+       query = supabase
+        .from("apt_questions")
+        .select(`
+          *,
+          apt_company_tags (company_name)
+        `, { count: "exact" });
+       if (lessonId) query = query.eq("lesson_id", lessonId);
+    }
+    
     if (difficulty) query = query.eq("difficulty", difficulty);
     
     // Pagination

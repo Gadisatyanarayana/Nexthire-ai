@@ -29,10 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing session_id or submissions" }, { status: 400 });
     }
 
-    // Process Analytics
-    const analytics = MockAnalyticsEngine.computeAnalytics(submissions);
-
-    // Fetch existing session
+    // 1. Fetch existing session to get paper_ids
     const { data: mockSession, error: fetchError } = await supabase
       .from("apt_mock_sessions")
       .select("*")
@@ -44,10 +41,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Session not found" }, { status: 404 });
     }
 
-    // Update Session
+    const paperIds = mockSession.session_data?.paper_ids || [];
+
+    // 2. Fetch the actual questions to verify answers
+    const { data: questions, error: qError } = await supabase
+      .from("apt_questions")
+      .select("id, correct_option, difficulty, lesson_id")
+      .in("id", paperIds);
+
+    if (qError || !questions) {
+      return NextResponse.json({ success: false, error: "Failed to fetch question data" }, { status: 500 });
+    }
+
+    const qMap = new Map(questions.map(q => [q.id, q]));
+
+    // 3. Re-evaluate submissions strictly on the backend
+    const evaluatedSubmissions = submissions.map((sub: any) => {
+      const dbQ = qMap.get(sub.question_id);
+      return {
+        question_id: sub.question_id,
+        selected_option: sub.selected_option,
+        time_taken_ms: sub.time_taken_ms || 0,
+        is_correct: dbQ ? dbQ.correct_option === sub.selected_option : false,
+        difficulty: dbQ ? dbQ.difficulty : "medium",
+        topic_id: dbQ ? dbQ.lesson_id : "unknown"
+      };
+    });
+
+    // 4. Process Analytics
+    const analytics = MockAnalyticsEngine.computeAnalytics(evaluatedSubmissions);
+
+    // 5. Update Session
     const sessionData = {
       ...mockSession.session_data,
-      submissions,
+      submissions: evaluatedSubmissions,
       analytics,
       status: "completed"
     };

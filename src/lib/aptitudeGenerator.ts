@@ -57,7 +57,7 @@ function shuffleDeterministic<T>(arr: T[], seed: number): T[] {
 function generateDynamicQuestion(topic: string, index: number): AptitudeQuestion {
   const difficulties: Array<"Easy" | "Medium" | "Hard"> = ["Easy", "Medium", "Hard"];
   const diff = difficulties[index % difficulties.length];
-  const companiesPool = ["TCS", "Infosys", "Wipro", "Cognizant", "Accenture", "Amazon", "Google", "Goldman Sachs", "Cisco", "Deloitte"];
+  const companiesPool = ["TCS", "Infosys", "Wipro", "Cognizant", "Accenture", "Amazon", "Google", "Goldman Sachs", "Cisco", "Deloitte", "Microsoft", "Meta", "Apple", "Netflix", "Uber", "Oracle", "IBM", "Intel", "SAP", "Samsung", "PwC", "EY", "KPMG", "Capgemini", "HCL", "Tech Mahindra"];
   const companies = [companiesPool[index % companiesPool.length], companiesPool[(index + 3) % companiesPool.length]];
   const id = `apt-dyn-${topic.replace(/\s+/g, "").toLowerCase()}-${index}`;
 
@@ -294,7 +294,7 @@ export function getAptitudeQuestions(topic: string = "All Topics"): AptitudeQues
   const questions = [...STATIC_QUESTIONS];
   
   for (const t of APTITUDE_TOPICS) {
-    for (let i = 1; i <= 180; i++) {
+    for (let i = 1; i <= 600; i++) {
       questions.push(generateDynamicQuestion(t, i));
     }
   }

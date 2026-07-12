@@ -1,22 +1,62 @@
 [
   {
     "id": "mod-0",
-    "title": "Basics",
+    "title": "Aptitude Module 1",
     "level_order": 0
   },
   {
     "id": "mod-1",
-    "title": "Arithmetic",
+    "title": "Aptitude Module 2",
     "level_order": 1
   },
   {
     "id": "mod-2",
-    "title": "Algebra",
+    "title": "Aptitude Module 3",
     "level_order": 2
   },
   {
     "id": "mod-3",
-    "title": "Geometry",
+    "title": "Aptitude Module 4",
     "level_order": 3
+  },
+  {
+    "id": "mod-4",
+    "title": "Aptitude Module 5",
+    "level_order": 4
+  },
+  {
+    "id": "mod-5",
+    "title": "Aptitude Module 6",
+    "level_order": 5
+  },
+  {
+    "id": "mod-6",
+    "title": "Aptitude Module 7",
+    "level_order": 6
+  },
+  {
+    "id": "mod-7",
+    "title": "Aptitude Module 8",
+    "level_order": 7
+  },
+  {
+    "id": "mod-8",
+    "title": "Aptitude Module 9",
+    "level_order": 8
+  },
+  {
+    "id": "mod-9",
+    "title": "Aptitude Module 10",
+    "level_order": 9
+  },
+  {
+    "id": "mod-10",
+    "title": "Aptitude Module 11",
+    "level_order": 10
+  },
+  {
+    "id": "mod-11",
+    "title": "Aptitude Module 12",
+    "level_order": 11
   }
 ]

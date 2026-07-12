@@ -39,10 +39,13 @@ export class MockAnalyticsEngine {
     const totalTime = submissions.reduce((acc, s) => acc + s.time_taken_ms, 0);
 
     // Difficulty Accuracy
-    const diffMap = { easy: { c: 0, t: 0 }, medium: { c: 0, t: 0 }, hard: { c: 0, t: 0 } };
+    const diffMap: any = { easy: { c: 0, t: 0 }, medium: { c: 0, t: 0 }, hard: { c: 0, t: 0 } };
     submissions.forEach(s => {
-      diffMap[s.difficulty].t += 1;
-      if (s.is_correct) diffMap[s.difficulty].c += 1;
+      const d = (s.difficulty || "medium").toLowerCase();
+      if (diffMap[d]) {
+        diffMap[d].t += 1;
+        if (s.is_correct) diffMap[d].c += 1;
+      }
     });
 
     const diffAcc = {
@@ -80,5 +83,36 @@ export class MockAnalyticsEngine {
       weak_topics: weak,
       strong_topics: strong
     };
+  }
+
+  /**
+   * Generates a context payload for the SafeLLMClient to produce the AI Post-Mock Review
+   */
+  public static generateAIReviewPrompt(result: MockAnalyticsResult, topicNames: Record<string, string>): string {
+    const weakNames = result.weak_topics.map(id => topicNames[id] || id);
+    const strongNames = result.strong_topics.map(id => topicNames[id] || id);
+    
+    return `
+      You are an elite Placement Coach analyzing a student's mock test performance.
+      
+      Performance Data:
+      - Overall Accuracy: ${result.accuracy.toFixed(1)}%
+      - Average Time Per Question: ${(result.avg_time_per_question_ms / 1000).toFixed(1)} seconds
+      - Easy Accuracy: ${result.difficulty_accuracy.easy.toFixed(1)}%
+      - Medium Accuracy: ${result.difficulty_accuracy.medium.toFixed(1)}%
+      - Hard Accuracy: ${result.difficulty_accuracy.hard.toFixed(1)}%
+      - Strong Topics (Mastered): ${strongNames.join(', ') || 'None yet'}
+      - Weak Topics (Needs Revision): ${weakNames.join(', ') || 'None identified'}
+
+      Based strictly on this data, provide a structured, encouraging but critical review.
+      Format your response with the following sections:
+      - What you did well
+      - Biggest mistakes / Missed concepts
+      - Time management analysis
+      - Recommended Next Steps (Specific lessons or practice)
+      - Estimated Improvement (if they follow the plan)
+      
+      Keep it professional, concise, and highly actionable.
+    `;
   }
 }

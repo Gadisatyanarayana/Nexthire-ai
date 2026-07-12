@@ -35,22 +35,29 @@ export default async function CompanyGridPage() {
         </header>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {companies.map(c => (
-            <Link 
-              key={c.id} 
-              href={`/aptitude/company/${c.id}`}
-              className="group bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-emerald-500/50 transition-all hover:bg-zinc-800/50 relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <h3 className="text-2xl font-bold mb-2">{c.name}</h3>
-                <div className="flex items-center justify-between mt-6">
-                  <span className="text-sm text-zinc-400">{c.sections.length} Sections</span>
-                  <ArrowRight className="w-5 h-5 text-zinc-500 group-hover:text-emerald-500 transition-colors" />
+          {companies.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-zinc-500">
+              <p>No companies available. Please seed the database.</p>
+              <Link href="/api/v1/aptitude/company/seed" target="_blank" className="text-emerald-500 underline mt-2 inline-block">Click here to Seed</Link>
+            </div>
+          ) : (
+            companies.map(c => (
+              <Link 
+                key={c.id} 
+                href={`/aptitude/company/${c.id}`}
+                className="group bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-emerald-500/50 transition-all hover:bg-zinc-800/50 relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-bold mb-2">{c.name}</h3>
+                  <div className="flex items-center justify-between mt-6">
+                    <span className="text-sm text-zinc-400">{c.sections ? c.sections.length : 0} Sections</span>
+                    <ArrowRight className="w-5 h-5 text-zinc-500 group-hover:text-emerald-500 transition-colors" />
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </div>

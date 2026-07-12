@@ -24,7 +24,12 @@ export class QuestionEngine {
     const unseenOrIncorrect = allQuestions.filter(q => !correctQuestionIds.has(q.id));
 
     // If we run out of unseen/incorrect questions, fall back to all questions (revision mode)
-    const pool = unseenOrIncorrect.length >= limit ? unseenOrIncorrect : allQuestions;
+    let pool = unseenOrIncorrect.length >= limit ? unseenOrIncorrect : allQuestions;
+    
+    // Safety fallback: if strict filtering resulted in 0 but allQuestions > 0, always use allQuestions
+    if (pool.length === 0 && allQuestions.length > 0) {
+      pool = allQuestions;
+    }
 
     // 2. Determine target difficulty distribution based on mastery
     let targetProportions = { easy: 0.33, medium: 0.33, hard: 0.34 };
@@ -38,9 +43,9 @@ export class QuestionEngine {
     }
 
     // 3. Bucket questions
-    const easyQ = pool.filter(q => q.difficulty === "easy").sort(() => 0.5 - Math.random());
-    const medQ = pool.filter(q => q.difficulty === "medium").sort(() => 0.5 - Math.random());
-    const hardQ = pool.filter(q => q.difficulty === "hard").sort(() => 0.5 - Math.random());
+    const easyQ = pool.filter(q => q.difficulty?.toLowerCase() === "easy").sort(() => 0.5 - Math.random());
+    const medQ = pool.filter(q => q.difficulty?.toLowerCase() === "medium").sort(() => 0.5 - Math.random());
+    const hardQ = pool.filter(q => q.difficulty?.toLowerCase() === "hard").sort(() => 0.5 - Math.random());
 
     // 4. Fill result based on proportions
     const result: AptitudeQuestion[] = [];
@@ -61,7 +66,10 @@ export class QuestionEngine {
     pull(hardQ, countHard);
 
     // If we didn't fill the limit because some buckets were empty, backfill with whatever is left
-    const allLeft = [...easyQ, ...medQ, ...hardQ].sort(() => 0.5 - Math.random());
+    // We must pull from the ORIGINAL pool so we don't lose questions that had missing or weird difficulty strings
+    const usedIds = new Set(result.map(q => q.id));
+    const allLeft = pool.filter(q => !usedIds.has(q.id)).sort(() => 0.5 - Math.random());
+    
     while (result.length < limit && allLeft.length > 0) {
       result.push(allLeft.pop()!);
     }
@@ -69,4 +77,41 @@ export class QuestionEngine {
     // 5. Shuffle final result to avoid predictable ordering
     return result.sort(() => 0.5 - Math.random());
   }
+
+  /**
+   * Dynamically calibrates question difficulty based on global performance metrics.
+   * If a question flagged as "Hard" has a 90% accuracy and 15s avg time, it downgrades to "Easy".
+   * If an "Easy" question has a 20% accuracy, it upgrades to "Hard".
+   */
+  public static calibrateDifficulty(
+    originalDifficulty: string,
+    globalAccuracyPct: number,
+    averageTimeMs: number,
+    abandonmentRatePct: number,
+    hintUsagePct: number
+  ): "easy" | "medium" | "hard" {
+    
+    let score = 0; // Higher score = harder
+
+    // Accuracy heavily weights difficulty (inverse)
+    if (globalAccuracyPct < 30) score += 5;
+    else if (globalAccuracyPct < 50) score += 3;
+    else if (globalAccuracyPct > 80) score -= 2;
+
+    // Time factor (assuming > 90s is hard, < 30s is easy)
+    if (averageTimeMs > 90000) score += 2;
+    if (averageTimeMs < 30000) score -= 1;
+
+    // Hint usage factor
+    if (hintUsagePct > 50) score += 2;
+
+    // Abandonment rate factor
+    if (abandonmentRatePct > 20) score += 2;
+
+    // Convert score to difficulty bucket
+    if (score >= 5) return "hard";
+    if (score >= 2) return "medium";
+    return "easy";
+  }
 }
+

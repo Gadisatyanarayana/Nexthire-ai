@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Bot, X, Maximize2, Minimize2 } from "lucide-react";
 import { TutorChat } from "./TutorChat";
 
-export function AITutorWidget() {
+export function AITutorWidget({ initialContext }: { initialContext?: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -54,7 +54,7 @@ export function AITutorWidget() {
           </div>
 
           <div className="flex-1 overflow-hidden">
-            <TutorChat />
+            <TutorChat initialContext={initialContext} />
           </div>
         </div>
       )}

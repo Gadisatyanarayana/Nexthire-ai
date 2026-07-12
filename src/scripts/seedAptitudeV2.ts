@@ -50,7 +50,7 @@ async function seed() {
   console.log(`Inserting ${formulas.length} Formulas...`);
   const { error: formErr } = await supabase
     .from("apt_formulas")
-    .insert(formulas);
+    .upsert(formulas, { onConflict: "id" });
   if (formErr) console.error("Error inserting formulas:", formErr.message);
   else console.log("Formulas seeded successfully.");
 
@@ -65,7 +65,8 @@ async function seed() {
     // Insert questions and return IDs
     const { data: insertedQuestions, error: insErr } = await supabase
       .from("apt_questions")
-      .insert(batch.map((q: any) => ({
+      .upsert(batch.map((q: any) => ({
+        id: q.id,
         lesson_id: q.lesson_id,
         question: q.question,
         options: q.options,
@@ -73,7 +74,7 @@ async function seed() {
         explanation: q.explanation,
         difficulty: q.difficulty,
         status: q.status
-      })))
+      })), { onConflict: "id" })
       .select("id, question");
 
     if (insErr) {
@@ -101,7 +102,7 @@ async function seed() {
       if (tagsToInsert.length > 0) {
         const { error: tagErr } = await supabase
           .from("apt_company_tags")
-          .insert(tagsToInsert);
+          .upsert(tagsToInsert, { onConflict: "question_id, company_name" });
         if (tagErr) console.error(`Error inserting company tags batch:`, tagErr.message);
       }
     }

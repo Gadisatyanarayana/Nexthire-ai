@@ -13,6 +13,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
 
   let company: any = null;
   let readiness: any = null;
+  let userMastery: any[] = [];
 
   try {
     const [cRes, rRes] = await Promise.all([
@@ -27,6 +28,20 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
 
     const rData = await rRes.json();
     if (rData.success) readiness = rData.data;
+
+    const { getModules, getAllLessons, getServerUserId, getUserTopicMastery } = await import("@/lib/api/aptitudeV2");
+    const userId = await getServerUserId();
+    if (userId) {
+      userMastery = await getUserTopicMastery(userId);
+    }
+    const [allModules, allLessons] = await Promise.all([
+      getModules(),
+      getAllLessons()
+    ]);
+    
+    // Attach to a global ref or pass down so we can use it in the render loop without blocking
+    company._allModules = allModules;
+    company._allLessons = allLessons;
   } catch (e) {
     console.error(e);
   }
@@ -34,6 +49,8 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
   if (!company) {
     return <div className="p-8 text-center text-white">Company not found.</div>;
   }
+
+  const { KnowledgeGraphEngine } = await import("@/lib/aptitude/KnowledgeGraphEngine");
 
   return (
     <div className="min-h-screen bg-black text-white pb-32">
@@ -87,14 +104,14 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
             Exam Pattern
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
-            {company.sections.map((sec: any, i: number) => (
-              <div key={i} className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex justify-between items-center">
-                <span className="font-semibold text-lg">{sec.name}</span>
+            {(company.sections || []).map((sec: any, i: number) => (
+              <Link href={`/aptitude/practice/company/${company.id}`} key={i} className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex justify-between items-center hover:border-blue-500/50 hover:bg-zinc-800 transition-colors group">
+                <span className="font-semibold text-lg group-hover:text-blue-400 transition-colors">{sec.name}</span>
                 <div className="text-right">
                   <div className="text-sm text-zinc-300">{sec.num_questions} Questions</div>
                   <div className="text-xs text-zinc-500 flex items-center justify-end gap-1"><Clock className="w-3 h-3"/> {sec.duration_minutes} mins</div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -105,12 +122,83 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
             <BookOpen className="w-6 h-6 text-purple-500" />
             High Weightage Topics
           </h2>
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(company.topic_weightage).map(([topic, weight]: any) => (
-              <div key={topic} className="px-4 py-2 bg-zinc-800 rounded-full text-sm font-medium border border-zinc-700">
-                {topic} <span className="text-emerald-400 ml-1">{weight}%</span>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(company.topic_weightage || {}).map(([topic, data]: any) => {
+              const weight = typeof data === 'object' ? data.weight : data;
+              
+              // Real readiness logic
+              let userTopicReadiness = 0;
+              let isLocked = false;
+              if (data.lessonId) {
+                const masteryObj = userMastery.find(m => m.topic_id === data.lessonId);
+                if (masteryObj) {
+                  userTopicReadiness = masteryObj.mastery_score;
+                }
+                
+                if (company._allModules && company._allLessons) {
+                  const { locked } = KnowledgeGraphEngine.isLessonLocked(data.lessonId, company._allModules, company._allLessons, userMastery);
+                  isLocked = locked;
+                }
+              }
+
+              const linkHref = typeof data === 'object' && data.lessonId && data.moduleId 
+                ? `/aptitude/learn/${data.moduleId}/${data.lessonId}` 
+                : `/aptitude?search=${encodeURIComponent(topic)}`;
+
+              if (isLocked) {
+                return (
+                  <div key={topic} className="block p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-xl opacity-60 cursor-not-allowed">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="font-bold text-zinc-400">{topic}</span>
+                      <span className="px-2 py-1 bg-zinc-800 text-zinc-500 text-xs font-bold rounded-lg border border-zinc-700 flex items-center gap-1">
+                        Locked
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-zinc-500">
+                        <span>Complete earlier levels</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <Link key={topic} href={linkHref} className="block p-5 bg-zinc-900 border border-zinc-800 hover:border-purple-500/50 rounded-xl transition-all group">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-bold text-white group-hover:text-purple-400 transition-colors">{topic}</span>
+                    <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs font-bold rounded-lg border border-purple-500/20">
+                      {weight > 0 ? `${weight}% Exam Weight` : 'Core Topic'}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-zinc-400">
+                      <span>Your Mastery</span>
+                      <span>{userTopicReadiness}%</span>
+                    </div>
+                    <div className="w-full bg-zinc-800 rounded-full h-1.5">
+                      <div className="bg-gradient-to-r from-zinc-500 to-purple-400 h-1.5 rounded-full" style={{ width: `${userTopicReadiness}%` }} />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Action Panel */}
+        <section className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 p-8 rounded-2xl border border-emerald-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div>
+            <h3 className="text-xl font-bold text-white mb-2">Ready to conquer {company.name}?</h3>
+            <p className="text-zinc-400 text-sm max-w-md">Start a targeted practice session containing only high-weightage questions asked in previous {company.name} recruitment drives.</p>
+          </div>
+          <div className="flex gap-4 w-full md:w-auto">
+            <Link href={`/aptitude/mock-tests?company=${company.id}`} className="flex-1 md:flex-none text-center px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-black font-bold rounded-xl transition-colors">
+              Take {company.name} Mock
+            </Link>
+            <Link href={`/aptitude/practice/company/${company.id}`} className="flex-1 md:flex-none text-center px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors border border-zinc-700">
+              Practice Questions
+            </Link>
           </div>
         </section>
       </div>

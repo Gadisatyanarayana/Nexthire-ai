@@ -91,8 +91,8 @@ export default function MockTestsPage() {
                 <div>
                   <h3 className="text-xl font-bold mb-2">{c.name} Pattern</h3>
                   <div className="flex gap-4 text-sm text-zinc-400 mb-6">
-                    <span className="flex items-center gap-1"><Clock className="w-4 h-4"/> {c.sections.reduce((a:any,s:any)=>a+s.duration_minutes,0)} mins</span>
-                    <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4"/> {c.sections.reduce((a:any,s:any)=>a+s.num_questions,0)} Qs</span>
+                    <span className="flex items-center gap-1"><Clock className="w-4 h-4"/> {(c.sections || []).reduce((a:any,s:any)=>a+s.duration_minutes,0)} mins</span>
+                    <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4"/> {(c.sections || []).reduce((a:any,s:any)=>a+s.num_questions,0)} Qs</span>
                   </div>
                 </div>
                 <button 
@@ -122,7 +122,11 @@ export default function MockTestsPage() {
                 <tbody className="divide-y divide-zinc-800">
                   {history.map(h => (
                     <tr key={h.id}>
-                      <td className="px-6 py-4 font-medium">{h.session_data?.config?.title || "Mock Test"}</td>
+                      <td className="px-6 py-4 font-medium">
+                        <Link href={`/aptitude/mock-tests/${h.id}/results`} className="hover:text-emerald-400 hover:underline">
+                          {h.session_data?.config?.title || "Mock Test"}
+                        </Link>
+                      </td>
                       <td className="px-6 py-4 text-zinc-400">{new Date(h.end_time).toLocaleDateString()}</td>
                       <td className="px-6 py-4 font-bold text-emerald-400">{Math.round(h.score)}%</td>
                     </tr>

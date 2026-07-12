@@ -3,17 +3,28 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Bot, User } from "lucide-react";
 import { LLMMessage } from "@/lib/llm/SafeLLMClient";
+import { MemoryManager } from "@/lib/aptitude/MemoryManager";
 
 export function TutorChat({ initialContext }: { initialContext?: any }) {
-  const [messages, setMessages] = useState<LLMMessage[]>([
-    { role: 'assistant', content: "Hi! I'm your AI Aptitude Tutor. Are you stuck on a problem or do you want to learn a new concept?" }
-  ]);
+  const [messages, setMessages] = useState<LLMMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const history = MemoryManager.getHistory();
+    if (history.length > 0) {
+      setMessages(history);
+    } else {
+      setMessages([{ role: 'assistant', content: "Hi! I'm your AI Aptitude Tutor. Are you stuck on a problem or do you want to learn a new concept?" }]);
+    }
+  }, []);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) {
+      MemoryManager.saveHistory(messages);
+    }
   }, [messages]);
 
   const sendMessage = async () => {

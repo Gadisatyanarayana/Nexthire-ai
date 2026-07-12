@@ -1,0 +1,15 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight
+  push:
+    branches: [ "main" ]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run npm audit
+      run: npm audit --audit-level=high

@@ -34,7 +34,7 @@ export async function RevisionList({ userId }: { userId: string }) {
       {revisions.slice(0, 3).map((rev) => (
         <Link 
           key={rev.topic_id} 
-          href={`/aptitude/practice/${rev.topic_id}`}
+          href={`/aptitude/learn/${rev.apt_lessons?.module_id}/${rev.topic_id}?tab=practice`}
           className="block p-3 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 transition-colors"
         >
           <div className="flex justify-between items-center">

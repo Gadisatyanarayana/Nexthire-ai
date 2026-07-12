@@ -92,12 +92,15 @@ export default function TimedAssessmentPage() {
     };
   }, [loading, questions, currentIdx, submitting]);
 
-  const handleNavigate = (idx: number) => {
+  const handleNavigate = (idx: number, overrideStatus?: QuestionStatus) => {
     if (idx < 0 || idx >= questions.length) return;
     
     // Mark current as visited if not answered/marked
     const currentQId = questions[currentIdx].id as string;
     setStatuses(prev => {
+      if (overrideStatus) {
+        return { ...prev, [currentQId]: overrideStatus };
+      }
       if (prev[currentQId] === "unvisited" || prev[currentQId] === "visited") {
         return { ...prev, [currentQId]: responses[currentQId] !== null ? "answered" : "visited" };
       }
@@ -109,6 +112,7 @@ export default function TimedAssessmentPage() {
     // Mark new as visited if unvisited
     const newQId = questions[idx].id as string;
     setStatuses(prev => {
+      // If we just marked it, don't overwrite the new q if it happens to be the same (shouldn't be, but safe)
       if (prev[newQId] === "unvisited") {
         return { ...prev, [newQId]: "visited" };
       }
@@ -123,9 +127,7 @@ export default function TimedAssessmentPage() {
   };
 
   const handleMarkReview = () => {
-    const qId = questions[currentIdx].id as string;
-    setStatuses(prev => ({ ...prev, [qId]: "marked" }));
-    handleNavigate(currentIdx + 1);
+    handleNavigate(currentIdx + 1, "marked");
   };
 
   const handleClearResponse = () => {
@@ -163,8 +165,10 @@ export default function TimedAssessmentPage() {
       });
       const data = await res.json();
       if (data.success) {
-        // Redirect to a summary page or show overlay
-        router.push("/aptitude/mock-tests"); // for now redirect back to list
+        router.push(`/aptitude/mock-tests/${testId}/results`);
+      } else {
+        alert("Failed to submit test: " + data.error);
+        setSubmitting(false);
       }
     } catch (e) {
       console.error(e);

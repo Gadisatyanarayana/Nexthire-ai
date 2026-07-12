@@ -29,8 +29,58 @@ export async function POST(request: NextRequest) {
 
     const { message, history, context } = result.data;
 
+    // Identifier Resolution & Personalization Fetch
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    let personalization = {
+      style: 'Standard',
+      speed: 'Moderate',
+      weakTopics: [] as string[],
+      strongTopics: [] as string[],
+      targetCompanies: [] as string[]
+    };
+
+    try {
+      // Fetch user mastery metrics to build memory/personalization on the fly
+      const { data: analyticsData } = await supabase
+        .from('apt_topic_mastery')
+        .select('topic_id, mastery_score')
+        .eq('user_id', session.user.id);
+        
+      if (analyticsData) {
+        personalization.weakTopics = analyticsData.filter(d => d.mastery_score < 50).map(d => d.topic_id).slice(0, 3);
+        personalization.strongTopics = analyticsData.filter(d => d.mastery_score >= 80).map(d => d.topic_id).slice(0, 3);
+      }
+
+      // Fetch user preferences (mocked via profiles table if it exists, skipping detailed schema check for safety)
+      const { data: profile } = await supabase.from('profiles').select('learning_style, target_companies').eq('id', session.user.id).single();
+      if (profile) {
+        if (profile.learning_style) personalization.style = profile.learning_style;
+        if (profile.target_companies) personalization.targetCompanies = profile.target_companies;
+      }
+      
+      // Context Resolution for Active Question
+      if (context && context.questionId) {
+        const { data: qData } = await supabase.from('apt_questions').select('question_text, options, correct_option, explanation, difficulty').eq('id', context.questionId).single();
+        if (qData) {
+          context.activeQuestionData = {
+            question: qData.question_text,
+            options: qData.options,
+            correctOption: qData.correct_option,
+            explanation: qData.explanation,
+            difficulty: qData.difficulty
+          };
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch full personalization context:", e);
+    }
+
     // Use AITutorEngine to build the prompt
-    const messages = AITutorEngine.buildChatPrompt(message, history as LLMMessage[], context);
+    const messages = AITutorEngine.buildChatPrompt(message, history as LLMMessage[], context, personalization);
 
     // Stream the response using SafeLLMClient
     const response = await SafeLLMClient.createCompletion(messages, { stream: true, provider: 'groq' });

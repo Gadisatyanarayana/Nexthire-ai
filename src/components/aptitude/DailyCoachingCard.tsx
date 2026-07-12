@@ -60,7 +60,7 @@ export function DailyCoachingCard() {
         </div>
 
         <div className="flex gap-4">
-          <Link href="/aptitude/practice" className="px-4 py-2 bg-emerald-500 text-black font-bold text-sm rounded-lg hover:bg-emerald-400 transition flex items-center gap-2">
+          <Link href={plan.recommendedRoute || "/aptitude"} className="px-4 py-2 bg-emerald-500 text-black font-bold text-sm rounded-lg hover:bg-emerald-400 transition flex items-center gap-2">
             Start Learning <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

@@ -7,9 +7,9 @@ import { SearchButton } from "@/components/aptitude/SearchButton";
 import { RevisionList } from "@/components/aptitude/RevisionList";
 import { WeakTopicsList } from "@/components/aptitude/WeakTopicsList";
 import { AITutorWidget } from "@/components/aptitude/AITutorWidget";
+import { ContinueLearningCard } from "@/components/aptitude/ContinueLearningCard";
 import { StudyPlanCard } from "@/components/aptitude/StudyPlanCard";
 import { RecommendedQuizCard } from "@/components/aptitude/RecommendedQuizCard";
-import { ConversationHistory } from "@/components/aptitude/ConversationHistory";
 
 export const revalidate = 3600;
 
@@ -18,12 +18,28 @@ export default async function AptitudeHubPage() {
   
   const userId = await getServerUserId();
   let mastery: any[] = [];
+  let allLessons: any[] = [];
+  
   if (userId) {
     mastery = await getUserTopicMastery(userId);
   }
+  
+  // We need lessons for the progress and continue learning
+  try {
+    const { getAllLessons } = await import("@/lib/api/aptitudeV2");
+    allLessons = await getAllLessons();
+  } catch (e) {
+    console.error("Failed to fetch all lessons", e);
+  }
 
-  const totalLessons = modules.reduce((acc, m) => acc + ((m as any).apt_lessons?.length || 5), 0); // fallback if not populated
+  const totalLessons = allLessons.length > 0 ? allLessons.length : modules.reduce((acc, m) => acc + ((m as any).apt_lessons?.length || 5), 0);
   const completedLessons = mastery.filter(m => m.mastery_score >= 80).length;
+
+  let nextAction = null;
+  if (allLessons.length > 0) {
+    const { KnowledgeGraphEngine } = await import("@/lib/aptitude/KnowledgeGraphEngine");
+    nextAction = KnowledgeGraphEngine.getNextActionPriority(modules, allLessons, mastery);
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -56,6 +72,12 @@ export default async function AptitudeHubPage() {
             </Link>
           </div>
         </header>
+
+        {nextAction && (
+          <div className="mb-8">
+            <ContinueLearningCard action={nextAction} />
+          </div>
+        )}
 
         {/* Dashboard Intelligence Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
@@ -114,7 +136,6 @@ export default async function AptitudeHubPage() {
               </div>
               <div className="space-y-6">
                 <RecommendedQuizCard />
-                <ConversationHistory />
               </div>
             </div>
           </div>
@@ -127,24 +148,44 @@ export default async function AptitudeHubPage() {
             Curriculum Modules
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {modules.map((module) => (
-              <Link 
-                key={module.id} 
-                href={`/aptitude/learn/${module.id}`}
-                className="group relative bg-zinc-900/40 border border-zinc-800 hover:border-emerald-500/50 rounded-2xl p-6 transition-all hover:bg-zinc-900"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="px-2.5 py-1 bg-zinc-800 text-emerald-400 text-xs font-semibold uppercase tracking-wider rounded-md">
-                      Level {module.level_order}
-                    </span>
-                    <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-emerald-500 transition-colors" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{module.title}</h3>
+            {modules.map((module) => {
+              const { KnowledgeGraphEngine } = require("@/lib/aptitude/KnowledgeGraphEngine");
+              const { locked } = KnowledgeGraphEngine.isModuleLocked(module.id, modules, allLessons, mastery);
+
+              return (
+                <div key={module.id} className="relative">
+                  <Link 
+                    href={locked ? "#" : `/aptitude/learn/${module.id}`}
+                    className={`block group relative bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6 transition-all ${
+                      locked ? "opacity-60 cursor-not-allowed" : "hover:border-emerald-500/50 hover:bg-zinc-900 cursor-pointer"
+                    }`}
+                  >
+                    {!locked && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+                    )}
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-4">
+                        <span className="px-2.5 py-1 bg-zinc-800 text-emerald-400 text-xs font-semibold uppercase tracking-wider rounded-md">
+                          Level {module.level_order}
+                        </span>
+                        {locked ? (
+                          <div className="p-1.5 bg-zinc-800/80 rounded-lg" title="Complete previous level to unlock">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          </div>
+                        ) : (
+                          <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-emerald-500 transition-colors" />
+                        )}
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                        {module.title}
+                        {!locked && <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>}
+                      </h3>
+                      {locked && <p className="text-xs text-red-400 mt-2">Locked: Complete Level {module.level_order - 1} to unlock</p>}
+                    </div>
+                  </Link>
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AptitudeModule, AptitudeLesson } from "@/models/aptitude";
 import { BookOpen, CheckCircle2, Lock } from "lucide-react";
 import { DifficultyBadge } from "./DifficultyBadge";
+import { KnowledgeGraphEngine } from "@/lib/aptitude/KnowledgeGraphEngine";
 
 export function TopicSidebar({ 
   modules, 
@@ -25,30 +26,59 @@ export function TopicSidebar({
         
         <div className="space-y-8">
           {modules.map((module, mIdx) => {
-            // A module is unlocked if it's the first module or if previous modules have some progress
-            // For now, let's keep all modules unlocked, but we could enforce sequential completion
+            const allLessons = modules.flatMap(m => m.apt_lessons || []);
+            const { locked: isModuleLocked } = KnowledgeGraphEngine.isModuleLocked(
+              module.id,
+              modules as any,
+              allLessons,
+              mastery
+            );
+
             return (
-            <div key={module.id} className="space-y-3">
-              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+            <div key={module.id} className={`space-y-3 ${isModuleLocked ? 'opacity-50' : ''}`}>
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
                 {module.title}
+                {isModuleLocked && <Lock className="w-3.5 h-3.5 text-zinc-500" />}
               </h3>
               <div className="space-y-1">
                 {module.apt_lessons?.map((lesson, lIdx) => {
                   const isActive = lesson.id === currentLessonId;
                   
                   const lessonMastery = mastery.find(m => m.topic_id === lesson.id);
-                  const isCompleted = lessonMastery && lessonMastery.mastery_score >= 80;
+                  const isCompleted = lessonMastery && lessonMastery.mastery_score >= 75;
                   
-                  // Naive locking: locked if previous lesson in this module is NOT completed.
-                  // Only lock if we actually have lessons array and we are past index 0.
-                  const prevLesson = lIdx > 0 ? module.apt_lessons[lIdx - 1] : null;
-                  let isLocked = false;
-                  if (prevLesson) {
-                    const prevMastery = mastery.find(m => m.topic_id === prevLesson.id);
-                    isLocked = !prevMastery || prevMastery.mastery_score < 80;
-                  }
+                  // Use KnowledgeGraphEngine
+                  const allLessons = modules.flatMap(m => m.apt_lessons || []);
+                  const { locked: isLessonLevelLocked } = KnowledgeGraphEngine.isLessonLocked(
+                    lesson.id,
+                    modules as any,
+                    allLessons,
+                    mastery
+                  );
+                  const isLocked = isModuleLocked || isLessonLevelLocked;
 
-                  return (
+                  return isLocked ? (
+                    <div
+                      key={lesson.id}
+                      className="flex flex-col p-3 rounded-lg transition-colors border bg-transparent border-transparent opacity-50 cursor-not-allowed"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-zinc-300 line-clamp-1">
+                          {lesson.title}
+                        </span>
+                        <Lock className="w-4 h-4 text-zinc-600 shrink-0" />
+                      </div>
+                      <div className="flex flex-col gap-1 mt-1">
+                        <div className="flex items-center gap-2 text-xs">
+                          <DifficultyBadge difficulty={lesson.difficulty} />
+                          <span className="text-zinc-500">{lesson.reading_time}</span>
+                        </div>
+                        <span className="text-[10px] text-red-400 font-medium leading-tight">
+                          Complete previous topics to unlock
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
                     <Link
                       key={lesson.id}
                       href={`/aptitude/learn/${module.id}/${lesson.id}`}
@@ -57,18 +87,13 @@ export function TopicSidebar({
                         ${isActive 
                           ? 'bg-zinc-800/80 border-emerald-500/30' 
                           : 'bg-transparent border-transparent hover:bg-zinc-900'}
-                        ${isLocked ? 'opacity-50 pointer-events-none' : ''}
                       `}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className={`text-sm font-medium ${isActive ? 'text-white' : 'text-zinc-300'}`}>
                           {lesson.title}
                         </span>
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        ) : isLocked ? (
-                          <Lock className="w-4 h-4 text-zinc-600 shrink-0" />
-                        ) : null}
+                        {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <DifficultyBadge difficulty={lesson.difficulty} />

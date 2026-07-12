@@ -5,6 +5,11 @@ export const AptitudeModuleSchema = z.object({
   title: z.string(),
   level_order: z.number(),
   created_at: z.string().optional(),
+  // Knowledge Graph Extensions
+  parent_id: z.string().optional(),
+  child_ids: z.array(z.string()).optional(),
+  required_dependencies: z.array(z.string()).optional(),
+  recommended_dependencies: z.array(z.string()).optional(),
 });
 export type AptitudeModule = z.infer<typeof AptitudeModuleSchema>;
 
@@ -17,6 +22,14 @@ export const AptitudeLessonSchema = z.object({
   content: z.any(),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
   created_at: z.string().optional(),
+  // Knowledge Graph Extensions
+  parent_id: z.string().optional(),
+  child_ids: z.array(z.string()).optional(),
+  required_dependencies: z.array(z.string()).optional(),
+  recommended_dependencies: z.array(z.string()).optional(),
+  concepts_learned: z.array(z.string()).optional(),
+  concepts_required_next: z.array(z.string()).optional(),
+  module_milestone: z.boolean().optional(),
 });
 export type AptitudeLesson = z.infer<typeof AptitudeLessonSchema>;
 
@@ -40,6 +53,7 @@ export const AptitudeQuestionSchema = z.object({
   difficulty: z.string(),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
   companies: z.array(z.string()).optional(),
+  apt_company_tags: z.any().optional(),
 });
 export type AptitudeQuestion = z.infer<typeof AptitudeQuestionSchema>;
 
@@ -58,8 +72,11 @@ export const AptitudeTopicMasterySchema = z.object({
   user_id: z.string(),
   topic_id: z.string(),
   mastery_score: z.number(),
+  mastery_level: z.enum(["Not Started", "Learning", "Practicing", "Competent", "Mastered", "Expert"]).default("Not Started"),
   questions_attempted: z.number(),
   last_reviewed_at: z.string().optional(),
+  revision_queue_date: z.string().optional(),
+  confidence_score: z.number().optional(),
 });
 export type AptitudeTopicMastery = z.infer<typeof AptitudeTopicMasterySchema>;
 

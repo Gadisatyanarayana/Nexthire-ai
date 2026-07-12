@@ -32,10 +32,39 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch all questions for this lesson
-    const { data: allQuestions } = await supabase
+    let { data: allQuestions } = await supabase
       .from("apt_questions")
       .select("*, apt_company_tags (company_name)")
       .eq("lesson_id", lessonId);
+
+    let pool = allQuestions || [];
+    
+    // Multi-stage fallback
+    if (pool.length === 0) {
+      console.log(`[QuestionEngine API] No exact lesson questions found for ${lessonId}. Triggering fallback...`);
+      
+      // 1. Module level fallback
+      const { data: lesson } = await supabase.from("apt_lessons").select("module_id").eq("id", lessonId).single();
+      if (lesson?.module_id) {
+        const { data: moduleLessons } = await supabase.from("apt_lessons").select("id").eq("module_id", lesson.module_id);
+        const moduleLessonIds = moduleLessons?.map(l => l.id) || [];
+        
+        if (moduleLessonIds.length > 0) {
+          const { data: modQuestions } = await supabase.from("apt_questions")
+            .select("*, apt_company_tags (company_name)")
+            .in("lesson_id", moduleLessonIds);
+          pool = modQuestions || [];
+        }
+      }
+
+      // 2. Global random fallback
+      if (pool.length === 0) {
+        const { data: randomQuestions } = await supabase.from("apt_questions")
+          .select("*, apt_company_tags (company_name)")
+          .limit(100);
+        pool = randomQuestions || [];
+      }
+    }
 
     // Fetch user attempts
     const { data: attempts } = await supabase
@@ -55,7 +84,7 @@ export async function GET(request: NextRequest) {
 
     // Use QuestionEngine to adaptively select questions
     const adaptiveQuestions = QuestionEngine.selectAdaptiveQuestions(
-      allQuestions || [],
+      pool,
       attempts || [],
       score,
       limit

@@ -36,6 +36,8 @@ export function getAdminClient() {
   });
 }
 
+export const supabaseAdmin = getAdminClient();
+
 export async function upsertUserAdmin(user: SyncUserInput) {
   const supabaseAdmin = getAdminClient();
 

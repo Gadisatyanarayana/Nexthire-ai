@@ -14,7 +14,7 @@ When you (the agent) are solving a coding challenge, or asked to fix compiler er
 9. Use only standard libraries.
 10. Do not include explanations, comments, or markdown—return only the source code.
 
-**Ideal Input Processing:**
+**Ideal Input Processing:** it qwas not showing 
 The AI must ALWAYS receive the starter code exactly. Without it, the AI has to guess the class name or function signature, which causes compile errors in the NextHire judge.
 
 Example for Java:

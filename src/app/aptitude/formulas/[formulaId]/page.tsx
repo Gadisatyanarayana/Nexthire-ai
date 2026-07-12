@@ -7,8 +7,9 @@ import { ArrowLeft } from "lucide-react";
 
 export const revalidate = 3600;
 
-export default async function FormulaPage({ params }: { params: { formulaId: string } }) {
-  const formula = await getFormula(params.formulaId);
+export default async function FormulaPage({ params }: { params: Promise<{ formulaId: string }> }) {
+  const { formulaId } = await params;
+  const formula = await getFormula(formulaId);
 
   if (!formula) notFound();
 

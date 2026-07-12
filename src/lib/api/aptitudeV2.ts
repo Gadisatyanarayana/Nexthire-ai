@@ -72,11 +72,37 @@ export async function getLessonsByModule(moduleId: string): Promise<AptitudeLess
   const { data, error } = await supabase
     .from("apt_lessons")
     .select("*")
-    .eq("module_id", moduleId)
-    .order("created_at", { ascending: true });
+    .eq("module_id", moduleId);
     
   if (error) throw error;
-  return data as AptitudeLesson[];
+  
+  // Sort in memory by parsing the numeric part of the ID (e.g., 'lesson-apt-2' -> 2)
+  const lessons = data as AptitudeLesson[];
+  return lessons.sort((a, b) => {
+    const aNum = parseInt(a.id.split('-').pop() || "0", 10) || 0;
+    const bNum = parseInt(b.id.split('-').pop() || "0", 10) || 0;
+    return aNum - bNum;
+  });
+}
+
+export async function getAllLessons(): Promise<AptitudeLesson[]> {
+  const { data, error } = await supabase
+    .from("apt_lessons")
+    .select("*")
+    .order("module_id", { ascending: true });
+    
+  if (error) throw error;
+  
+  // Sort in memory by parsing the numeric part of the ID
+  const lessons = data as AptitudeLesson[];
+  return lessons.sort((a, b) => {
+    if (a.module_id !== b.module_id) {
+      return a.module_id.localeCompare(b.module_id);
+    }
+    const aNum = parseInt(a.id.split('-').pop() || "0", 10) || 0;
+    const bNum = parseInt(b.id.split('-').pop() || "0", 10) || 0;
+    return aNum - bNum;
+  });
 }
 
 export async function getFormula(id: string): Promise<AptitudeFormula | null> {
@@ -136,14 +162,51 @@ export async function getUserRevisionQueue(userId: string): Promise<any[]> {
 }
 
 export async function searchAptitudeLessons(query: string): Promise<AptitudeLesson[]> {
-  const { data, error } = await supabase
+  // 1. Direct title search
+  const { data: titleData, error: titleError } = await supabase
     .from("apt_lessons")
     .select("*")
     .ilike("title", `%${query}%`)
     .limit(10);
     
-  if (error) throw error;
-  return data as AptitudeLesson[];
+  if (titleError) throw titleError;
+
+  // 2. Company tags resolution
+  const { data: tagData, error: tagError } = await supabase
+    .from("apt_company_tags")
+    .select("apt_questions!inner(lesson_id)")
+    .ilike("company_name", `%${query}%`)
+    .limit(50);
+
+  if (tagError) throw tagError;
+
+  const lessonIds = new Set<string>();
+  if (tagData) {
+    for (const tag of tagData) {
+      const lId = (tag as any).apt_questions?.lesson_id;
+      if (lId) lessonIds.add(lId);
+    }
+  }
+
+  let combined = [...(titleData || [])];
+  
+  // Filter out any IDs already in combined
+  const existingIds = new Set(combined.map(l => l.id));
+  const newIds = Array.from(lessonIds).filter(id => !existingIds.has(id));
+
+  if (newIds.length > 0) {
+    const { data: moreLessons, error: moreError } = await supabase
+      .from("apt_lessons")
+      .select("*")
+      .in("id", newIds.slice(0, 10)); // Limit to avoid massive payload
+    
+    if (moreError) throw moreError;
+    if (moreLessons) {
+      combined = combined.concat(moreLessons);
+    }
+  }
+
+  return combined;
 }
 
 export async function searchAptitudeFormulas(query: string): Promise<AptitudeFormula[]> {

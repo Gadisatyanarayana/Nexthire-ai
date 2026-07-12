@@ -33,7 +33,7 @@ export async function WeakTopicsList({ userId }: { userId: string }) {
       {weakTopics.slice(0, 3).map((wt) => (
         <Link 
           key={wt.topic_id} 
-          href={`/aptitude/practice/${wt.topic_id}`}
+          href={`/aptitude/learn/${wt.module_id}/${wt.topic_id}?tab=practice`}
           className="block p-3 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 transition-colors"
         >
           <div className="flex justify-between items-center">

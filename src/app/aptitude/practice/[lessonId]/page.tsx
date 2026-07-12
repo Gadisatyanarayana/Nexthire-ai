@@ -29,9 +29,19 @@ export default function AdaptivePracticePage() {
   useEffect(() => {
     async function fetchQuestions() {
       try {
-        const res = await fetch(`/api/v1/aptitude/question-engine?lesson_id=${lessonId}&limit=10`);
+        const res = await fetch(`/api/v1/aptitude/questions?lesson_id=${lessonId}&limit=15`);
         const data = await res.json();
-        if (data.success) setQuestions(data.data);
+        if (data.success && data.data) {
+          setQuestions(data.data);
+          
+          // Respect the clicked question ID from URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const qId = urlParams.get('q');
+          if (qId) {
+            const idx = data.data.findIndex((q: any) => q.id === qId);
+            if (idx !== -1) setCurrentIdx(idx);
+          }
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -153,9 +163,19 @@ export default function AdaptivePracticePage() {
               <DifficultyBadge difficulty={q.difficulty} />
             </div>
 
-            <p className="text-lg font-medium text-white mb-6 leading-relaxed">
+            <p className="text-lg font-medium text-white mb-4 leading-relaxed">
               {q.question}
             </p>
+            
+            {q.apt_company_tags && q.apt_company_tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {(q.apt_company_tags as any[]).map((tag, idx) => (
+                  <span key={idx} className="px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase rounded-md border border-blue-500/20">
+                    {tag.company_name}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <div className="grid gap-3 mb-6">
               {q.options?.map((opt, oIdx) => {

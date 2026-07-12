@@ -1206,3 +1206,69 @@ CREATE POLICY "apt_certificates_owner" ON apt_certificates FOR ALL USING (auth.r
 DROP POLICY IF EXISTS "apt_badges_owner" ON apt_badges;
 CREATE POLICY "apt_badges_owner" ON apt_badges FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
 
+
+-- Phase 6: Gamification, Certificates, Readiness
+CREATE TABLE IF NOT EXISTS apt_gamification_profiles (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  xp_total integer NOT NULL DEFAULT 0,
+  current_level integer NOT NULL DEFAULT 1,
+  daily_streak integer NOT NULL DEFAULT 0,
+  last_active_date date,
+  created_at timestamp DEFAULT now(),
+  updated_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS apt_badges (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  badge_id text NOT NULL,
+  badge_name text NOT NULL,
+  earned_at timestamp DEFAULT now(),
+  UNIQUE(user_id, badge_id)
+);
+
+CREATE TABLE IF NOT EXISTS apt_certificates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  certificate_id text NOT NULL UNIQUE,
+  module_id text NOT NULL,
+  module_name text NOT NULL,
+  issued_at timestamp DEFAULT now(),
+  verification_url text
+);
+
+CREATE TABLE IF NOT EXISTS apt_company_readiness (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  company_id text NOT NULL,
+  readiness_tier text NOT NULL,
+  readiness_score float NOT NULL,
+  last_evaluated_at timestamp DEFAULT now(),
+  UNIQUE(user_id, company_id)
+);
+
+ALTER TABLE apt_gamification_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_certificates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE apt_company_readiness ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "apt_gamification_profiles_owner" ON apt_gamification_profiles;
+CREATE POLICY "apt_gamification_profiles_owner" ON apt_gamification_profiles FOR ALL USING (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+CREATE TABLE IF NOT EXISTS apt_companies (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  logo_url text,
+  active boolean DEFAULT true,
+  sections jsonb DEFAULT '[]'::jsonb,
+  overview jsonb DEFAULT '{}'::jsonb,
+  eligibility jsonb DEFAULT '{}'::jsonb,
+  test_pattern jsonb DEFAULT '{}'::jsonb,
+  syllabus jsonb DEFAULT '{}'::jsonb,
+  faqs jsonb DEFAULT '[]'::jsonb,
+  created_at timestamp DEFAULT now()
+);
+
+ALTER TABLE apt_companies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "apt_companies_read_access" ON apt_companies;
+CREATE POLICY "apt_companies_read_access" ON apt_companies FOR SELECT USING (true);
