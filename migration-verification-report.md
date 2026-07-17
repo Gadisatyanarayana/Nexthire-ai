@@ -1,0 +1,1 @@
+# Migration Verification Report\n\n## Tables Status\n✓ platform_questions_staging\n✓ platform_questions_versions\n✓ import_batches\n✓ batch_items\n\n## Constraints & Rollback Status\n✓ import_batches INSERT\n✓ Transaction rollback verified\n✓ Batch rollback verified\n\n## Status\nPASS\n

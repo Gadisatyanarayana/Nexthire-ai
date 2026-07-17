@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: NextHire AI Platform API
+  description: Enterprise Learning Management and Assessment API
+  version: 1.0.0
+servers:
+  - url: https://api.nexthire.ai/v1
+    description: Production Server
+paths:
+  /import/batch:
+    post:
+      summary: Upload an import batch
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: Batch accepted for processing
+  /questions:
+    get:
+      summary: List platform questions
+      parameters:
+        - name: domain_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of questions
+  /assessments/generate:
+    post:
+      summary: Generate a dynamic assessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                blueprintId:
+                  type: string
+                candidateId:
+                  type: string
+      responses:
+        '200':
+          description: Assessment generated
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []

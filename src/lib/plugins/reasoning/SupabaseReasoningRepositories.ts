@@ -17,8 +17,6 @@ class SupabaseReasoningBaseRepository {
   }
 
   public async beginTransaction(): Promise<void> {
-    // Supabase has implicit transaction boundaries on single RPC calls or batch writes.
-    // For local transactions in PostgreSQL, we could run raw sql, but we map standard calls here.
     return Promise.resolve();
   }
 
@@ -34,7 +32,7 @@ class SupabaseReasoningBaseRepository {
 export class SupabaseReasoningLessonRepository extends SupabaseReasoningBaseRepository implements ILessonRepository {
   public async getById(id: string): Promise<any> {
     const { data, error } = await this.client
-      .from("reasoning_lessons")
+      .from("platform_lessons")
       .select("*")
       .eq("id", id)
       .single();
@@ -44,7 +42,7 @@ export class SupabaseReasoningLessonRepository extends SupabaseReasoningBaseRepo
 
   public async getByModule(moduleId: string): Promise<any[]> {
     const { data, error } = await this.client
-      .from("reasoning_lessons")
+      .from("platform_lessons")
       .select("*")
       .eq("module_id", moduleId)
       .order("id");
@@ -54,8 +52,9 @@ export class SupabaseReasoningLessonRepository extends SupabaseReasoningBaseRepo
 
   public async getAll(): Promise<any[]> {
     const { data, error } = await this.client
-      .from("reasoning_lessons")
-      .select("*")
+      .from("platform_lessons")
+      .select("*, platform_modules!inner(domain_id)")
+      .eq("platform_modules.domain_id", "logical-reasoning")
       .order("id");
     if (error) throw error;
     return data || [];
@@ -63,7 +62,7 @@ export class SupabaseReasoningLessonRepository extends SupabaseReasoningBaseRepo
 
   public async save(lesson: any): Promise<void> {
     const { error } = await this.client
-      .from("reasoning_lessons")
+      .from("platform_lessons")
       .upsert(lesson);
     if (error) throw error;
   }
@@ -72,7 +71,7 @@ export class SupabaseReasoningLessonRepository extends SupabaseReasoningBaseRepo
 export class SupabaseReasoningQuestionRepository extends SupabaseReasoningBaseRepository implements IQuestionRepository {
   public async getById(id: string): Promise<any> {
     const { data, error } = await this.client
-      .from("reasoning_questions")
+      .from("platform_questions")
       .select("*")
       .eq("id", id)
       .single();
@@ -82,7 +81,7 @@ export class SupabaseReasoningQuestionRepository extends SupabaseReasoningBaseRe
 
   public async getByLesson(lessonId: string, limit: number): Promise<any[]> {
     const { data, error } = await this.client
-      .from("reasoning_questions")
+      .from("platform_questions")
       .select("*")
       .eq("lesson_id", lessonId)
       .limit(limit);
@@ -92,16 +91,16 @@ export class SupabaseReasoningQuestionRepository extends SupabaseReasoningBaseRe
 
   public async getByCompany(companyName: string, limit: number): Promise<any[]> {
     const { data, error } = await this.client
-      .from("reasoning_questions")
-      .select("*, apt_company_tags!inner (company_name)")
-      .ilike("reasoning_company_tags.company_name", companyName)
+      .from("platform_questions")
+      .select("*")
+      .contains("company_tags", [{ company: companyName }])
       .limit(limit);
     if (error) throw error;
     return data || [];
   }
 
   public async getRandomSet(limit: number, lessonId?: string): Promise<any[]> {
-    let query = this.client.from("reasoning_questions").select("*");
+    let query = this.client.from("platform_questions").select("*");
     if (lessonId) {
       query = query.eq("lesson_id", lessonId);
     }
@@ -112,7 +111,7 @@ export class SupabaseReasoningQuestionRepository extends SupabaseReasoningBaseRe
 
   public async save(question: any): Promise<void> {
     const { error } = await this.client
-      .from("reasoning_questions")
+      .from("platform_questions")
       .upsert(question);
     if (error) throw error;
   }
@@ -121,7 +120,7 @@ export class SupabaseReasoningQuestionRepository extends SupabaseReasoningBaseRe
 export class SupabaseReasoningMockRepository extends SupabaseReasoningBaseRepository implements IMockRepository {
   public async getById(id: string): Promise<any> {
     const { data, error } = await this.client
-      .from("reasoning_mock_sessions")
+      .from("platform_mock_sessions")
       .select("*")
       .eq("id", id)
       .single();
@@ -131,10 +130,10 @@ export class SupabaseReasoningMockRepository extends SupabaseReasoningBaseReposi
 
   public async getUserSessions(userId: string, limit: number): Promise<any[]> {
     const { data, error } = await this.client
-      .from("reasoning_mock_sessions")
+      .from("platform_mock_sessions")
       .select("*")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false })
+      .order("started_at", { ascending: false })
       .limit(limit);
     if (error) throw error;
     return data || [];
@@ -142,14 +141,14 @@ export class SupabaseReasoningMockRepository extends SupabaseReasoningBaseReposi
 
   public async createSession(session: any): Promise<void> {
     const { error } = await this.client
-      .from("reasoning_mock_sessions")
+      .from("platform_mock_sessions")
       .insert(session);
     if (error) throw error;
   }
 
   public async updateSession(id: string, updates: any): Promise<void> {
     const { error } = await this.client
-      .from("reasoning_mock_sessions")
+      .from("platform_mock_sessions")
       .update(updates)
       .eq("id", id);
     if (error) throw error;
@@ -159,7 +158,7 @@ export class SupabaseReasoningMockRepository extends SupabaseReasoningBaseReposi
 export class SupabaseReasoningMasteryRepository extends SupabaseReasoningBaseRepository implements IMasteryRepository {
   public async getUserMastery(userId: string): Promise<any[]> {
     const { data, error } = await this.client
-      .from("reasoning_topic_mastery")
+      .from("platform_topic_mastery")
       .select("*")
       .eq("user_id", userId);
     if (error) throw error;
@@ -168,7 +167,7 @@ export class SupabaseReasoningMasteryRepository extends SupabaseReasoningBaseRep
 
   public async getTopicMastery(userId: string, topicId: string): Promise<any | null> {
     const { data, error } = await this.client
-      .from("reasoning_topic_mastery")
+      .from("platform_topic_mastery")
       .select("*")
       .eq("user_id", userId)
       .eq("topic_id", topicId)
@@ -179,7 +178,7 @@ export class SupabaseReasoningMasteryRepository extends SupabaseReasoningBaseRep
 
   public async saveMastery(mastery: any): Promise<void> {
     const { error } = await this.client
-      .from("reasoning_topic_mastery")
+      .from("platform_topic_mastery")
       .upsert(mastery);
     if (error) throw error;
   }
@@ -188,7 +187,7 @@ export class SupabaseReasoningMasteryRepository extends SupabaseReasoningBaseRep
 export class SupabaseReasoningCompanyRepository extends SupabaseReasoningBaseRepository implements ICompanyRepository {
   public async getById(id: string): Promise<any> {
     const { data, error } = await this.client
-      .from("reasoning_companies")
+      .from("platform_companies")
       .select("*")
       .eq("id", id)
       .single();
@@ -198,7 +197,7 @@ export class SupabaseReasoningCompanyRepository extends SupabaseReasoningBaseRep
 
   public async getAll(): Promise<any[]> {
     const { data, error } = await this.client
-      .from("reasoning_companies")
+      .from("platform_companies")
       .select("*")
       .order("name");
     if (error) throw error;
@@ -207,7 +206,7 @@ export class SupabaseReasoningCompanyRepository extends SupabaseReasoningBaseRep
 
   public async save(company: any): Promise<void> {
     const { error } = await this.client
-      .from("reasoning_companies")
+      .from("platform_companies")
       .upsert(company);
     if (error) throw error;
   }

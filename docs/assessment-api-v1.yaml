@@ -1,0 +1,50 @@
+openapi: 3.0.3
+info:
+  title: NextHire AI - Assessment Platform API
+  description: Frozen contracts for the Enterprise Assessment Orchestration Layer
+  version: 1.0.0
+servers:
+  - url: https://api.nexthire.ai/api/v1/assessment
+paths:
+  /create:
+    post:
+      summary: Creates an assessment blueprint
+      responses:
+        '201':
+          description: Blueprint Created
+  /publish:
+    post:
+      summary: Transitions an assessment to PUBLISHED state
+      responses:
+        '200':
+          description: Successfully Published
+  /start:
+    post:
+      summary: Candidate starts an assessment (generates frozen snapshot)
+      responses:
+        '200':
+          description: Snapshot and event stream initialized
+  /submit:
+    post:
+      summary: Submits final event stream for evaluation
+      responses:
+        '202':
+          description: Accepted for async processing
+  /result:
+    get:
+      summary: Fetches the candidate's psychometric result
+      responses:
+        '200':
+          description: Result Object
+  /review:
+    get:
+      summary: Fetches the rich LeetCode-style review payload
+      responses:
+        '200':
+          description: Review Data
+  /analytics:
+    get:
+      summary: Fetches cohort-level psychometrics and operational metrics
+      responses:
+        '200':
+          description: Faculty Analytics Report

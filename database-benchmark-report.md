@@ -1,0 +1,1 @@
+# Database Benchmark Report\n\nInsert 100 rows\nPASS\nAverage Insert: 3.24 ms/row\n\nRollback\nPASS\n\nQuery Performance\nPASS\n\n

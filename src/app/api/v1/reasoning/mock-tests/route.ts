@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { LearningService } from "@/lib/learning/services/LearningService";
 import { LearningQueryService } from "@/lib/learning/services/LearningQueryService";
-const { CompanyEngine, MockTestEngine } = LearningService;
+const { MockTestEngine } = LearningService;
 
 const supabase = LearningQueryService.getRawClient();
 
@@ -78,13 +78,16 @@ export async function POST(request: NextRequest) {
 
     // Fetch questions targeting specific topics if requested
     let query = supabase.from("reasoning_questions").select("*");
+    const targetTopics = config.topics || config.topic_ids || [];
+    if (targetTopics.length > 0) {
+      query = query.in("lesson_id", targetTopics);
+    }
     const { data: allQuestions } = await query.limit(1000);
 
     let paper = MockTestEngine.buildTestPaper(config as any, allQuestions || []);
     
     if (paper.length === 0) {
-      // Fallback
-      return NextResponse.json({ success: false, error: "Failed to generate paper. No questions available." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Failed to generate paper. No questions available for selection." }, { status: 400 });
     }
 
     // Create session in database

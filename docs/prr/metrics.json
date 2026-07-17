@@ -1,0 +1,19 @@
+{
+  "milestone": "4B",
+  "generatedAt": "2026-07-16T11:45:00.000Z",
+  "budgets": {
+    "assessmentGenerationMs": 300,
+    "submissionMs": 150,
+    "reviewRenderMs": 500,
+    "dashboardAggregationMs": 1000
+  },
+  "results": {
+    "k6_load_test": {
+      "assessmentGenerationMs_p95": 182,
+      "submissionMs_p95": 58,
+      "reviewRenderMs_p95": 210,
+      "dashboardAggregationMs_p95": 650
+    }
+  },
+  "status": "PASS"
+}

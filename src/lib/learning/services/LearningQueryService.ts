@@ -20,11 +20,7 @@ export class LearningQueryService {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId || "");
 
     if (!isUuid && email) {
-      // Need a raw supabase client for this auth query
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
+      const supabase = this.getRawClient();
       const { data: userRecord } = await supabase
         .from("users")
         .select("id")
@@ -42,16 +38,23 @@ export class LearningQueryService {
 
   public static async getModules(subject: string = "aptitude"): Promise<AptitudeModule[]> {
     const supabase = this.getRawClient();
-    const table = subject === "reasoning" ? "reasoning_modules" : "apt_modules";
-    const { data, error } = await supabase.from(table).select("*").order("level_order", { ascending: true });
+    const domainId = subject === "reasoning" ? "logical-reasoning" : "quantitative-aptitude";
+    const { data, error } = await supabase
+      .from("platform_modules")
+      .select("*")
+      .eq("domain_id", domainId)
+      .order("level_order", { ascending: true });
     if (error) throw error;
     return data as AptitudeModule[];
   }
 
   public static async getModule(id: string, subject: string = "aptitude"): Promise<AptitudeModule | null> {
     const supabase = this.getRawClient();
-    const table = subject === "reasoning" ? "reasoning_modules" : "apt_modules";
-    const { data, error } = await supabase.from(table).select("*").eq("id", id).single();
+    const { data, error } = await supabase
+      .from("platform_modules")
+      .select("*")
+      .eq("id", id)
+      .single();
     if (error && error.code !== "PGRST116") throw error;
     return data ? (data as AptitudeModule) : null;
   }
@@ -91,18 +94,44 @@ export class LearningQueryService {
 
   public static async getFormula(id: string, subject: string = "aptitude"): Promise<AptitudeFormula | null> {
     const supabase = this.getRawClient();
-    const table = subject === "reasoning" ? "reasoning_formulas" : "apt_formulas";
-    const { data, error } = await supabase.from(table).select("*").eq("id", id).single();
-    if (error && error.code !== "PGRST116") throw error;
-    return data ? (data as AptitudeFormula) : null;
+    const { data: lessons, error } = await supabase
+      .from("platform_lessons")
+      .select("id, resources");
+    if (error || !lessons) return null;
+    for (const lesson of lessons) {
+      const formulas = lesson.resources?.formulas || [];
+      const found = formulas.find((f: any) => f.id === id);
+      if (found) {
+        return {
+          id: found.id || id,
+          topic_id: lesson.id,
+          formula_text: found.formula_text || found.text || "",
+          example_q: found.example_q || "",
+          example_a: found.example_a || "",
+          status: "published"
+        };
+      }
+    }
+    return null;
   }
 
   public static async getFormulasByLesson(lessonId: string, subject: string = "aptitude"): Promise<AptitudeFormula[]> {
     const supabase = this.getRawClient();
-    const table = subject === "reasoning" ? "reasoning_formulas" : "apt_formulas";
-    const { data, error } = await supabase.from(table).select("*").eq("topic_id", lessonId).order("created_at", { ascending: true });
-    if (error) throw error;
-    return data as AptitudeFormula[];
+    const { data: lesson, error } = await supabase
+      .from("platform_lessons")
+      .select("resources")
+      .eq("id", lessonId)
+      .single();
+    if (error || !lesson) return [];
+    const formulas = lesson.resources?.formulas || [];
+    return formulas.map((f: any, idx: number) => ({
+      id: f.id || `${lessonId}-f-${idx}`,
+      topic_id: lessonId,
+      formula_text: f.formula_text || f.text || "",
+      example_q: f.example_q || "",
+      example_a: f.example_a || "",
+      status: "published"
+    }));
   }
 
   public static async getQuestionPreview(lessonId: string, limit: number = 3, subject: string = "aptitude"): Promise<AptitudeQuestion[]> {
@@ -117,74 +146,76 @@ export class LearningQueryService {
 
   public static async getUserRevisionQueue(userId: string, subject: string = "aptitude"): Promise<any[]> {
     const supabase = this.getRawClient();
-    const table = subject === "reasoning" ? "reasoning_revision_queue" : "apt_revision_queue";
-    const { data, error } = await supabase.from(table).select("*").select("*").eq("user_id", userId);
+    const { data, error } = await supabase
+      .from("platform_topic_mastery")
+      .select("*, platform_lessons!inner(*)")
+      .eq("user_id", userId)
+      .not("revision_queue_date", "is", null);
+    if (error) throw error;
+    return (data || []).map((m: any) => ({
+      id: `${m.user_id}-${m.topic_id}`,
+      user_id: m.user_id,
+      topic_id: m.topic_id,
+      next_review_date: m.revision_queue_date,
+      created_at: m.created_at,
+      topic: m.platform_lessons
+    }));
+  }
+
+  public static async searchAptitudeLessons(query: string, subject: string = "aptitude"): Promise<AptitudeLesson[]> {
+    const domainId = subject === "reasoning" ? "logical-reasoning" : "quantitative-aptitude";
+    const supabase = this.getRawClient();
+    const { data, error } = await supabase
+      .from("platform_lessons")
+      .select("*, platform_modules!inner(domain_id)")
+      .eq("platform_modules.domain_id", domainId)
+      .ilike("title", `%${query}%`)
+      .limit(20);
     if (error) throw error;
     return data || [];
   }
 
-  public static async searchAptitudeLessons(query: string, subject: string = "aptitude"): Promise<AptitudeLesson[]> {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+  public static async searchAptitudeFormulas(query: string, subject: string = "aptitude"): Promise<AptitudeFormula[]> {
+    const domainId = subject === "reasoning" ? "logical-reasoning" : "quantitative-aptitude";
+    const supabase = this.getRawClient();
+    const { data: lessons, error } = await supabase
+      .from("platform_lessons")
+      .select("id, resources, platform_modules!inner(domain_id)")
+      .eq("platform_modules.domain_id", domainId);
+    if (error || !lessons) return [];
     
-    const { data: titleData, error: titleError } = await supabase
-      .from(subject === "reasoning" ? "reasoning_lessons" : "apt_lessons")
-      .select("*")
-      .ilike("title", `%${query}%`)
-      .limit(10);
-    if (titleError) throw titleError;
-
-    const { data: tagData, error: tagError } = await supabase
-      .from(subject === "reasoning" ? "reasoning_company_tags" : "apt_company_tags")
-      .select("reasoning_questions!inner(lesson_id)")
-      .ilike("company_name", `%${query}%`)
-      .limit(50);
-    if (tagError) throw tagError;
-
-    const lessonIds = new Set<string>();
-    if (tagData) {
-      for (const tag of tagData) {
-        const lId = (tag as any).apt_questions?.lesson_id || (tag as any).reasoning_questions?.lesson_id;
-        if (lId) lessonIds.add(lId);
+    const results: AptitudeFormula[] = [];
+    for (const lesson of lessons) {
+      const formulas = lesson.resources?.formulas || [];
+      for (const f of formulas) {
+        const text = f.formula_text || f.text || "";
+        if (text.toLowerCase().includes(query.toLowerCase())) {
+          results.push({
+            id: f.id || `${lesson.id}-f-${results.length}`,
+            topic_id: lesson.id,
+            formula_text: text,
+            example_q: f.example_q || "",
+            example_a: f.example_a || "",
+            status: "published"
+          });
+        }
       }
     }
-
-    let combined = [...(titleData || [])];
-    const existingIds = new Set(combined.map(l => l.id));
-    const newIds = Array.from(lessonIds).filter(id => !existingIds.has(id));
-
-    if (newIds.length > 0) {
-      const { data: moreLessons, error: moreError } = await supabase
-        .from(subject === "reasoning" ? "reasoning_lessons" : "apt_lessons")
-        .select("*")
-        .in("id", newIds.slice(0, 10));
-      if (moreError) throw moreError;
-      if (moreLessons) combined = combined.concat(moreLessons);
-    }
-    return combined;
+    return results.slice(0, 10);
   }
 
-  public static async searchAptitudeFormulas(query: string, subject: string = "aptitude"): Promise<AptitudeFormula[]> {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data, error } = await supabase.from(subject === "reasoning" ? "reasoning_formulas" : "apt_formulas").select("*").ilike("formula_text", `%${query}%`).limit(10);
-    if (error) throw error;
-    return data as AptitudeFormula[];
-  }
-
-  public static async getMockSession(sessionId: string): Promise<any> {
-    const repo = RepositoryFactory.getMockRepository();
+  public static async getMockSession(sessionId: string, subject: string = "aptitude"): Promise<any> {
+    const repo = RepositoryFactory.getMockRepository(subject);
     return await repo.getById(sessionId);
   }
 
-  public static async getQuestionsByIds(ids: string[]): Promise<AptitudeQuestion[]> {
+  public static async getQuestionsByIds(ids: string[], subject: string = "aptitude"): Promise<AptitudeQuestion[]> {
     if (!ids || ids.length === 0) return [];
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data, error } = await supabase.from("apt_questions").select("*").in("id", ids);
+    const supabase = this.getRawClient();
+    const { data, error } = await supabase
+      .from("platform_questions")
+      .select("*")
+      .in("id", ids);
     if (error) throw error;
     return data as AptitudeQuestion[];
   }
