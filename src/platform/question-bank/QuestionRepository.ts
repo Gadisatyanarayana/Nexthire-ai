@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { BaseRepository } from '../BaseRepository';
+import { BaseRepository } from '@/services/BaseRepository';
 import { Question } from '../../../packages/contracts/question';
 
 export class QuestionRepository extends BaseRepository<Question> {

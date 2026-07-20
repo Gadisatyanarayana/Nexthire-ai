@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import fs from 'fs';
-import { ImportPolicies } from '../services/import/ImportPolicies';
-import { ImportParser } from '../services/import/ImportParser';
-import { ImportNormalizer } from '../services/import/ImportNormalizer';
-import { ImportValidator } from '../services/import/ImportValidator';
+import { ImportPolicies } from '@/platform/import-engine/ImportPolicies';
+import { ImportParser } from '@/platform/import-engine/ImportParser';
+import { ImportNormalizer } from '@/platform/import-engine/ImportNormalizer';
+import { ImportValidator } from '@/platform/import-engine/ImportValidator';
 
 dotenv.config({ path: '.env.local' });
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '');
@@ -14,7 +14,7 @@ async function runPRR1() {
 
   let report = "# Import Engine Test Report\\n\\n";
   let failureReport = "# Import Engine Failure Report\\n\\n";
-  let perfData = { startTime: Date.now(), tests: {} as any };
+  let perfData: any = { startTime: Date.now(), tests: {} as any };
 
   const logTest = (name: string, status: boolean, err?: string) => {
     const symbol = status ? "✓" : "❌";

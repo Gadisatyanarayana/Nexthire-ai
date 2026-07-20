@@ -20,7 +20,7 @@ export abstract class BaseRepository<T> {
   async create(payload: Partial<T>): Promise<T> {
     const { data, error } = await this.supabase
       .from(this.tableName)
-      .insert(payload)
+      .insert(payload as any)
       .select('*')
       .single();
 
@@ -31,7 +31,7 @@ export abstract class BaseRepository<T> {
   async update(id: string, payload: Partial<T>): Promise<T> {
     const { data, error } = await this.supabase
       .from(this.tableName)
-      .update(payload)
+      .update(payload as any)
       .eq('id', id)
       .select('*')
       .single();

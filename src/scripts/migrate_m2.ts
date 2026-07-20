@@ -29,7 +29,7 @@ async function runMigration() {
       console.log("Migration executed successfully via pg client!");
       await client.end();
       return;
-    } catch (e) {
+    } catch (e: any) {
       console.log("Failed via pg client:", e.message);
     }
   }

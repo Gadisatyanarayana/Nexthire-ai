@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ImportJob, ImportJobStatus } from '../../../packages/contracts/import';
-import { BaseRepository } from '../BaseRepository';
+import { BaseRepository } from '@/services/BaseRepository';
 
 export class ImportRepository extends BaseRepository<ImportJob> {
   constructor(supabase: SupabaseClient) {

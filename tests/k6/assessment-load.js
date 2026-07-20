@@ -24,7 +24,7 @@ export const options = {
 
 const API_BASE = 'http://localhost:3000/api/v1/assessment';
 
-export default function () {
+export default function loadTest() {
   // 1. Simulate Assessment Generation
   const genPayload = JSON.stringify({
     blueprintId: 'bp-123',

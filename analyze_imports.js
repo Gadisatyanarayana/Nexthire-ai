@@ -31,7 +31,7 @@ directories.forEach(dir => {
       const match = line.match(/import\s+{([^}]+)}\s+from\s+['"]@\/lib\/aptitude\/([^'"]+)['"]/);
       if (match) {
         const exports = match[1].split(',').map(s => s.trim());
-        const module = match[2];
+        const mod = match[2];
         if (!legacyImports[module]) legacyImports[module] = new Set();
         exports.forEach(e => legacyImports[module].add(e));
       }
@@ -39,7 +39,7 @@ directories.forEach(dir => {
       const dynamicMatch = line.match(/const\s+{([^}]+)}\s+=\s+(?:await\s+)?(?:import|require)\(['"]@\/lib\/aptitude\/([^'"]+)['"]\)/);
       if (dynamicMatch) {
         const exports = dynamicMatch[1].split(',').map(s => s.trim());
-        const module = dynamicMatch[2];
+        const mod = dynamicMatch[2];
         if (!legacyImports[module]) legacyImports[module] = new Set();
         exports.forEach(e => legacyImports[module].add(e));
       }

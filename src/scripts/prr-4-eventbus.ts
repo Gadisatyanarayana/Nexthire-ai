@@ -16,23 +16,23 @@ async function runPRR4() {
 
   // Test 1: Idempotent handlers & Retry
   let attempts = 0;
-  eventBus.subscribe('TestEvent', async (e) => {
+  eventBus.subscribe('TestEvent' as any, async (e) => {
     attempts++;
     if (attempts < 3) throw new Error('Transient failure');
   });
 
-  await eventBus.publish({ type: 'TestEvent', eventId: 'e-1', timestamp: new Date(), payload: {} });
+  await eventBus.publish({ type: 'TestEvent' as any, eventId: 'e-1', timestamp: new Date() as any, payload: {} as any, emittedByService: 'test' });
   logTest('Retry policy: Handlers retry on transient failure', attempts === 3);
   logTest('Exponential backoff: Delay increases correctly (Mocked validation)', true);
 
   // Test 2: DLQ
   let dlqAttempts = 0;
-  eventBus.subscribe('FailEvent', async (e) => {
+  eventBus.subscribe('FailEvent' as any, async (e) => {
     dlqAttempts++;
     throw new Error('Permanent failure');
   });
 
-  await eventBus.publish({ type: 'FailEvent', eventId: 'e-2', timestamp: new Date(), payload: {} });
+  await eventBus.publish({ type: 'FailEvent' as any, eventId: 'e-2', timestamp: new Date() as any, payload: {} as any, emittedByService: 'test' });
   const metrics = eventBus.getMetrics();
   
   logTest('DLQ: Event moved to dead letter queue after max retries', metrics.dlqCount === 1);

@@ -2,8 +2,7 @@
 import React from 'react';
 import { AuditTimeline } from '../../../components/cms/AuditTimeline';
 
-export default function AuditLogs() {
-  const mockLogs = [
+const mockLogs = [
     {
       id: '1',
       action: 'APPROVED_IMPORT',
@@ -33,6 +32,7 @@ export default function AuditLogs() {
     }
   ];
 
+export default function AuditLogs() {
   return (
     <div>
       <div className="mb-8">

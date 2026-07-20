@@ -1,5 +1,5 @@
-import { QueueProvider } from '../../contracts/coding/queue';
-import { CodingSubmission } from '../../contracts/coding/submission';
+import { QueueProvider } from '../../contracts/queue';
+import { CodingSubmission } from '../../contracts/submission';
 
 export class RejudgeEngine {
   constructor(private queue: QueueProvider) {}

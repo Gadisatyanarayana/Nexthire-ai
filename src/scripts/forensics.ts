@@ -22,12 +22,12 @@ async function checkSchemas() {
       const client = new Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
       await client.connect();
       const res = await client.query(`SELECT schema_name FROM information_schema.schemata;`);
-      console.log("Schemas:", res.rows.map(r => r.schema_name));
+      console.log("Schemas:", res.rows.map((r: any) => r.schema_name));
       await client.end();
     } else {
       console.log("No DB connection string for pg client");
     }
-  } catch (e) {
+  } catch (e: any) {
     console.log("Could not run pg query:", e.message);
   }
 }

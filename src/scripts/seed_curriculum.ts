@@ -307,18 +307,18 @@ async function seed() {
       });
       if (domainErr) throw domainErr;
 
-      for (const module of domain.modules) {
-        console.log(`  Seeding Module: ${module.title} (${module.id})`);
+      for (const mod of domain.modules) {
+        console.log(`  Seeding Module: ${mod.title} (${module.id})`);
         const { error: modErr } = await supabase.from("platform_modules").upsert({
           id: module.id,
           domain_id: domain.id,
-          title: module.title,
-          description: module.description,
-          level_order: module.level_order
+          title: mod.title,
+          description: mod.description,
+          level_order: mod.level_order
         });
         if (modErr) throw modErr;
 
-        for (const lesson of module.lessons) {
+        for (const lesson of mod.lessons) {
           console.log(`    Seeding Lesson: ${lesson.title} (${lesson.id})`);
           
           const resources = generateLessonResources(lesson.title);

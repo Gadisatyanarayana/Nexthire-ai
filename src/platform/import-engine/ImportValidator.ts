@@ -2,13 +2,16 @@ import { z } from 'zod';
 import { Result, success, failure } from '../../../packages/result';
 import { ImportValidationError } from '../../../packages/contracts/import';
 
+const difficulties = ['Easy', 'Medium', 'Hard'] as const;
+const bloomLevels = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'] as const;
+
 export const QuestionImportSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters long"),
   domain: z.string().min(1, "Domain is required"),
   module: z.string().min(1, "Module is required"),
   lesson: z.string().min(1, "Lesson is required"),
-  difficulty: z.enum(['Easy', 'Medium', 'Hard'], { errorMap: () => ({ message: "Difficulty must be Easy, Medium, or Hard" }) }),
-  bloom_level: z.enum(['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'], { errorMap: () => ({ message: "Invalid Bloom Level" }) }),
+  difficulty: z.enum(difficulties, { message: "Difficulty must be Easy, Medium, or Hard" }),
+  bloom_level: z.enum(bloomLevels, { message: "Invalid Bloom Level" }),
 });
 
 export class ImportValidator {

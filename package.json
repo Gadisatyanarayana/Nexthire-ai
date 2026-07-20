@@ -34,8 +34,10 @@
     "questions:backfill:hidden": "node scripts/backfill-hidden-testcases.mjs"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@monaco-editor/react": "^4.7.0",
-    "@supabase/supabase-js": "^2.100.1",
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.7",
     "@types/pg": "^8.20.0",
     "@xyflow/react": "^12.11.2",
     "axios": "^1.14.0",
@@ -58,6 +60,7 @@
     "react-resizable-panels": "^4.8.0",
     "recharts": "^3.8.1",
     "ts-node": "^10.9.2",
+    "uuid": "^14.0.1",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
@@ -68,6 +71,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",

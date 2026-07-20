@@ -10,5 +10,5 @@ export interface CompilationResult {
 }
 
 export interface Runner {
-  run(executableUri: string, inputUri: string, policy: any): Promise<any>;
+  run(executableUri: string, inputUri: string, policy: any, languageId: string): Promise<any>;
 }

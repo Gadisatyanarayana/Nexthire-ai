@@ -251,19 +251,19 @@ async function seed() {
   const formulas: any[] = [];
   const lessonToModuleMap: Record<string, string> = {};
 
-  for (const module of modules) {
-    const topicList = generator.generateLessons(module.id, module.title);
+  for (const mod of modules) {
+    const topicList = generator.generateLessons(mod.id, mod.title);
     
     topicList.forEach((topicName, idx) => {
-      const lessonId = `lesson-${module.id}-${idx}`;
-      lessonToModuleMap[lessonId] = module.id;
+      const lessonId = `lesson-${mod.id}-${idx}`;
+      lessonToModuleMap[lessonId] = mod.id;
 
       // Module assessment unlocks the next module if score > 80% (this logic is evaluated at runtime in UI via mastery scores)
       const isAssessment = topicName === "Module Assessment";
 
       lessons.push({
         id: lessonId,
-        module_id: module.id,
+        module_id: mod.id,
         title: topicName,
         difficulty: idx % 3 === 0 ? "Easy" : idx % 3 === 1 ? "Medium" : "Hard",
         reading_time: `${5 + (idx % 4)} mins`,
@@ -274,16 +274,16 @@ async function seed() {
       // Revision features
       formulas.push({
         topic_id: lessonId,
-        formula_text: `Revision Pattern: Elimination rule for ${module.title}. Scan options matching extreme constraints.`,
-        example_q: `Identify the shortcut path to solve ${module.title} questions under 20s.`,
+        formula_text: `Revision Pattern: Elimination rule for ${mod.title}. Scan options matching extreme constraints.`,
+        example_q: `Identify the shortcut path to solve ${mod.title} questions under 20s.`,
         example_a: `Apply tick-cross elimination matrices.`,
         status: "published"
       });
       
       formulas.push({
         topic_id: lessonId,
-        formula_text: `Mistake Book: Common traps in ${module.title}. Watch out for partial matching statements.`,
-        example_q: `What is the most frequent mistake candidates make in ${module.title}?`,
+        formula_text: `Mistake Book: Common traps in ${mod.title}. Watch out for partial matching statements.`,
+        example_q: `What is the most frequent mistake candidates make in ${mod.title}?`,
         example_a: `Over-diagramming.`,
         status: "published"
       });

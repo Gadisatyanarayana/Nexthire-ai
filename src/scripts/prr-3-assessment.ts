@@ -1,5 +1,5 @@
-import { AssessmentGenerator } from '../services/assessment/AssessmentGenerator';
-import { AssessmentBlueprint } from '../services/assessment/AssessmentBlueprint';
+import { AssessmentGenerator } from '@/platform/assessment/AssessmentGenerator';
+import { AssessmentBlueprint } from '@/platform/assessment/AssessmentBlueprint';
 import fs from 'fs';
 
 async function runPRR3() {

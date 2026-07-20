@@ -22,7 +22,7 @@ export const options = {
 
 const API_BASE = 'http://localhost:3000/api/v1/coding';
 
-export default function () {
+export default function loadTest() {
   const payload = JSON.stringify({
     problemId: 'p-123',
     language: 'python',

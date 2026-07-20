@@ -1,7 +1,8 @@
 import { Runner } from '../contracts/runtime';
 import { SandboxManager } from '../coding/sandbox/SandboxManager';
 import { LanguageCapability } from '../contracts/language';
-import { ExecutionPolicy, ExecutionResult } from '../contracts/execution';
+import { ExecutionPolicy } from '../contracts/execution';
+import { ExecutionResult } from '../contracts/sandbox';
 
 export class RunnerService implements Runner {
   constructor(
