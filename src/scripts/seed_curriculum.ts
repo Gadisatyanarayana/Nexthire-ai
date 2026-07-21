@@ -308,9 +308,9 @@ async function seed() {
       if (domainErr) throw domainErr;
 
       for (const mod of domain.modules) {
-        console.log(`  Seeding Module: ${mod.title} (${module.id})`);
+        console.log(`  Seeding Module: ${mod.title} (${mod.id})`);
         const { error: modErr } = await supabase.from("platform_modules").upsert({
-          id: module.id,
+          id: mod.id,
           domain_id: domain.id,
           title: mod.title,
           description: mod.description,
@@ -325,7 +325,7 @@ async function seed() {
           
           const { error: lessonErr } = await supabase.from("platform_lessons").upsert({
             id: lesson.id,
-            module_id: module.id,
+            module_id: mod.id,
             title: lesson.title,
             description: lesson.description,
             difficulty: lesson.difficulty,
@@ -336,19 +336,15 @@ async function seed() {
           });
           if (lessonErr) throw lessonErr;
 
-          let cOrder = 1;
-          for (const concept of lesson.concepts) {
-            const conceptId = `${lesson.id}-c-${cOrder}`;
-            const { error: conceptErr } = await supabase.from("platform_concepts").upsert({
-              id: conceptId,
-              lesson_id: lesson.id,
-              title: concept,
-              description: `Mastering micro-concept: ${concept} under ${lesson.title}.`,
-              display_order: cOrder
-            });
-            if (conceptErr) throw conceptErr;
-            cOrder++;
-          }
+          const conceptPayloads = lesson.concepts.map((concept, idx) => ({
+            id: `${lesson.id}-c-${idx + 1}`,
+            lesson_id: lesson.id,
+            title: concept,
+            description: `Mastering micro-concept: ${concept} under ${lesson.title}.`,
+            display_order: idx + 1
+          }));
+          const { error: conceptErr } = await supabase.from("platform_concepts").upsert(conceptPayloads);
+          if (conceptErr) throw conceptErr;
         }
       }
     }

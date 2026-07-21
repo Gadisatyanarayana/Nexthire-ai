@@ -36,9 +36,22 @@ export class LearningQueryService {
     return null;
   }
 
+  public static async getDomains(): Promise<any[]> {
+    const supabase = this.getRawClient();
+    const { data, error } = await supabase
+      .from("platform_domains")
+      .select("*")
+      .order("display_order", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
   public static async getModules(subject: string = "aptitude"): Promise<AptitudeModule[]> {
     const supabase = this.getRawClient();
-    const domainId = subject === "reasoning" ? "logical-reasoning" : "quantitative-aptitude";
+    let domainId = subject;
+    if (subject === "aptitude") domainId = "quantitative-aptitude";
+    if (subject === "reasoning") domainId = "logical-reasoning";
+    
     const { data, error } = await supabase
       .from("platform_modules")
       .select("*")
@@ -137,6 +150,17 @@ export class LearningQueryService {
   public static async getQuestionPreview(lessonId: string, limit: number = 3, subject: string = "aptitude"): Promise<AptitudeQuestion[]> {
     const repo = RepositoryFactory.getQuestionRepository(subject);
     return await repo.getByLesson(lessonId, limit);
+  }
+
+  public static async getConceptsByLesson(lessonId: string): Promise<any[]> {
+    const supabase = this.getRawClient();
+    const { data, error } = await supabase
+      .from("platform_concepts")
+      .select("*")
+      .eq("lesson_id", lessonId)
+      .order("display_order", { ascending: true });
+    if (error) throw error;
+    return data || [];
   }
 
   public static async getUserTopicMastery(userId: string, subject: string = "aptitude"): Promise<any[]> {

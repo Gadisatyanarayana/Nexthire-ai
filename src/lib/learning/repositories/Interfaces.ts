@@ -39,3 +39,15 @@ export interface ICompanyRepository extends ITransactionSupport {
   getAll(): Promise<any[]>;
   save(company: any): Promise<void>;
 }
+
+export interface IProgressRepository extends ITransactionSupport {
+  saveLearningProgress(progress: any): Promise<void>;
+  getLearningProgress(userId: string, contentType: string, contentId: string): Promise<any>;
+  logEvent(event: any): Promise<void>;
+  updateUserStats(stats: any): Promise<void>;
+  getUserStats(userId: string): Promise<any>;
+  recordXPTransaction(transaction: any): Promise<void>;
+  startSession(session: any): Promise<void>;
+  endSession(sessionId: string, duration: number): Promise<void>;
+  saveDailyActivity(activity: any): Promise<void>;
+}

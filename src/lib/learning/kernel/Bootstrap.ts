@@ -7,7 +7,8 @@ import {
   SupabaseQuestionRepository, 
   SupabaseMockRepository, 
   SupabaseMasteryRepository, 
-  SupabaseCompanyRepository 
+  SupabaseCompanyRepository,
+  SupabaseProgressRepository
 } from "../repositories/SupabaseRepositories";
 import { PluginManager } from "../../plugins/PluginManager";
 import { LogicalReasoningPlugin } from "../../plugins/reasoning/LogicalReasoningPlugin";
@@ -33,6 +34,7 @@ export class Bootstrap {
     DependencyContainer.register("IMockRepository", new SupabaseMockRepository());
     DependencyContainer.register("IMasteryRepository", new SupabaseMasteryRepository());
     DependencyContainer.register("ICompanyRepository", new SupabaseCompanyRepository());
+    DependencyContainer.register("IProgressRepository", new SupabaseProgressRepository());
 
     // Register and initialize subject plugins
     PluginManager.registerPlugin(new LogicalReasoningPlugin());

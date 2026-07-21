@@ -5,7 +5,8 @@ import {
   IQuestionRepository, 
   IMockRepository, 
   IMasteryRepository, 
-  ICompanyRepository 
+  ICompanyRepository,
+  IProgressRepository 
 } from "./Interfaces";
 
 export class RepositoryFactory {
@@ -42,6 +43,11 @@ export class RepositoryFactory {
     return subject === "reasoning"
       ? DependencyContainer.resolve<ICompanyRepository>("IReasoningCompanyRepository")
       : DependencyContainer.resolve<ICompanyRepository>("ICompanyRepository");
+  }
+
+  public static getProgressRepository(): IProgressRepository {
+    Bootstrap.boot();
+    return DependencyContainer.resolve<IProgressRepository>("IProgressRepository");
   }
 }
 

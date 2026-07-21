@@ -4,7 +4,8 @@ import {
   IQuestionRepository, 
   IMockRepository, 
   IMasteryRepository, 
-  ICompanyRepository 
+  ICompanyRepository,
+  IProgressRepository
 } from "./Interfaces";
 
 class SupabaseBaseRepository {
@@ -208,6 +209,81 @@ export class SupabaseCompanyRepository extends SupabaseBaseRepository implements
     const { error } = await this.client
       .from("platform_companies")
       .upsert(company);
+    if (error) throw error;
+  }
+}
+
+export class SupabaseProgressRepository extends SupabaseBaseRepository implements IProgressRepository {
+  public async saveLearningProgress(progress: any): Promise<void> {
+    const { error } = await this.client
+      .from("learning_progress")
+      .upsert(progress, { onConflict: "user_id, content_type, content_id" });
+    if (error) throw error;
+  }
+
+  public async getLearningProgress(userId: string, contentType: string, contentId: string): Promise<any> {
+    const { data, error } = await this.client
+      .from("learning_progress")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("content_type", contentType)
+      .eq("content_id", contentId)
+      .eq("is_deleted", false)
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    return data;
+  }
+
+  public async logEvent(event: any): Promise<void> {
+    const { error } = await this.client
+      .from("learning_events")
+      .insert(event);
+    if (error) throw error;
+  }
+
+  public async updateUserStats(stats: any): Promise<void> {
+    const { error } = await this.client
+      .from("user_stats")
+      .upsert(stats, { onConflict: "user_id" });
+    if (error) throw error;
+  }
+
+  public async getUserStats(userId: string): Promise<any> {
+    const { data, error } = await this.client
+      .from("user_stats")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    return data;
+  }
+
+  public async recordXPTransaction(transaction: any): Promise<void> {
+    const { error } = await this.client
+      .from("xp_transactions")
+      .insert(transaction);
+    if (error) throw error;
+  }
+
+  public async startSession(session: any): Promise<void> {
+    const { error } = await this.client
+      .from("learning_sessions")
+      .insert(session);
+    if (error) throw error;
+  }
+
+  public async endSession(sessionId: string, duration: number): Promise<void> {
+    const { error } = await this.client
+      .from("learning_sessions")
+      .update({ ended_at: new Date().toISOString(), duration_seconds: duration })
+      .eq("id", sessionId);
+    if (error) throw error;
+  }
+
+  public async saveDailyActivity(activity: any): Promise<void> {
+    const { error } = await this.client
+      .from("daily_activity")
+      .upsert(activity, { onConflict: "user_id, activity_date" });
     if (error) throw error;
   }
 }

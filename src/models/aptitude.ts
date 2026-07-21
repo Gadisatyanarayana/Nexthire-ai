@@ -3,6 +3,7 @@ import { z } from "zod";
 export const AptitudeModuleSchema = z.object({
   id: z.string(),
   title: z.string(),
+  description: z.string().optional(),
   level_order: z.number(),
   created_at: z.string().optional(),
   // Knowledge Graph Extensions
@@ -17,9 +18,13 @@ export const AptitudeLessonSchema = z.object({
   id: z.string(),
   module_id: z.string(),
   title: z.string(),
+  description: z.string().optional(),
   difficulty: z.string(),
   reading_time: z.string(),
   content: z.any(),
+  resources: z.any().optional(),
+  skills: z.array(z.string()).optional(),
+  prerequisites: z.array(z.string()).optional(),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
   created_at: z.string().optional(),
   // Knowledge Graph Extensions
