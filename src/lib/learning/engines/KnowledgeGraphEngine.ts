@@ -97,7 +97,7 @@ export class KnowledgeGraphEngine {
     allModules: IModule[],
     allLessons: ILesson[],
     userMastery: ITopicMastery[]
-  ): { type: "lesson" | "revision" | "mock" | "assessment"; targetId: string; title: string; reason: string, moduleId?: string } {
+  ): { type: "lesson" | "revision" | "mock" | "assessment"; targetId: string; title: string; reason: string, moduleId?: string, lessonId?: string } {
     
     // 1. Revision overdue
     const now = new Date();
@@ -144,9 +144,9 @@ export class KnowledgeGraphEngine {
       
       // 3. Current lesson vs 4. Current practice
       if (!currentMastery || (currentMastery.questions_attempted || 0) < 5) {
-        return { type: "lesson", targetId: current.id, moduleId: current.module_id, title: current.title, reason: "Current lesson" };
+        return { type: "lesson", targetId: current.id, lessonId: current.id, moduleId: current.module_id, title: current.title, reason: "Current lesson" };
       } else {
-        return { type: "lesson", targetId: current.id, moduleId: current.module_id, title: `${current.title} Practice`, reason: "Current practice" };
+        return { type: "lesson", targetId: current.id, lessonId: current.id, moduleId: current.module_id, title: `${current.title} Practice`, reason: "Current practice" };
       }
     }
 
@@ -154,6 +154,7 @@ export class KnowledgeGraphEngine {
     return {
       type: "mock",
       targetId: "placement-ready",
+      lessonId: "placement-ready",
       title: "Full Mock Assessment",
       reason: "Placement Preparation"
     };

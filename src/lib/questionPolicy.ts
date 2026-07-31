@@ -12,8 +12,11 @@ export function normalizeDifficultyLabel(value: DifficultyLabel | string | undef
   return "easy";
 }
 
-export function getDefaultHiddenCaseCount(_: DifficultyLabel | string | undefined): number {
-  return 20;
+export function getDefaultHiddenCaseCount(difficulty: DifficultyLabel | string | undefined): number {
+  const normalized = normalizeDifficultyLabel(difficulty);
+  if (normalized === "medium") return 60;
+  if (normalized === "hard") return 75;
+  return 50;
 }
 
 export function getDefaultTimeLimitMinutes(difficulty: DifficultyLabel | string | undefined): number {

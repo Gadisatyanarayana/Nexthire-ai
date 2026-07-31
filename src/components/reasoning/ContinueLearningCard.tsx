@@ -16,11 +16,13 @@ export function ContinueLearningCard({ action }: { action: ActionType }) {
   let label = "Continue";
   let colorClass = "emerald";
 
+  const targetId = action.targetId || (action as any).lessonId || "";
+
   if (action.type === "lesson") {
-    href = action.moduleId ? `/reasoning/learn/${action.moduleId}/${action.targetId}` : `/reasoning/learn/${action.targetId}`; 
+    href = action.moduleId ? `/reasoning/learn/${action.moduleId}/${targetId}` : `/reasoning/learn/${targetId}`; 
     label = "Resume Lesson";
   } else if (action.type === "revision") {
-    href = `/reasoning/revision/${action.targetId}`;
+    href = `/reasoning/revision/${targetId}`;
     icon = <AlertTriangle className="w-5 h-5" />;
     label = "Start Revision";
     colorClass = "orange";

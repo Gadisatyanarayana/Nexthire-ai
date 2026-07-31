@@ -78,11 +78,11 @@ type SandboxExecution = {
 };
 
 const MIN_VISIBLE = 2;
-const MAX_VISIBLE = 2;
-const MIN_HIDDEN = 20;
-const MAX_HIDDEN = 20;
-const DEFAULT_VISIBLE = 2;
-const DEFAULT_HIDDEN = 20;
+const MAX_VISIBLE = 4;
+const MIN_HIDDEN = 50;
+const MAX_HIDDEN = 100;
+const DEFAULT_VISIBLE = 3;
+const DEFAULT_HIDDEN = 50;
 
 function normalizeDifficulty(value: string | undefined): "easy" | "medium" | "hard" {
   const difficulty = String(value || "Easy").trim().toLowerCase();
@@ -92,7 +92,10 @@ function normalizeDifficulty(value: string | undefined): "easy" | "medium" | "ha
 }
 
 function targetHiddenCountForDifficulty(difficulty: string | undefined): number {
-  return 20;
+  const norm = normalizeDifficulty(difficulty);
+  if (norm === "medium") return 60;
+  if (norm === "hard") return 75;
+  return 50;
 }
 
 function targetVisibleCountForDifficulty(_: string | undefined): number {

@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Zap, BookOpen, ArrowRight, Activity, Clock, AlertTriangle } from "lucide-react";
+import { Zap, BookOpen, ArrowRight, Activity, Clock, AlertTriangle, Lock, CheckCircle2 } from "lucide-react";
 import { getModules, getServerUserId, getUserTopicMastery } from "@/lib/api/aptitudeV2";
 import { LessonProgress } from "@/components/aptitude/LessonProgress";
 import { SearchButton } from "@/components/aptitude/SearchButton";
@@ -26,7 +26,6 @@ export default async function AptitudeHubPage() {
     mastery = await getUserTopicMastery(userId);
   }
   
-  // We need lessons for the progress and continue learning
   try {
     const { getAllLessons } = await import("@/lib/api/aptitudeV2");
     allLessons = await getAllLessons();
@@ -83,7 +82,7 @@ export default async function AptitudeHubPage() {
         {/* Dashboard Intelligence Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           
-          {/* Main Progress Card (Spans 2 columns on lg) */}
+          {/* Main Progress Card */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 lg:col-span-2 flex flex-col justify-center">
             <div className="flex items-center gap-4 mb-6">
               <div className="p-3 bg-emerald-500/10 rounded-xl">
@@ -124,7 +123,7 @@ export default async function AptitudeHubPage() {
           </div>
         </div>
 
-        {/* AI Coaching Section (Phase 5) */}
+        {/* AI Coaching Section */}
         {userId && (
           <div className="mb-12 space-y-6">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -142,7 +141,7 @@ export default async function AptitudeHubPage() {
           </div>
         )}
 
-        {/* Modules Grid */}
+        {/* Modules Grid with Lock System */}
         <div className="space-y-8">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-emerald-500" />
@@ -150,14 +149,16 @@ export default async function AptitudeHubPage() {
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {modules.map((module) => {
-              const { locked } = KnowledgeGraphEngine.isModuleLocked(module.id, modules, allLessons, mastery);
+              const { locked, reason } = KnowledgeGraphEngine.isModuleLocked(module.id, modules, allLessons, mastery);
 
               return (
                 <div key={module.id} className="relative">
                   <Link 
                     href={locked ? "#" : `/aptitude/learn/${module.id}`}
-                    className={`block group relative bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6 transition-all ${
-                      locked ? "opacity-60 cursor-not-allowed" : "hover:border-emerald-500/50 hover:bg-zinc-900 cursor-pointer"
+                    className={`block group relative bg-zinc-900/40 border rounded-2xl p-6 transition-all ${
+                      locked 
+                        ? "border-zinc-800/80 opacity-70 cursor-not-allowed" 
+                        : "border-zinc-800 hover:border-emerald-500/50 hover:bg-zinc-900 cursor-pointer"
                     }`}
                   >
                     {!locked && (
@@ -165,12 +166,14 @@ export default async function AptitudeHubPage() {
                     )}
                     <div className="relative z-10">
                       <div className="flex justify-between items-start mb-4">
-                        <span className="px-2.5 py-1 bg-zinc-800 text-emerald-400 text-xs font-semibold uppercase tracking-wider rounded-md">
+                        <span className={`px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded-md ${
+                          locked ? "bg-zinc-800/80 text-zinc-500" : "bg-zinc-800 text-emerald-400"
+                        }`}>
                           Level {module.level_order}
                         </span>
                         {locked ? (
-                          <div className="p-1.5 bg-zinc-800/80 rounded-lg" title="Complete previous level to unlock">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          <div className="p-1.5 bg-zinc-800/80 rounded-lg text-amber-400/80" title={reason}>
+                            <Lock className="w-4 h-4" />
                           </div>
                         ) : (
                           <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-emerald-500 transition-colors" />
@@ -178,9 +181,15 @@ export default async function AptitudeHubPage() {
                       </div>
                       <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
                         {module.title}
-                        {!locked && <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>}
+                        {!locked && (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        )}
                       </h3>
-                      {locked && <p className="text-xs text-red-400 mt-2">Locked: Complete Level {module.level_order - 1} to unlock</p>}
+                      {locked && (
+                        <p className="text-xs text-amber-400/80 mt-2 font-medium flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> {reason || "Complete previous level to unlock"}
+                        </p>
+                      )}
                     </div>
                   </Link>
                 </div>

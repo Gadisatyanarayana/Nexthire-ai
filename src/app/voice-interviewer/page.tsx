@@ -39,6 +39,7 @@ import { InterviewHistory } from "@/components/voice-interview/InterviewHistory"
 import { WeeklyAnalytics } from "@/components/voice-interview/WeeklyAnalytics";
 import { GamificationPanel } from "@/components/voice-interview/GamificationPanel";
 import { SettingsPanel } from "@/components/voice-interview/SettingsPanel";
+import { PreInterviewWizard } from "@/components/voice-interview/PreInterviewWizard";
 import { CompanyMode, RecruiterPersona } from "@/components/voice-interview/types";
 import { COMPANY_MODES, PERSONAS } from "@/components/voice-interview/constants";
 
@@ -93,8 +94,8 @@ function VoiceInterviewerWorkspace() {
     setMounted(true);
   }, []);
 
-  // Flow State: 'permissions' | 'resume' | 'settings' | 'countdown' | 'active' | 'scorecard' | 'history'
-  const [step, setStep] = useState<"permissions" | "resume" | "settings" | "countdown" | "active" | "scorecard" | "history">("permissions");
+  // Flow State: 'wizard' | 'permissions' | 'resume' | 'settings' | 'countdown' | 'active' | 'scorecard' | 'history'
+  const [step, setStep] = useState<"wizard" | "permissions" | "resume" | "settings" | "countdown" | "active" | "scorecard" | "history">("wizard");
   
   // Configurations
   const [interviewType, setInterviewType] = useState<"Technical" | "Coding" | "SQL" | "HR" | "Mixed">("Technical");
@@ -1121,7 +1122,7 @@ function VoiceInterviewerWorkspace() {
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl flex items-center gap-2">
               <Activity className="h-8 w-8 text-cyan-400" />
-              AI Mock Voice Placement Panel
+              NextHire Voice Assistant Panel
             </h1>
             <p className={`mt-1.5 text-sm ${isDark ? "text-white/60" : "text-black/60"}`}>
               Prepare for elite MNC interviews with real-time vocal feedback, visual waveform synchronization, and anti-cheat tracking.
@@ -1148,6 +1149,24 @@ function VoiceInterviewerWorkspace() {
           </div>
         </header>
         <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+
+        {/* STEP 0: PRE-INTERVIEW SETUP WIZARD */}
+        {step === "wizard" && (
+          <div className="py-6">
+            <PreInterviewWizard
+              onComplete={(cfg) => {
+                if (cfg.interviewType) setInterviewType(cfg.interviewType as any);
+                if (cfg.difficulty) setDifficulty(cfg.difficulty.toLowerCase() as any);
+                if (cfg.duration) setDuration(cfg.duration);
+                if (cfg.resumeFile) {
+                  setResumeUploaded(true);
+                  setResumeFileName(cfg.resumeFile);
+                }
+                setStep("permissions");
+              }}
+            />
+          </div>
+        )}
 
         {/* STEP 1: PERMISSIONS CONFIGURATION */}
         {step === "permissions" && (

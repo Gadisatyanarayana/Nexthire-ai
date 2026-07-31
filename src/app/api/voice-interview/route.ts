@@ -124,25 +124,29 @@ function adaptDifficulty(current: InterviewDifficulty, score: number): Interview
   return current;
 }
 
-function generateInitialGreeting(name: string, companyMode: string, persona: string, topic: string, difficulty: string): string {
-  let companyText = "";
-  if (companyMode && companyMode !== "general") {
-    companyText = ` specifically tailored for the target role at ${companyMode.toUpperCase()}`;
-  }
-
-  let personaIntro = "Hello, I am your NextHire AI interviewer.";
-  if (persona === "friendly") {
-    personaIntro = `Hi ${name}! I'm your friendly mock interviewer today. We want to help you prepare and have a great conversation.`;
-  } else if (persona === "tough") {
-    personaIntro = `Welcome candidate. I am your Lead AI Recruiter. I will conduct a strict, timed placement evaluation today.`;
-  } else if (persona === "startup_cto") {
-    personaIntro = `Hey! I'm the CTO of our startup. Let's do a fast-paced chat about building scalable logic.`;
-  } else if (persona === "hr_lead") {
-    personaIntro = `Good day. I am the HR Lead. I will evaluate both your technical problem solving and leadership capabilities.`;
-  }
-
+function generateInitialGreeting(name: string, companyMode: string, persona: string, topic: string, difficulty: string, resumeSummary?: string): string {
+  const companyName = companyMode && companyMode !== "general" ? companyMode.toUpperCase() : "our technical team";
   const topicLabel = topic.charAt(0).toUpperCase() + topic.slice(1);
-  return `${personaIntro} Nice to meet you. Please start by giving a short self-introduction. We'll run a focused 20-minute evaluation round${companyText} focusing on ${topicLabel} at ${difficulty} level.`;
+  const formattedName = name.split(" ")[0] || name;
+
+  let resumeContext = "";
+  if (resumeSummary && resumeSummary.length > 10) {
+    resumeContext = ` I noticed from your profile that you have strong hands-on experience in software development.`;
+  }
+
+  let personaIntro = `Good morning ${formattedName}. I'm your lead technical interviewer for ${companyName} today.${resumeContext}`;
+  
+  if (persona === "friendly") {
+    personaIntro = `Hi ${formattedName}! It's great to connect with you today for your ${companyName} evaluation.${resumeContext} We want this to be a conversational and encouraging discussion.`;
+  } else if (persona === "tough") {
+    personaIntro = `Good day ${formattedName}. I am conducting your ${companyName} placement assessment today.${resumeContext} We'll move quickly through technical reasoning and problem solving.`;
+  } else if (persona === "startup_cto") {
+    personaIntro = `Hey ${formattedName}! I'm leading engineering here.${resumeContext} Excited to dive into your background and see how you approach real-world logic.`;
+  } else if (persona === "hr_lead") {
+    personaIntro = `Welcome ${formattedName}. I'll be assessing both your technical background and leadership skills for ${companyName}.${resumeContext}`;
+  }
+
+  return `${personaIntro} Before we jump into the technical discussion on ${topicLabel}, could you briefly introduce yourself and share what inspired your recent work?`;
 }
 
 function buildMasterInterviewerPrompt(sess: VoiceInterviewSession, resumeText: string = ""): string {

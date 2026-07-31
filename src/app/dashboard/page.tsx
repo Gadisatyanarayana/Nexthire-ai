@@ -429,7 +429,7 @@ export default function DashboardPage() {
         {/* Interactive Charts Panel */}
         <section className="grid gap-6 lg:grid-cols-2">
           <ChartCard title="Daily Activity Stream" subtitle="Aggregated event volume over the past 14 days" isDark={isDark}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
               <AreaChart data={weeklySeries}>
                 <defs>
                   <linearGradient id="activityGlow" x1="0" y1="0" x2="0" y2="1">
@@ -460,7 +460,7 @@ export default function DashboardPage() {
           </ChartCard>
 
           <ChartCard title="DSA Submission Mix" subtitle="Verify difficulty distribution breakdown" isDark={isDark}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
               <PieChart>
                 <Pie data={difficultyData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={60} label>
                   {difficultyData.map((entry, index) => (
@@ -485,7 +485,7 @@ export default function DashboardPage() {
         {/* Languages & DSA Section Completion Charts */}
         <section className="grid gap-6 lg:grid-cols-2">
           <ChartCard title="Language Distribution" subtitle="Distribution of sandbox compile requests" isDark={isDark}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
               <BarChart data={languageData} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 6 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis type="number" allowDecimals={false} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} />
@@ -505,7 +505,7 @@ export default function DashboardPage() {
           </ChartCard>
 
           <ChartCard title="Concept Strengths" subtitle="Topic-wise DSA validation progress" isDark={isDark}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
               <BarChart data={sectionData} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 6 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis type="number" domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} />
@@ -528,7 +528,7 @@ export default function DashboardPage() {
         {/* Voice Coach Trends & Profiles */}
         <section className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
           <ChartCard title="Voice AI Interview Trends" subtitle="Evaluate conversational metrics (scoring out of 100)" isDark={isDark}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
               <LineChart data={voiceTrendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} />

@@ -6,10 +6,11 @@ import { notFound } from "next/navigation";
 
 export const revalidate = 3600;
 
-export default async function ModuleLessonsPage({ params }: { params: { domainId: string, moduleId: string } }) {
-  const { domainId, moduleId } = params;
+export default async function ModuleLessonsPage({ params }: { params: Promise<{ domainId: string, moduleId: string }> }) {
+  const { domainId, moduleId } = await params;
+  const normalizedDomainId = LearningService.queries.normalizeDomainId(domainId);
   
-  const modules = await LearningService.queries.getModules(domainId);
+  const modules = await LearningService.queries.getModules(normalizedDomainId);
   const currentModule = modules.find(m => m.id === moduleId);
   
   if (!currentModule) {
@@ -17,7 +18,7 @@ export default async function ModuleLessonsPage({ params }: { params: { domainId
   }
 
   // Use the legacy facade to fetch lessons for this specific module
-  const lessons = await LearningService.queries.getLessonsByModule(moduleId, domainId);
+  const lessons = await LearningService.queries.getLessonsByModule(moduleId, normalizedDomainId);
 
   return (
     <div className="min-h-screen bg-black text-white">

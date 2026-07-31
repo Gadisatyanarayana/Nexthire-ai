@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Briefcase, FileText, Sparkles } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserAvatarDropdown } from '@/components/UserAvatarDropdown';
 
 export function AppHeader() {
@@ -67,7 +66,7 @@ export function AppHeader() {
     >
       <div className="w-full grid h-20 grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8 lg:px-12">
         <Link href="/" className="justify-self-start text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-          NEXTHIRE AI
+          NEXTHIRE
         </Link>
 
         <nav className="hidden items-center justify-center gap-6 font-semibold leading-none text-foreground/80 md:flex lg:gap-10 lg:text-[1.02rem] text-sm">
@@ -184,7 +183,6 @@ export function AppHeader() {
               Get Started
             </Link>
           )}
-          <ThemeToggle />
           <UserAvatarDropdown />
         </div>
       </div>

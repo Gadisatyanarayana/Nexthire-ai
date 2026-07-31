@@ -182,6 +182,10 @@ export function LessonViewer({
                 <FormulaViewer formulas={formulas} />
               </div>
 
+              <div className="mt-10">
+                <QuestionPreview lessonId={lesson.id} questions={questions} />
+              </div>
+
               {renderSection("Summary & Key Takeaways", null, c.summary)}
             </>
           )}
@@ -215,7 +219,7 @@ export function LessonViewer({
               <h3 className="text-indigo-400 font-bold mb-1">Company Challenge</h3>
               <p className="text-zinc-400 text-sm">Attempt hard-level questions previously asked by top companies.</p>
             </div>
-            <Link href={`/aptitude/mock-tests?topic=${lesson.id}`} className="px-4 py-2 bg-indigo-500 text-white rounded-lg font-medium text-sm">
+            <Link href={`/aptitude/practice/${lesson.id}`} className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium text-sm transition">
               Start Challenge
             </Link>
           </div>

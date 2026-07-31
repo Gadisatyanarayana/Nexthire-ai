@@ -10,39 +10,85 @@ import {
 } from "./Interfaces";
 
 export class RepositoryFactory {
+  public static normalizeSubject(subject: string = "aptitude"): "aptitude" | "reasoning" | "verbal" {
+    const s = String(subject || "").toLowerCase().trim();
+    if (
+      s === "reasoning" ||
+      s === "logical-reasoning" ||
+      s === "logical_reasoning" ||
+      s === "lr"
+    ) {
+      return "reasoning";
+    }
+    if (
+      s === "verbal" ||
+      s === "verbal-ability" ||
+      s === "verbal_ability" ||
+      s === "va"
+    ) {
+      return "verbal";
+    }
+    return "aptitude";
+  }
+
   public static getLessonRepository(subject: string = "aptitude"): ILessonRepository {
     Bootstrap.boot();
-    return subject === "reasoning" 
-      ? DependencyContainer.resolve<ILessonRepository>("IReasoningLessonRepository")
-      : DependencyContainer.resolve<ILessonRepository>("ILessonRepository");
+    const normalized = this.normalizeSubject(subject);
+    if (normalized === "reasoning") {
+      return DependencyContainer.resolve<ILessonRepository>("IReasoningLessonRepository");
+    }
+    if (normalized === "verbal") {
+      return DependencyContainer.resolve<ILessonRepository>("IVerbalLessonRepository");
+    }
+    return DependencyContainer.resolve<ILessonRepository>("ILessonRepository");
   }
 
   public static getQuestionRepository(subject: string = "aptitude"): IQuestionRepository {
     Bootstrap.boot();
-    return subject === "reasoning"
-      ? DependencyContainer.resolve<IQuestionRepository>("IReasoningQuestionRepository")
-      : DependencyContainer.resolve<IQuestionRepository>("IQuestionRepository");
+    const normalized = this.normalizeSubject(subject);
+    if (normalized === "reasoning") {
+      return DependencyContainer.resolve<IQuestionRepository>("IReasoningQuestionRepository");
+    }
+    if (normalized === "verbal") {
+      return DependencyContainer.resolve<IQuestionRepository>("IVerbalQuestionRepository");
+    }
+    return DependencyContainer.resolve<IQuestionRepository>("IQuestionRepository");
   }
 
   public static getMockRepository(subject: string = "aptitude"): IMockRepository {
     Bootstrap.boot();
-    return subject === "reasoning"
-      ? DependencyContainer.resolve<IMockRepository>("IReasoningMockRepository")
-      : DependencyContainer.resolve<IMockRepository>("IMockRepository");
+    const normalized = this.normalizeSubject(subject);
+    if (normalized === "reasoning") {
+      return DependencyContainer.resolve<IMockRepository>("IReasoningMockRepository");
+    }
+    if (normalized === "verbal") {
+      return DependencyContainer.resolve<IMockRepository>("IVerbalMockRepository");
+    }
+    return DependencyContainer.resolve<IMockRepository>("IMockRepository");
   }
 
   public static getMasteryRepository(subject: string = "aptitude"): IMasteryRepository {
     Bootstrap.boot();
-    return subject === "reasoning"
-      ? DependencyContainer.resolve<IMasteryRepository>("IReasoningMasteryRepository")
-      : DependencyContainer.resolve<IMasteryRepository>("IMasteryRepository");
+    const normalized = this.normalizeSubject(subject);
+    if (normalized === "reasoning") {
+      return DependencyContainer.resolve<IMasteryRepository>("IReasoningMasteryRepository");
+    }
+    if (normalized === "verbal") {
+      return DependencyContainer.resolve<IMasteryRepository>("IVerbalMasteryRepository");
+    }
+    return DependencyContainer.resolve<IMasteryRepository>("IMasteryRepository");
   }
 
   public static getCompanyRepository(subject: string = "aptitude"): ICompanyRepository {
     Bootstrap.boot();
-    return subject === "reasoning"
-      ? DependencyContainer.resolve<ICompanyRepository>("IReasoningCompanyRepository")
-      : DependencyContainer.resolve<ICompanyRepository>("ICompanyRepository");
+    const normalized = this.normalizeSubject(subject);
+    if (normalized === "reasoning") {
+      return DependencyContainer.resolve<ICompanyRepository>("IReasoningCompanyRepository");
+    }
+    if (normalized === "verbal") {
+      return DependencyContainer.resolve<ICompanyRepository>("IVerbalCompanyRepository");
+    }
+    return DependencyContainer.resolve<ICompanyRepository>("ICompanyRepository");
   }
 
   public static getProgressRepository(): IProgressRepository {

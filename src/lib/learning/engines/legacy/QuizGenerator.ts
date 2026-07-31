@@ -28,20 +28,19 @@ export class QuizGenerator {
     } catch (error) {
       console.warn("[QuizGenerator] AI generation failed, using fallback config.", error);
       
-      // Attempt to extract weak topics from analytics to avoid an empty quiz
+      const targetLength = parseInt(preference?.length) || 20;
       let fallbackTopics: string[] = [];
       if (analytics && analytics.mastery && Array.isArray(analytics.mastery)) {
         fallbackTopics = analytics.mastery
           .filter((m: any) => m.mastery_score < 70)
-          .map((m: any) => m.topic_id)
-          .slice(0, 3);
+          .map((m: any) => m.topic_id);
       }
 
       return {
-        numQuestions: 10,
+        numQuestions: targetLength,
         topics: fallbackTopics,
-        difficultyDistribution: { easy: 0.4, medium: 0.4, hard: 0.2 },
-        focus: "mixed"
+        difficultyDistribution: { easy: 0.3, medium: 0.5, hard: 0.2 },
+        focus: preference?.focus || "mixed"
       };
     }
   }

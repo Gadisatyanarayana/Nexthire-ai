@@ -7,7 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "NEXTHIRE AI",
+  title: "NEXTHIRE",
   description: "Empower your career with AI-powered resume analysis, building, and job-matching",
 };
 
@@ -23,29 +23,20 @@ export default async function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
   }>) {
-  const session = await getServerSession(authOptions);
-
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (error) {
+    // Suppress
+  }
   return (
     <html
       lang="en"
+      data-theme="dark"
       suppressHydrationWarning
-      className="h-full antialiased"
+      data-scroll-behavior="smooth"
+      className="h-full antialiased dark"
     >
-      <head>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`(() => {
-  try {
-    const root = document.documentElement;
-    const saved = localStorage.getItem('theme');
-    const theme = saved === 'dark' || saved === 'light'
-      ? saved
-      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    root.setAttribute('data-theme', theme);
-    root.style.colorScheme = theme;
-  } catch {}
-})();`}
-        </Script>
-      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <SessionWrapper session={session}>
           <AppHeader />

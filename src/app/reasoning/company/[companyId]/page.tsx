@@ -4,20 +4,13 @@ import Link from "next/link";
 import { Zap, BookOpen, ArrowRight, Activity, Clock, AlertTriangle } from "lucide-react";
 import { getServerUserId, getUserTopicMastery } from "@/lib/api/reasoningV2";
 import { KnowledgeGraphEngine } from "@/lib/learning/engines/KnowledgeGraphEngine";
-import { cookies } from "next/headers";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 
 async function getCompanyData(companyId: string) {
   try {
-    const cookieStore = await cookies();
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/v1/reasoning/company/${companyId}`, { 
-      cache: 'no-store',
-      headers: {
-        'Cookie': cookieStore.toString()
-      }
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.success ? json.data : null;
+    const { LearningQueryService } = await import("@/lib/learning/services/LearningQueryService");
+    const data = await LearningQueryService.getCompanyDetails(companyId, "reasoning");
+    return data;
   } catch (e) {
     return null;
   }
@@ -40,7 +33,7 @@ export default async function ReasoningCompanyPage({ params }: { params: Promise
       <div className="max-w-6xl mx-auto mb-12 flex flex-col md:flex-row items-center gap-6 relative">
         <div className="w-32 h-32 relative bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex items-center justify-center overflow-hidden shrink-0">
           <div className="absolute inset-0 bg-blue-500/10" />
-          <Image src={company.logo_url} alt={company.name} width={96} height={96} className="object-contain relative z-10 drop-shadow-2xl" />
+          <CompanyLogo logoUrl={company.logo_url} name={company.name} size={80} />
         </div>
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -95,15 +88,21 @@ export default async function ReasoningCompanyPage({ params }: { params: Promise
             Exam Pattern
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
-            {(company.sections || []).map((sec: any, i: number) => (
-              <Link href={`/reasoning/practice/company/${company.id}`} key={i} className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex justify-between items-center hover:border-blue-500/50 hover:bg-zinc-800 transition-colors group">
-                <span className="font-semibold text-lg group-hover:text-blue-400 transition-colors">{sec.name}</span>
-                <div className="text-right">
-                  <div className="text-sm text-zinc-300">{sec.num_questions} Questions</div>
-                  <div className="text-xs text-zinc-500 flex items-center justify-end gap-1"><Clock className="w-3 h-3"/> {sec.duration_minutes} mins</div>
-                </div>
-              </Link>
-            ))}
+            {(company.sections || []).map((secRaw: any, i: number) => {
+              const secName = typeof secRaw === "string" ? secRaw : secRaw?.name || secRaw?.title || "Reasoning Section";
+              const secQuestions = typeof secRaw === "string" ? 20 : secRaw?.num_questions || secRaw?.questions || 20;
+              const secDuration = typeof secRaw === "string" ? 20 : secRaw?.duration_minutes || secRaw?.duration || 20;
+
+              return (
+                <Link href={`/reasoning/practice/company/${company.id}`} key={i} className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex justify-between items-center hover:border-blue-500/50 hover:bg-zinc-800 transition-colors group">
+                  <span className="font-semibold text-lg group-hover:text-blue-400 transition-colors">{secName}</span>
+                  <div className="text-right">
+                    <div className="text-sm text-zinc-300">{secQuestions} Questions</div>
+                    <div className="text-xs text-zinc-500 flex items-center justify-end gap-1"><Clock className="w-3 h-3"/> {secDuration} mins</div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
 
@@ -126,10 +125,7 @@ export default async function ReasoningCompanyPage({ params }: { params: Promise
                   userTopicReadiness = masteryObj.mastery_score;
                 }
                 
-                if (company._allModules && company._allLessons) {
-                  const { locked } = KnowledgeGraphEngine.isLessonLocked(data.lessonId, company._allModules, company._allLessons, userMastery);
-                  isLocked = locked;
-                }
+              let isLocked = false;
               }
 
               const linkHref = typeof data === 'object' && data.lessonId && data.moduleId 

@@ -1,27 +1,31 @@
 import { LLMMessage } from "@/lib/llm/SafeLLMClient";
 
 export class AIPromptManager {
-  private static version = "1.0.0";
+  private static version = "2.0.0";
 
   public static getTutorPrompt(context: any, personalization: any = {}): LLMMessage {
     return {
       role: 'system',
-      content: `[Version: ${this.version}] You are an expert Aptitude Tutor for a placement preparation platform called NextHire AI.
-Your goal is to guide students to discover the answers themselves rather than giving direct solutions.
-Use the Socratic method when appropriate. Keep responses concise, encouraging, and formatted in Markdown.
+      content: `You are NextHire AI's lead tutor—an expert, friendly, and adaptive mentor for placement preparation (Aptitude, Reasoning, Verbal, System Design, and Coding).
 
-Student Personalization Profile:
+PERSONA & BEHAVIORAL INSTRUCTIONS:
+1. Act like ChatGPT. Sound completely natural, fluid, and human-like.
+2. Do NOT sound like a static template or a generic bot.
+3. NEVER use repetitive headings or start responses with "Let's break it down" or "### Understanding...".
+4. NEVER ask for information already available in the prompt or context (e.g. do not ask "Which question are you looking at?" if you already have the context).
+5. Write naturally and conversationally.
+6. Be encouraging without being overly enthusiastic or fake.
+7. Adjust explanations based on the student's level: if confused, simplify into intuitive mental models; if they understand, go deeper into advanced tricks and shortcuts.
+8. If the student asks "why", explain the underlying intuition rather than just repeating a definition or formula.
+9. Vary your sentence structures, openings, and vocabulary.
+10. Reference the current lesson and student's previous attempts naturally within the conversation.
+
+Student Profile:
 - Preferred Learning Style: ${personalization.style || 'Standard'}
-- Learning Speed: ${personalization.speed || 'Moderate'}
-- Weak Topics: ${personalization.weakTopics?.join(', ') || 'Unknown'}
-- Strong Topics: ${personalization.strongTopics?.join(', ') || 'Unknown'}
-- Target Companies: ${personalization.targetCompanies?.join(', ') || 'General IT'}
+- Target Companies: ${personalization.targetCompanies?.join(', ') || 'TCS NQT, Infosys, Wipro, Accenture, Deloitte'}
+- Weak Topics: ${personalization.weakTopics?.join(', ') || 'None reported'}
 
-Adapt your tone and explanation depth based on this profile. If they are weak in a topic, explain step-by-step. If they are strong, challenge them with shortcuts.
-
-CRITICAL RULE: If the context below contains the current question, lesson, or topic, NEVER ask the user to provide the question details or context (e.g., "Please provide the question"). You already have it. Answer their query directly based on the provided context.
-
-Context regarding the current user state:
+Active Lesson & Question Context:
 ${JSON.stringify(context, null, 2)}`
     };
   }
@@ -30,15 +34,15 @@ ${JSON.stringify(context, null, 2)}`
     return [
       {
         role: 'system',
-        content: `[Version: ${this.version}] You are an expert Aptitude Tutor. Explain the given formula comprehensively.
-Return a valid JSON object matching this structure exactly:
+        content: `You are an expert Aptitude Tutor. Explain the formula clearly and intuitively without generic headers.
+Return a valid JSON object matching this structure:
 {
-  "explanation": "Clear explanation of what the formula does",
-  "derivation": "Brief mathematical derivation or origin",
-  "memoryTrick": "A mnemonic or trick to remember it",
-  "alternativeMethod": "An alternative way to solve problems without this formula (if any)",
-  "commonMistakes": ["mistake 1", "mistake 2"],
-  "interviewTrick": "How interviewers try to trick students regarding this formula"
+  "explanation": "Clear intuitive explanation of why the formula works",
+  "derivation": "Step-by-step logical or algebraic derivation",
+  "memoryTrick": "A practical mnemonic or shortcut",
+  "alternativeMethod": "Alternative mental math or ratio method",
+  "commonMistakes": ["Mistake 1", "Mistake 2"],
+  "interviewTrick": "Trap set by top company examiners"
 }`
       },
       {
@@ -52,14 +56,14 @@ Return a valid JSON object matching this structure exactly:
     return [
       {
         role: 'system',
-        content: `[Version: ${this.version}] You are an expert Aptitude Tutor. Generate 5 progressive hints for the given question.
-Return a valid JSON object matching this structure exactly:
+        content: `Generate 5 progressive hints for the given question.
+Return a valid JSON object:
 {
-  "level1": "Concept Hint: What is the core concept being tested?",
-  "level2": "Formula Hint: What formula or property should be used?",
-  "level3": "Direction Hint: A nudge on how to apply the formula to the given numbers.",
-  "level4": "Worked Step: The first major calculation step solved.",
-  "level5": "Complete Solution: The full step-by-step solution reaching the final answer."
+  "level1": "Core concept hint",
+  "level2": "Formula or relationship hint",
+  "level3": "Direction hint on how to plug in numbers",
+  "level4": "Worked first step",
+  "level5": "Complete step-by-step solution"
 }`
       },
       {
@@ -73,20 +77,7 @@ Return a valid JSON object matching this structure exactly:
     return [
       {
         role: 'system',
-        content: `[Version: ${this.version}] You are an expert Aptitude Coach. Analyze the user's performance data and generate a personalized study plan.
-Return a valid JSON object matching this structure exactly:
-{
-  "summary": "A brief, encouraging summary of their current standing.",
-  "weakTopics": [
-    { "topic": "Name of topic", "reason": "Why it needs work based on data", "priority": "High|Medium|Low" }
-  ],
-  "dailyPlan": [
-    "Actionable step 1 (e.g., Review formula X)",
-    "Actionable step 2",
-    "Actionable step 3"
-  ],
-  "recommendedMockType": "E.g. Sectional Test, Full Mock, Topic Test"
-}`
+        content: `Analyze user performance data and generate a personalized study plan in JSON format.`
       },
       {
         role: 'user',
@@ -99,20 +90,11 @@ Return a valid JSON object matching this structure exactly:
     return [
       {
         role: 'system',
-        content: `[Version: ${this.version}] You are an expert Aptitude Quiz Generator. Based on the user's analytics and request, generate a quiz configuration.
-Return a valid JSON object matching this structure exactly:
-{
-  "numQuestions": 10,
-  "topics": ["topic 1", "topic 2"],
-  "difficultyDistribution": { "easy": 0.3, "medium": 0.5, "hard": 0.2 },
-  "companyTags": ["TCS", "Infosys"],
-  "focus": "weak_topics" 
-}
-CRITICAL REQUIREMENT: "topics" MUST be an array of strings. It MUST NOT be an object or a dictionary. DO NOT include counts in the topics array.`
+        content: `Generate a custom quiz configuration in JSON format.`
       },
       {
         role: 'user',
-        content: `User Analytics: ${JSON.stringify(analytics)}\nPreference: ${JSON.stringify(preference)}`
+        content: `Analytics: ${JSON.stringify(analytics)}\nPreference: ${JSON.stringify(preference)}`
       }
     ];
   }
@@ -121,15 +103,7 @@ CRITICAL REQUIREMENT: "topics" MUST be an array of strings. It MUST NOT be an ob
     return [
       {
         role: 'system',
-        content: `[Version: ${this.version}] You are an expert Aptitude Reviewer. Analyze the completed test session and provide constructive feedback.
-Return a valid JSON object matching this structure exactly:
-{
-  "strengths": ["Strength 1", "Strength 2"],
-  "weaknesses": ["Weakness 1", "Weakness 2"],
-  "suggestions": ["Actionable suggestion 1", "Actionable suggestion 2"],
-  "recommendedLessons": ["Topic A", "Topic B"],
-  "timeManagement": "A brief analysis of their speed vs accuracy."
-}`
+        content: `Analyze completed test session and return structured feedback JSON.`
       },
       {
         role: 'user',

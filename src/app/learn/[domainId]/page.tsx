@@ -6,17 +6,18 @@ import { notFound } from "next/navigation";
 
 export const revalidate = 3600;
 
-export default async function DomainCurriculumPage({ params }: { params: { domainId: string } }) {
-  const { domainId } = params;
+export default async function DomainCurriculumPage({ params }: { params: Promise<{ domainId: string }> }) {
+  const { domainId } = await params;
+  const normalizedDomainId = LearningService.queries.normalizeDomainId(domainId);
   
   const domains = await LearningService.queries.getDomains();
-  const currentDomain = domains.find(d => d.id === domainId);
+  const currentDomain = domains.find(d => d.id === normalizedDomainId);
   
   if (!currentDomain) {
     return notFound();
   }
 
-  const modules = await LearningService.queries.getModules(domainId);
+  const modules = await LearningService.queries.getModules(normalizedDomainId);
   const userId = await LearningService.queries.getServerUserId();
 
   // In a real scenario, we'd calculate mastery here. For now, all unlocked.
@@ -37,7 +38,7 @@ export default async function DomainCurriculumPage({ params }: { params: { domai
         {/* Header */}
         <header className="mb-12">
           <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl flex items-center gap-3">
-            {currentDomain.title}
+            {currentDomain.title || currentDomain.name}
           </h1>
           <p className="mt-4 text-lg text-zinc-400 max-w-2xl">
             {currentDomain.description}

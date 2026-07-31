@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import SimulationEngine from '@/components/system-design/simulators/SimulationEngine';
 import { LoadBalancerPlugin } from '@/components/system-design/simulators/plugins/LoadBalancerPlugin';

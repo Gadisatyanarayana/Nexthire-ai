@@ -32,23 +32,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ solvedMap, solvedAtMap: {} });
     }
 
-    const user = await upsertUserAdmin({
-      name: session.user.name ?? null,
-      email: String(session.user.email || "").trim().toLowerCase(),
-    });
+    let user: { id: string } | null = null;
+    try {
+      user = await upsertUserAdmin({
+        name: session.user.name ?? null,
+        email: String(session.user.email || "").trim().toLowerCase(),
+      });
+    } catch {
+      const solvedMap = Object.fromEntries(questionIds.map((id) => [id, false]));
+      return NextResponse.json({ solvedMap, solvedAtMap: {} });
+    }
+
+    if (!user?.id) {
+      const solvedMap = Object.fromEntries(questionIds.map((id) => [id, false]));
+      return NextResponse.json({ solvedMap, solvedAtMap: {} });
+    }
 
     const supabase = getAdminClient();
     const { data, error } = await supabase
       .from("submissions")
       .select("question_id, created_at, result")
       .eq("user_id", user.id)
-      .is("contest_id", null)
       .in("question_id", questionIds)
       .in("result", ACCEPTED_RESULTS)
       .order("created_at", { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: error.message || "Failed to load solved status" }, { status: 500 });
+      const solvedMap = Object.fromEntries(questionIds.map((id) => [id, false]));
+      return NextResponse.json({ solvedMap, solvedAtMap: {} });
     }
 
     const solvedMap: Record<string, boolean> = Object.fromEntries(questionIds.map((id) => [id, false]));
@@ -65,8 +76,8 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ solvedMap, solvedAtMap });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load solved status";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    const solvedMap: Record<string, boolean> = {};
+    return NextResponse.json({ solvedMap, solvedAtMap: {} });
   }
 }

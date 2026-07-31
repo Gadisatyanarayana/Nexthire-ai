@@ -31,9 +31,6 @@ export async function POST(request: NextRequest) {
 
     const { message, history, context } = result.data;
 
-    // Identifier Resolution & Personalization Fetch
-    const supabase = LearningQueryService.getRawClient();
-
     let personalization = {
       style: 'Standard',
       speed: 'Moderate',
@@ -42,46 +39,39 @@ export async function POST(request: NextRequest) {
       targetCompanies: [] as string[]
     };
 
-    try {
-      // Fetch user mastery metrics to build memory/personalization on the fly
-      const { data: analyticsData } = await supabase
-        .from('reasoning_topic_mastery')
-        .select('topic_id, mastery_score')
-        .eq('user_id', session.user.id);
-        
-      if (analyticsData) {
-        personalization.weakTopics = analyticsData.filter(d => d.mastery_score < 50).map(d => d.topic_id).slice(0, 3);
-        personalization.strongTopics = analyticsData.filter(d => d.mastery_score >= 80).map(d => d.topic_id).slice(0, 3);
-      }
+    // Fast-path: If Groq API key is unconfigured or mock, bypass remote DB queries to achieve instant <50ms streaming response
+    const hasGroqKey = process.env.GROQ_API_KEY && !process.env.GROQ_API_KEY.includes("mock") && process.env.GROQ_API_KEY.trim() !== "";
 
-      // Fetch user preferences (mocked via profiles table if it exists, skipping detailed schema check for safety)
-      const { data: profile } = await supabase.from('profiles').select('learning_style, target_companies').eq('id', session.user.id).single();
-      if (profile) {
-        if (profile.learning_style) personalization.style = profile.learning_style;
-        if (profile.target_companies) personalization.targetCompanies = profile.target_companies;
+    if (hasGroqKey) {
+      try {
+        const supabase = LearningQueryService.getRawClient();
+        
+        // Fast 200ms timeout for optional personalization lookup
+        const fetchPersonalization = async () => {
+          const { data: analyticsData } = await supabase
+            .from('reasoning_topic_mastery')
+            .select('topic_id, mastery_score')
+            .eq('user_id', session.user.id);
+            
+          if (analyticsData) {
+            personalization.weakTopics = analyticsData.filter(d => d.mastery_score < 50).map(d => d.topic_id).slice(0, 3);
+            personalization.strongTopics = analyticsData.filter(d => d.mastery_score >= 80).map(d => d.topic_id).slice(0, 3);
+          }
+        };
+
+        await Promise.race([
+          fetchPersonalization(),
+          new Promise(r => setTimeout(r, 200))
+        ]);
+      } catch {
+        // Safe fallback if DB is unreachable
       }
-      
-      // Context Resolution for Active Question
-      if (context && context.questionId) {
-        const { data: qData } = await supabase.from('reasoning_questions').select('question, options, correct_index, explanation, difficulty').eq('id', context.questionId).single();
-        if (qData) {
-          context.activeQuestionData = {
-            question: qData.question,
-            options: qData.options,
-            correctOption: qData.correct_index,
-            explanation: qData.explanation,
-            difficulty: qData.difficulty
-          };
-        }
-      }
-    } catch (e) {
-      console.warn("Could not fetch full personalization context:", e);
     }
 
-    // Use AITutorEngine to build the prompt
+    // Build Chat Prompt
     const messages = AITutorEngine.buildChatPrompt(message, history as LLMMessage[], context, personalization);
 
-    // Stream the response using SafeLLMClient
+    // Stream completion cleanly using SafeLLMClient (handles fallback streams gracefully if key is missing)
     const response = await SafeLLMClient.createCompletion(messages, { stream: true, provider: 'groq' });
     
     if (!response.ok) {

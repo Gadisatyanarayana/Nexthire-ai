@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useEffect, useState, Suspense } from 'react';
 import { ShieldCheck, Sparkles, Terminal, Trophy, MessageSquare, Award } from 'lucide-react';
 
@@ -164,6 +164,15 @@ function SignInInner() {
     }
   }
 
+  async function handleDevSignIn() {
+    setIsLoading(true);
+    try {
+      await signIn('credentials', { callbackUrl: callbackUrl || '/dashboard' });
+    } catch {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background text-foreground premium-glow-bg">
       {/* Left panel - Branding Showcase */}
@@ -229,53 +238,82 @@ function SignInInner() {
       </section>
 
       {/* Right panel - Form Controls */}
-      <section className="flex items-center justify-center p-8">
-        <div className="premium-card max-w-md w-full backdrop-blur-md bg-background/50">
-          <div className="space-y-6 text-center lg:text-left">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight">Access Dashboard</h1>
-              <p className="text-xs text-foreground/50 leading-relaxed uppercase tracking-wider">
-                Authenticate with your university registration details
+      <section className="flex items-center justify-center p-8 relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,242,254,0.05)_0%,transparent_70%)] pointer-events-none" />
+        
+        <div className="relative w-full max-w-md p-10 rounded-3xl border border-foreground/10 bg-background/60 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.2)]">
+          <div className="space-y-8 text-center lg:text-left">
+            <div className="space-y-3">
+              <h1 className="text-4xl font-black tracking-tighter">Welcome Back</h1>
+              <p className="text-sm font-medium text-foreground/50 tracking-wide">
+                Sign in to your NextHire workspace
               </p>
             </div>
 
-            <div className="p-4 rounded-xl border border-foreground/10 bg-foreground/5 space-y-1.5 text-left">
-              <span className="block text-xs font-bold uppercase tracking-wider text-brand-blue">Notice</span>
-              <p className="text-xs text-foreground/75 leading-relaxed">
-                Sign-in utilizes OAuth. Ensure you accept profile scopes to synchronize training milestones.
-              </p>
-            </div>
-
-            <button
-              onClick={handleSignIn}
-              disabled={isLoading || authReady === false}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-foreground px-6 py-4 text-sm font-bold text-background transition hover:opacity-90 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                  <span>Connecting Secure Session...</span>
-                </span>
-              ) : (
-                <span>Continue with Google</span>
+            <div className="space-y-4">
+              <button
+                onClick={handleSignIn}
+                disabled={isLoading || authReady === false}
+                className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-foreground px-6 py-4 text-sm font-bold text-background transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                    <span>Authenticating...</span>
+                  </span>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5 transition-transform group-hover:scale-110">
+                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                      <path fill="none" d="M0 0h48v48H0z" />
+                    </svg>
+                    <span>Continue with Google</span>
+                  </>
+                )}
+              </button>
+              
+              {process.env.NODE_ENV === 'development' && (
+                <button
+                  onClick={handleDevSignIn}
+                  disabled={isLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-brand-purple/30 bg-brand-purple/10 px-6 py-4 text-sm font-bold text-brand-purple transition-all hover:bg-brand-purple/20 hover:border-brand-purple/50 active:scale-[0.98] disabled:opacity-50"
+                >
+                  <Terminal className="h-5 w-5" />
+                  <span>Developer Bypass (Local Only)</span>
+                </button>
               )}
-            </button>
+            </div>
 
             {authReady === false && (
-              <p className="text-xs leading-relaxed text-brand-red font-semibold">
-                OAuth portal is offline. Workspace keys not verified.
-              </p>
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center">
+                <p className="text-sm font-semibold text-red-500">
+                  Authentication server is currently unreachable.
+                </p>
+              </div>
             )}
 
             {authErrorMessage && (
-              <p className="text-xs leading-relaxed text-brand-red font-semibold">
-                {authErrorMessage}
-                {authErrorCode ? ` (code: ${authErrorCode})` : ''}
-              </p>
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center">
+                <p className="text-sm font-semibold text-red-400">
+                  {authErrorMessage}
+                </p>
+                {authErrorCode && <p className="text-xs text-red-500/70 mt-1">Error Code: {authErrorCode}</p>}
+                
+                {authErrorCode === 'google' && (
+                  <p className="text-xs text-red-400 mt-3 font-medium text-left">
+                    * Make sure you have added your GOOGLE_CLIENT_ID to the .env.local file. If you haven't, use the "Developer Bypass" button instead.
+                  </p>
+                )}
+              </div>
             )}
 
-            <div className="text-2xs text-foreground/45 border-t border-foreground/10 pt-4 leading-relaxed">
-              By authenticating, you permit NextHire AI to configure your sandboxed environment and logging records.
+            <div className="pt-6 border-t border-foreground/10 text-center">
+              <p className="text-[11px] font-medium leading-relaxed text-foreground/40 uppercase tracking-widest">
+                Secure Sandboxed Environment
+              </p>
             </div>
           </div>
         </div>

@@ -22,14 +22,13 @@ export class KnowledgeGraphEngine {
       };
     }
 
-    // Within an unlocked module, all lessons are accessible to allow flexible learning paths.
     return { locked: false };
   }
 
   /**
    * Evaluates if a module is locked.
-   * Progression must strictly follow Level -> Module.
-   * All lessons in modules with a lower level_order must have a mastery score >= 75.
+   * Progression strictly follows Level -> Module.
+   * Level 1 is unlocked. Higher levels unlock when user achieves >= 75% mastery in previous level.
    */
   public static isModuleLocked(
     moduleId: string,
@@ -40,29 +39,28 @@ export class KnowledgeGraphEngine {
     const targetModule = allModules.find(m => m.id === moduleId);
     if (!targetModule) return { locked: true, reason: "Module not found" };
 
-    const lowerLevelModules = allModules.filter(m => m.level_order < targetModule.level_order);
-    
-    // Only check the immediate previous module level
+    // Level 1 modules are unlocked by default
+    if (targetModule.level_order <= 1) {
+      return { locked: false };
+    }
+
     const prevLevelModules = allModules.filter(m => m.level_order === targetModule.level_order - 1);
-    
     for (const prevMod of prevLevelModules) {
       const prevModLessons = allLessons.filter(l => l.module_id === prevMod.id);
       if (prevModLessons.length === 0) continue;
-      
-      // Calculate how many lessons in the previous module are mastered
+
       let masteredCount = 0;
       for (const prevLesson of prevModLessons) {
-        const mastery = userMastery.find(m => m.topic_id === prevLesson.id);
+        const mastery = (userMastery || []).find(m => m.topic_id === prevLesson.id);
         if (mastery && mastery.mastery_score >= 75) {
           masteredCount++;
         }
       }
-      
-      // If less than 50% of the previous module is mastered, keep the next module locked
+
       if (masteredCount < Math.ceil(prevModLessons.length / 2)) {
         return {
           locked: true,
-          reason: `You must achieve >= 75% mastery in at least half of "${prevMod.title}" to unlock this level.`
+          reason: `Complete Level ${targetModule.level_order - 1} (${prevMod.title}) to unlock.`
         };
       }
     }
@@ -70,87 +68,36 @@ export class KnowledgeGraphEngine {
     return { locked: false };
   }
 
-  /**
-   * Intelligently calculates the next optimal action based on priority:
-   * 1 Revision overdue -> 2 Failed assessment -> 3 Current lesson -> 4 Current practice
-   * 5 Module assessment -> 6 Next unlocked lesson -> 7 Company preparation -> 8 Mock
-   */
   public static getNextActionPriority(
     allModules: AptitudeModule[],
     allLessons: AptitudeLesson[],
     userMastery: AptitudeTopicMastery[]
-  ): { type: "lesson" | "revision" | "mock" | "assessment"; targetId: string; title: string; reason: string, moduleId?: string } {
-    
-    // 1. Revision overdue
-    const now = new Date();
-    const dueRevisions = userMastery.filter(m => {
-      if (!m.revision_queue_date) return false;
-      return new Date(m.revision_queue_date) <= now;
-    }).sort((a, b) => (a.confidence_score || 100) - (b.confidence_score || 100));
+  ): any {
+    const unlockedModules = allModules.filter(m => !this.isModuleLocked(m.id, allModules, allLessons, userMastery).locked);
+    const targetModule = unlockedModules[0] || allModules[0];
+    const targetLessons = allLessons.filter(l => l.module_id === targetModule?.id);
+    const firstUnfinished = targetLessons.find(l => {
+      const m = (userMastery || []).find(um => um.topic_id === l.id);
+      return !m || m.mastery_score < 75;
+    }) || targetLessons[0];
 
-    if (dueRevisions.length > 0) {
-      const target = allLessons.find(l => l.id === dueRevisions[0].topic_id);
-      if (target) {
-        return { type: "revision", targetId: target.id, moduleId: target.module_id, title: target.title, reason: "Revision overdue" };
-      }
-    }
+    if (!firstUnfinished) return null;
 
-    // Identify active lessons (unlocked but not competent)
-    const unlockedLessons = allLessons
-      .filter(l => {
-        const moduleLocked = this.isModuleLocked(l.module_id, allModules, allLessons, userMastery).locked;
-        const lessonLocked = this.isLessonLocked(l.id, allModules, allLessons, userMastery).locked;
-        return !moduleLocked && !lessonLocked;
-      })
-      .sort((a, b) => {
-        // Sort by module level first, then lesson numerical ID
-        const aMod = allModules.find(m => m.id === a.module_id);
-        const bMod = allModules.find(m => m.id === b.module_id);
-        const aModLevel = aMod?.level_order || 0;
-        const bModLevel = bMod?.level_order || 0;
-        if (aModLevel !== bModLevel) return aModLevel - bModLevel;
-        
-        const aNum = parseInt(a.id.split('-').pop() || "0", 10) || 0;
-        const bNum = parseInt(b.id.split('-').pop() || "0", 10) || 0;
-        return aNum - bNum;
-      });
-    
-    const activeLessons = unlockedLessons.filter(l => {
-      const mastery = userMastery.find(m => m.topic_id === l.id);
-      return !mastery || mastery.mastery_score < 75;
-    });
-
-    if (activeLessons.length > 0) {
-      const current = activeLessons[0];
-      const currentMastery = userMastery.find(m => m.topic_id === current.id);
-      
-      // 3. Current lesson vs 4. Current practice
-      if (!currentMastery || currentMastery.questions_attempted < 5) {
-        return { type: "lesson", targetId: current.id, moduleId: current.module_id, title: current.title, reason: "Current lesson" };
-      } else {
-        return { type: "lesson", targetId: current.id, moduleId: current.module_id, title: `${current.title} Practice`, reason: "Current practice" };
-      }
-    }
-
-    // 8. Mock (Default fallback if all unlocked lessons are mastered)
     return {
-      type: "mock",
-      targetId: "placement-ready",
-      title: "Full Mock Assessment",
-      reason: "Placement Preparation"
+      type: "lesson",
+      targetId: firstUnfinished.id,
+      lessonId: firstUnfinished.id,
+      title: firstUnfinished.title,
+      moduleId: targetModule.id,
+      moduleTitle: targetModule.title,
+      reason: "Recommended next step in your curriculum path."
     };
   }
 
-  /**
-   * Calculates the discrete Mastery Level based on mastery score.
-   */
-  public static getMasteryLevel(score: number): "Not Started" | "Learning" | "Practicing" | "Competent" | "Mastered" | "Expert" {
-    if (score === 0) return "Not Started";
-    if (score < 50) return "Learning";
-    if (score < 70) return "Practicing";
-    if (score < 85) return "Competent";
-    if (score < 95) return "Mastered";
-    return "Expert";
+  public static getMasteryLevel(score: number): "novice" | "competent" | "proficient" | "master" {
+    if (score >= 90) return "master";
+    if (score >= 75) return "proficient";
+    if (score >= 60) return "competent";
+    return "novice";
   }
 }
-

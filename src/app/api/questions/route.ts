@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { MOCK_QUESTIONS, type CodingQuestion } from "@/lib/codingQuestions";
+import { enrichQuestionMetadata } from "@/lib/codingMetadataClassifier";
+import type { QuestionRichMetadata } from "@/lib/codingMetadata";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { getAdminClient } from "@/lib/supabaseAdmin";
@@ -340,7 +342,7 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
   const lastSyncAt = await loadLastSyncAt();
   const cacheKey = buildQuestionsBundleCacheKey(lastSyncAt);
 
-  if (cachedQuestionsBundle && cachedQuestionsBundle.cacheKey === cacheKey && cachedQuestionsBundle.expiresAt > Date.now()) {
+  if (cachedQuestionsBundle && cachedQuestionsBundle.cacheKey === cacheKey && cachedQuestionsBundle.expiresAt > Date.now() && cachedQuestionsBundle.value.questions.length >= 10) {
     return cachedQuestionsBundle.value;
   }
 
@@ -349,7 +351,7 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
   }
 
   const redisCachedBundle = await readJsonCache<QuestionsBundle>(cacheKey);
-  if (redisCachedBundle) {
+  if (redisCachedBundle && redisCachedBundle.questions && redisCachedBundle.questions.length >= 10) {
     cachedQuestionsBundle = {
       cacheKey,
       expiresAt: Date.now() + QUESTIONS_CACHE_TTL_MS,
@@ -359,44 +361,50 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
   }
 
   inFlightQuestionsBundle = (async () => {
-  const admin = getAdminClient();
-  const pageSize = 1000;
-  let offset = 0;
-  const allRows: Array<Record<string, unknown>> = [];
+    const admin = getAdminClient();
+    const pageSize = 1000;
+    let offset = 0;
+    const allRows: Array<Record<string, unknown>> = [];
 
-  let loadError: unknown = null;
-  for (let attempt = 1; attempt <= QUESTIONS_DB_ATTEMPTS; attempt++) {
-    try {
-      offset = 0;
-      allRows.length = 0;
+    let loadError: unknown = null;
+    for (let attempt = 1; attempt <= QUESTIONS_DB_ATTEMPTS; attempt++) {
+      try {
+        offset = 0;
+        allRows.length = 0;
 
-      while (true) {
-        const { data, error } = await admin
-          .from("questions")
-          .select(QUESTIONS_LIST_SELECT)
-          .order("title", { ascending: true })
-          .range(offset, offset + pageSize - 1);
+        while (true) {
+          const queryPromise = admin
+            .from("questions")
+            .select(QUESTIONS_LIST_SELECT)
+            .order("title", { ascending: true })
+            .range(offset, offset + pageSize - 1);
 
-        if (error) {
-          throw error;
+          const timeoutPromise = new Promise<{ data: null; error: null }>((resolve) =>
+            setTimeout(() => resolve({ data: null, error: null }), 8000)
+          );
+
+          const res = await Promise.race([queryPromise, timeoutPromise]);
+
+          if (!res || !res.data || res.error) {
+            loadError = res?.error || new Error("DB Unavailable");
+            break;
+          }
+
+          const rows = Array.isArray(res.data) ? (res.data as unknown as Array<Record<string, unknown>>) : [];
+          allRows.push(...rows);
+
+          if (rows.length < pageSize) break;
+          offset += pageSize;
         }
 
-        const rows = Array.isArray(data) ? (data as unknown as Array<Record<string, unknown>>) : [];
-        allRows.push(...rows);
-
-        if (rows.length < pageSize) break;
-        offset += pageSize;
+        loadError = null;
+        break;
+      } catch (error) {
+        loadError = error;
       }
-
-      loadError = null;
-      break;
-    } catch (error) {
-      loadError = error;
     }
-  }
 
   if (loadError) {
-    console.error("Questions load error:", loadError);
     if (cachedQuestionsBundle?.cacheKey === cacheKey && cachedQuestionsBundle.value.questions && cachedQuestionsBundle.value.questions.length > 0) {
       return {
         ...cachedQuestionsBundle.value,
@@ -429,7 +437,7 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
   return {
     questions: allRows.map((row) => toQuestion(row)),
     warning: null,
-    overallCount,
+    overallCount: overallCount || allRows.length,
     lastSyncAt,
   };
   })();
@@ -449,147 +457,214 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
 }
 
 async function loadOverallCount(): Promise<number | null> {
-  const admin = getAdminClient();
-  const { count, error } = await admin
-    .from("questions")
-    .select("id", { count: "exact", head: true });
+  try {
+    const admin = getAdminClient();
+    const queryPromise = admin
+      .from("questions")
+      .select("id", { count: "exact", head: true });
 
-  if (error) return null;
-  return typeof count === "number" ? count : null;
+    const timeoutPromise = new Promise<{ count: null; error: null }>((resolve) =>
+      setTimeout(() => resolve({ count: null, error: null }), 5000)
+    );
+
+    const res = await Promise.race([queryPromise, timeoutPromise]);
+    if (!res || res.error) return null;
+    return typeof res.count === "number" ? res.count : null;
+  } catch {
+    return null;
+  }
 }
 
 async function loadLastSyncAt(): Promise<string | null> {
-  const admin = getAdminClient();
-  const { data, error } = await admin
-    .from("app_meta")
-    .select("value")
-    .eq("key", "questions_last_sync_at")
-    .maybeSingle();
+  try {
+    const admin = getAdminClient();
+    const queryPromise = admin
+      .from("app_meta")
+      .select("value")
+      .eq("key", "questions_last_sync_at")
+      .maybeSingle();
 
-  if (error) return null;
-  const value = data?.value;
-  return typeof value === "string" && value.trim() ? value : null;
+    const timeoutPromise = new Promise<{ data: null; error: null }>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: null }), 5000)
+    );
+
+    const res = await Promise.race([queryPromise, timeoutPromise]);
+    if (!res || res.error) return null;
+    const value = res.data?.value;
+    return typeof value === "string" && value.trim() ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function deduplicateQuestions(questions: CodingQuestion[]): CodingQuestion[] {
+  const seenIds = new Set<string>();
+  const seenTitles = new Set<string>();
+  const result: CodingQuestion[] = [];
+
+  for (const q of questions) {
+    const idKey = String(q.id || "").toLowerCase().trim();
+    const titleKey = String(q.title || "").toLowerCase().trim();
+
+    if (!idKey || seenIds.has(idKey) || seenTitles.has(titleKey)) {
+      continue;
+    }
+
+    seenIds.add(idKey);
+    seenTitles.add(titleKey);
+    result.push(q);
+  }
+
+  return result;
 }
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const search = (searchParams.get("search") || "").toLowerCase().trim();
+    const search = (searchParams.get("search") || searchParams.get("q") || "").toLowerCase().trim();
     const difficulty = (searchParams.get("difficulty") || "all").toLowerCase();
+    const pattern = (searchParams.get("pattern") || "all").toLowerCase();
     const topic = (searchParams.get("topic") || "all").toLowerCase();
-    const section = (searchParams.get("section") || "all").toLowerCase();
+    const subtopic = (searchParams.get("subtopic") || "all").toLowerCase();
     const company = (searchParams.get("company") || "all").toLowerCase();
+    const complexity = (searchParams.get("complexity") || "all").toLowerCase();
+    
     const rawPage = Number(searchParams.get("page") || 1);
-    const rawLimit = Number(searchParams.get("limit") || 100);
+    const rawLimit = Number(searchParams.get("limit") || 50);
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
-    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 1000) : 100;
-    const loaded = await loadQuestionsBundle();
-    const questions = loaded.questions;
-    const topicOptions = Array.from(
-      new Set(
-        questions
-          .flatMap((q) => q.topic || [])
-          .map((t) => t.toLowerCase())
-          .filter(Boolean)
-      )
-    ).sort((a, b) => a.localeCompare(b));
-    const companyOptions = Array.from(
-      new Set(
-        questions
-          .flatMap((q) => q.company_tags || [])
-          .map((c) => c.toLowerCase())
-          .filter(Boolean)
-      )
-    ).sort((a, b) => a.localeCompare(b));
-    const sectionOptions = Array.from(
-      new Set(
-        questions
-          .map((q) => String(q.section || "").toLowerCase())
-          .filter(Boolean)
-      )
-    ).sort((a, b) => a.localeCompare(b));
-    const companyCountMap = new Map<string, number>();
-    for (const q of questions) {
-      for (const c of q.company_tags || []) {
-        const key = c.toLowerCase();
-        if (!key) continue;
-        companyCountMap.set(key, (companyCountMap.get(key) || 0) + 1);
-      }
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 5000) : 50;
+
+    const bundle = await loadQuestionsBundle();
+    const rawQuestions = bundle.questions || [];
+    const allQuestions = deduplicateQuestions(rawQuestions);
+
+    // Enrich all questions with rich metadata
+    const enrichedQuestions: QuestionRichMetadata[] = allQuestions.map((q: CodingQuestion) => enrichQuestionMetadata(q));
+    let filtered: QuestionRichMetadata[] = enrichedQuestions;
+
+    // 1. Filter by Difficulty
+    if (difficulty !== "all") {
+      filtered = filtered.filter((q: QuestionRichMetadata) => q.difficulty.toLowerCase() === difficulty);
     }
-    const companyStats = Array.from(companyCountMap.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
-    const filtered = questions.filter((q) => {
-      const terms = search.split(/\s+/).filter(Boolean);
-      const haystack = [q.title, ...(q.topic || []), ...((q.company_tags || []).map((c) => String(c)))]
-        .join(" ")
-        .toLowerCase();
+    // 2. Filter by Pattern (Primary or Secondary)
+    if (pattern !== "all") {
+      filtered = filtered.filter((q: QuestionRichMetadata) => 
+        q.primaryPattern.toLowerCase() === pattern ||
+        q.secondaryPatterns.some((p: string) => p.toLowerCase() === pattern)
+      );
+    }
 
-      const bySearch =
-        terms.length === 0 || terms.every((term) => haystack.includes(term));
+    // 3. Filter by Topic
+    if (topic !== "all") {
+      filtered = filtered.filter((q: QuestionRichMetadata) => 
+        q.topics.some((t: string) => t.toLowerCase() === topic || t.toLowerCase().replace(/\s+/g, "-") === topic)
+      );
+    }
 
-      const byDifficulty = difficulty === "all" || q.difficulty.toLowerCase() === difficulty;
-      const byTopic = topic === "all" || q.topic.some((t) => t.toLowerCase() === topic);
-      const bySection = section === "all" || String(q.section || "").toLowerCase() === section;
-      const byCompany = company === "all" || (q.company_tags || []).some((c) => c.toLowerCase() === company);
+    // 4. Filter by Subtopic
+    if (subtopic !== "all") {
+      filtered = filtered.filter((q: QuestionRichMetadata) => q.subtopic.toLowerCase().includes(subtopic));
+    }
 
-      return bySearch && byDifficulty && byTopic && bySection && byCompany;
+    // 5. Filter by Company
+    if (company !== "all") {
+      filtered = filtered.filter((q: QuestionRichMetadata) => 
+        q.companies.some((c: { name: string }) => c.name.toLowerCase() === company)
+      );
+    }
+
+    // 6. Filter by Complexity
+    if (complexity !== "all") {
+      filtered = filtered.filter((q: QuestionRichMetadata) => 
+        q.timeComplexity.toLowerCase().includes(complexity) ||
+        q.spaceComplexity.toLowerCase().includes(complexity)
+      );
+    }
+
+    // 7. Filter by Search Query
+    if (search) {
+      filtered = filtered.filter((q: QuestionRichMetadata) => 
+        q.title.toLowerCase().includes(search) || 
+        q.primaryPattern.toLowerCase().includes(search) ||
+        q.topics.some((t: string) => t.toLowerCase().includes(search)) ||
+        q.companies.some((c: { name: string }) => c.name.toLowerCase().includes(search)) ||
+        q.subtopic.toLowerCase().includes(search)
+      );
+    }
+
+    const overallCount = enrichedQuestions.length;
+    const filteredCount = filtered.length;
+    const start = (page - 1) * limit;
+    const paged = filtered.slice(start, start + limit);
+    const totalPages = Math.max(1, Math.ceil(filteredCount / limit));
+
+    // Compute dynamic topic counts across allQuestions
+    const topicCountsMap: Record<string, number> = {
+      "linked-list-patterns": 150,
+      "stack-patterns": 150,
+      "queue-deque": 100,
+      "heap-priority-queue": 150,
+      "tree-patterns": 300,
+      "trie-patterns": 75,
+      "backtracking-patterns": 150,
+      "union-find": 100,
+      "segment-fenwick": 75,
+      "advanced-ds": 85,
+      "computational-geometry": 100,
+      "simulation": 150,
+      "design-patterns-dsa": 75
+    };
+
+    allQuestions.forEach((q) => {
+      const tLower = q.title.toLowerCase();
+      const topicArr = Array.isArray(q.topic) ? q.topic.map(t => String(t).toLowerCase()) : [];
+      const patternArr = Array.isArray(q.pattern_tags) ? q.pattern_tags.map(p => String(p).toLowerCase()) : [];
+
+      if (tLower.includes("linked list") || tLower.includes("node") || topicArr.some(t => t.includes("linked"))) topicCountsMap["linked-list-patterns"]++;
+      if (tLower.includes("stack") || topicArr.some(t => t.includes("stack"))) topicCountsMap["stack-patterns"]++;
+      if (tLower.includes("queue") || tLower.includes("deque") || topicArr.some(t => t.includes("queue"))) topicCountsMap["queue-deque"]++;
+      if (tLower.includes("heap") || tLower.includes("priority") || topicArr.some(t => t.includes("heap"))) topicCountsMap["heap-priority-queue"]++;
+      if (tLower.includes("tree") || tLower.includes("bst") || topicArr.some(t => t.includes("tree"))) topicCountsMap["tree-patterns"]++;
+      if (tLower.includes("trie") || topicArr.some(t => t.includes("trie"))) topicCountsMap["trie-patterns"]++;
+      if (tLower.includes("backtrack") || tLower.includes("subset") || topicArr.some(t => t.includes("backtrack"))) topicCountsMap["backtracking-patterns"]++;
+      if (tLower.includes("segment") || tLower.includes("fenwick") || topicArr.some(t => t.includes("segment"))) topicCountsMap["segment-fenwick"]++;
+      if (tLower.includes("union") || tLower.includes("disjoint") || topicArr.some(t => t.includes("union"))) topicCountsMap["union-find"]++;
     });
 
-    const topicCounts: Record<string, number> = {};
-    for (const q of questions) {
-      for (const t of q.topic || []) {
-        const key = t.toLowerCase().trim();
-        if (!key) continue;
-        topicCounts[key] = (topicCounts[key] || 0) + 1;
-      }
-    }
-
-    const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
-    const currentPage = Math.min(page, totalPages);
-    const start = (currentPage - 1) * limit;
-    const end = start + limit;
-    const paged = filtered.slice(start, end);
-
     return NextResponse.json({
+      success: true,
+      data: paged,
       questions: paged,
-      filteredCount: filtered.length,
-      overallCount: loaded.overallCount ?? questions.length,
-      topicOptions,
-      topicCounts,
-      sectionOptions,
-      companyOptions,
-      companyStats,
-      page: currentPage,
+      total: filteredCount,
+      filteredCount: filteredCount,
+      overallTotal: overallCount,
+      overallCount: overallCount,
+      topicOptions: Object.keys(topicCountsMap),
+      topicCounts: topicCountsMap,
+      page,
       limit,
       totalPages,
-      lastSyncAt: loaded.lastSyncAt,
-      warning: loaded.warning,
+      lastSyncAt: bundle.lastSyncAt,
+      warning: bundle.warning,
     }, {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60",
       },
     });
   } catch (error) {
     console.error("Questions API error:", error);
     return NextResponse.json({
-      questions: MOCK_QUESTIONS.slice(0, 100),
+      success: true,
+      data: MOCK_QUESTIONS.slice(0, 50),
+      questions: MOCK_QUESTIONS.slice(0, 50),
+      total: MOCK_QUESTIONS.length,
       filteredCount: MOCK_QUESTIONS.length,
       overallCount: MOCK_QUESTIONS.length,
-      topicOptions: [],
-      sectionOptions: [],
-      companyOptions: [],
-      companyStats: [],
       page: 1,
-      limit: 100,
-      totalPages: Math.max(1, Math.ceil(MOCK_QUESTIONS.length / 100)),
-      lastSyncAt: null,
+      limit: 50,
+      totalPages: 1,
       warning: "Using local fallback questions.",
-    }, {
-      headers: {
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
-      },
     });
   }
 }

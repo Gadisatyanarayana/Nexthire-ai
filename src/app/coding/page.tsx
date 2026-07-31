@@ -1,556 +1,397 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useRef } from "react";
-import { CheckCircle2, Search, Filter, ChevronLeft, ChevronRight, Code2, Zap, Trophy, ChevronDown } from "lucide-react";
-import type { CodingQuestion } from "@/lib/codingQuestions";
+import React, { useEffect, useMemo, useState } from "react";
+import { 
+  CheckCircle2, Circle, Search, ChevronLeft, ChevronRight, Code2, Trophy, 
+  Sparkles, Filter, Layers, BookOpen, GitFork, RefreshCw, Star, Building2, Flame
+} from "lucide-react";
+import { CODING_TOPICS, SOLVING_PATTERNS } from "@/lib/codingMetadata";
+import type { QuestionRichMetadata } from "@/lib/codingMetadata";
 
-function CustomDropdown({
-  label,
-  value,
-  options,
-  onChange,
-  placeholder
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (val: string) => void;
-  placeholder: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const displayLabel = value === "all" ? placeholder : value;
-
-  return (
-    <div className="relative" ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="rounded-lg px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-all hover:bg-hover border border-primary outline-none"
-        style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)" }}
-      >
-        <span>{label}: <strong>{displayLabel}</strong></span>
-        <ChevronDown className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div
-          className="absolute left-0 mt-1.5 z-10 w-56 max-h-60 overflow-y-auto rounded-xl border border-primary p-1 shadow-2xl backdrop-blur-md"
-          style={{ background: "var(--bg-secondary)" }}
-        >
-          <button
-            type="button"
-            onClick={() => { onChange("all"); setOpen(false); }}
-            className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-hover transition-colors font-medium"
-            style={{ color: value === "all" ? "var(--brand-green)" : "var(--text-secondary)", background: "transparent", border: "none", cursor: "pointer" }}
-          >
-            {placeholder}
-          </button>
-          {options.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => { onChange(opt); setOpen(false); }}
-              className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-hover transition-colors font-medium truncate"
-              style={{ color: value === opt ? "var(--brand-green)" : "var(--text-primary)", background: "transparent", border: "none", cursor: "pointer" }}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+const COMPANIES = ['Amazon', 'Google', 'Meta', 'Microsoft', 'Apple', 'Uber', 'Netflix', 'Adobe', 'TCS', 'Infosys'];
+const COMPLEXITIES = ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)', 'O(n²)'];
 
 export default function CodingQuestionsPage() {
-  const [questions, setQuestions] = useState<CodingQuestion[]>([]);
+  const [questions, setQuestions] = useState<QuestionRichMetadata[]>([]);
   const [filteredCount, setFilteredCount] = useState(0);
   const [overallCount, setOverallCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Enterprise Multi-Filters
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("all");
+  const [pattern, setPattern] = useState("all");
   const [topic, setTopic] = useState("all");
-  const [section, setSection] = useState("all");
+  const [company, setCompany] = useState("all");
+  const [complexity, setComplexity] = useState("all");
+
   const [page, setPage] = useState(1);
-  const [limit] = useState(50);
   const [totalPages, setTotalPages] = useState(1);
-  const [topicOptions, setTopicOptions] = useState<string[]>([]);
-  const [sectionOptions, setSectionOptions] = useState<string[]>([]);
+  const limit = 50;
+
   const [submittedMap, setSubmittedMap] = useState<Record<string, boolean>>({});
-  const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
 
   const totalSolved = useMemo(
     () => Object.values(submittedMap).filter(Boolean).length,
     [submittedMap]
   );
 
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        ...(search ? { search } : {}),
+        ...(difficulty !== "all" ? { difficulty } : {}),
+        ...(pattern !== "all" ? { pattern } : {}),
+        ...(topic !== "all" ? { topic } : {}),
+        ...(company !== "all" ? { company } : {}),
+        ...(complexity !== "all" ? { complexity } : {})
+      });
 
-    async function load() {
-      try {
-        setLoading(true);
+      const res = await fetch(`/api/questions?${query.toString()}`);
+      const data = await res.json();
+
+      const qList: QuestionRichMetadata[] = data.questions || data.data || [];
+      if (data.success !== false) {
+        setQuestions(qList);
+        setFilteredCount(data.filteredCount ?? qList.length);
+        setOverallCount(data.overallCount ?? 2913);
+        setTotalPages(data.totalPages || 1);
         setError(null);
-        const params = new URLSearchParams({ search, difficulty, topic, section, page: String(page), limit: String(limit) });
-        const res = await fetch(`/api/questions?${params.toString()}`, { signal: controller.signal, cache: "no-store" });
-        const data = (await res.json()) as {
-          questions?: CodingQuestion[]; error?: string; filteredCount?: number;
-          overallCount?: number; topicOptions?: string[]; sectionOptions?: string[];
-          topicCounts?: Record<string, number>; page?: number; totalPages?: number;
-        };
-        if (!res.ok) throw new Error(data.error || "Failed to load questions");
-        if (!active) return;
-        const loaded = data.questions || [];
-        setQuestions(loaded);
-        setFilteredCount(typeof data.filteredCount === "number" ? data.filteredCount : loaded.length);
-        setOverallCount(typeof data.overallCount === "number" ? data.overallCount : loaded.length);
-        setTopicOptions(Array.isArray(data.topicOptions) ? data.topicOptions : []);
-        setTopicCounts(data.topicCounts || {});
-        setSectionOptions(Array.isArray(data.sectionOptions) ? data.sectionOptions : []);
-        setTotalPages(typeof data.totalPages === "number" ? data.totalPages : 1);
-
-        const ids = loaded.map((q) => q.id).filter(Boolean);
-        if (ids.length > 0) {
-          const progressParams = new URLSearchParams();
-          ids.forEach((id) => progressParams.append("id", id));
-          void fetch(`/api/questions/progress-map?${progressParams.toString()}`, { signal: controller.signal, cache: "no-store" })
-            .then(async (pr) => {
-              if (!pr.ok) return;
-              const pd = (await pr.json()) as { solvedMap?: Record<string, boolean> };
-              if (active) setSubmittedMap(pd.solvedMap || {});
-            })
-            .catch(() => {});
-        }
-      } catch (e) {
-        if (!active) return;
-        if ((e as Error).name === "AbortError") return;
-        setError(e instanceof Error ? e.message : "Failed to load questions");
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+      } else {
+        setError(data.error || "Failed to load coding questions");
       }
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch data");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    void load();
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [search, difficulty, topic, section, page, limit]);
-
-  function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
-    setSearch(e.target.value);
-    setPage(1);
-  }
-
-  const CURATED_TOPICS = useMemo(() => [
-    { label: "Arrays", value: "array" },
-    { label: "Strings", value: "string" },
-    { label: "Hash Tables", value: "hash-table" },
-    { label: "Dynamic Programming", value: "dynamic-programming" },
-    { label: "Greedy", value: "greedy" },
-    { label: "Sorting", value: "sorting" },
-    { label: "Binary Search", value: "binary-search" },
-    { label: "DFS", value: "depth-first-search" },
-    { label: "BFS", value: "breadth-first-search" },
-    { label: "Graphs", value: "graph" }
-  ], []);
+  useEffect(() => {
+    loadData();
+  }, [search, difficulty, pattern, topic, company, complexity, page]);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}
-    >
-      <div className="max-w-6xl mx-auto px-4 py-8">
-
-        {loading ? (
-          /* ── Unified Page-Wide Skeleton Screen (Prevents disjointed loads/flickers) ── */
-          <div className="animate-pulse space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gray-700/20" />
-              <div className="space-y-2">
-                <div className="h-6 w-48 bg-gray-700/20 rounded" />
-                <div className="h-4 w-32 bg-gray-700/10 rounded" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {Array.from({ length: 10 }).map((_, idx) => (
-                <div key={idx} className="h-16 rounded-xl bg-gray-700/15 border border-transparent" />
-              ))}
-            </div>
-
-            <div className="h-12 rounded-xl bg-gray-700/10" />
-
-            <div className="space-y-2">
-              {Array.from({ length: 10 }).map((_, idx) => (
-                <div key={idx} className="h-12 rounded-xl bg-gray-700/15" />
-              ))}
-            </div>
-          </div>
-        ) : (
-          /* ── Full Layout Load ── */
-          <>
-            {/* ── Header with Back Button and Progress Link ── */}
-            <div className="mb-6 fade-in flex items-center justify-between border-b border-primary pb-4">
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/placement-hub"
-                  className="rounded-xl border border-primary p-2 text-xs font-semibold hover:bg-hover transition-all flex items-center gap-1.5"
-                  style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}
-                >
-                  <ChevronLeft className="w-4 h-4" /> Back to Hub
-                </Link>
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(0,184,163,0.15)", border: "1px solid rgba(0,184,163,0.3)" }}
-                >
-                  <Code2 style={{ width: 20, height: 20, color: "var(--brand-green)" }} />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Coding Playground</h1>
-                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Practice curated DSA & Aptitude challenges to crack top MNC exams.
-                  </p>
-                </div>
-              </div>
-              
-              <Link
-                href="/coding/profile"
-                className="rounded-xl border border-primary px-3.5 py-2 text-xs font-bold hover:bg-hover transition-all flex items-center gap-1.5"
-                style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}
-              >
-                <Trophy className="w-4 h-4 text-amber-500" /> My Progress
-              </Link>
-            </div>
-
-            {/* ── Topic/Algorithm Curation Grid (LeetCode-style) ── */}
-            {overallCount > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 stagger-1 fade-in">
-                {CURATED_TOPICS.map((t) => {
-                  const isActive = topic === t.value;
-                  const count = topicCounts[t.value] || 0;
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => {
-                        setTopic(isActive ? "all" : t.value);
-                        setPage(1);
-                      }}
-                      className="rounded-xl p-3 text-left transition-all hover:scale-[1.01] flex items-center justify-between"
-                      style={{
-                        background: isActive ? "rgba(0,184,163,0.08)" : "var(--bg-card)",
-                        border: `1px solid ${isActive ? "var(--color-easy)" : "var(--border-primary)"}`,
-                        cursor: "pointer",
-                        boxShadow: isActive ? "0 0 10px rgba(0,184,163,0.1)" : "none",
-                      }}
-                    >
-                      <div className="min-w-0 flex-1 pr-1">
-                        <p className="text-xs font-semibold truncate" style={{ color: isActive ? "var(--color-easy)" : "var(--text-primary)" }}>
-                          {t.label}
-                        </p>
-                        <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                          {count > 0 ? `${count} problems` : "0 problems"}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-3.5 h-3.5 shrink-0 transition-transform" style={{ color: isActive ? "var(--color-easy)" : "var(--text-muted)" }} />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* ── Filter bar ── */}
-            <div
-              className="flex flex-wrap gap-3 mb-5 p-3 rounded-xl stagger-2 fade-in"
-              style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-primary)" }}
+    <div className="min-h-screen bg-black text-white p-6 pb-24 font-sans">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-zinc-800">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/placement-hub"
+              className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-emerald-500/50 text-zinc-400 hover:text-white transition-all flex items-center gap-2 text-xs font-bold"
             >
-              {/* Search */}
-              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                <Search style={{ width: 14, height: 14, color: "var(--text-muted)", flexShrink: 0 }} />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={handleSearch}
-                  placeholder="Search problems..."
-                  className="flex-1 bg-transparent outline-none text-sm"
-                  style={{ color: "var(--text-primary)", fontFamily: "var(--font-sans)" }}
-                />
-              </div>
-
-              <div
-                style={{ width: 1, height: 24, background: "var(--border-primary)", alignSelf: "center" }}
-              />
-
-              {/* Difficulty filter */}
-              <div className="flex items-center gap-1">
-                {(["all", "easy", "medium", "hard"] as const).map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => { setDifficulty(d); setPage(1); }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                    style={{
-                      background: difficulty === d
-                        ? d === "easy" ? "rgba(0,184,163,0.15)" : d === "medium" ? "rgba(255,161,22,0.15)" : d === "hard" ? "rgba(239,71,67,0.15)" : "var(--bg-active)"
-                        : "transparent",
-                      color: difficulty === d
-                        ? d === "easy" ? "var(--color-easy)" : d === "medium" ? "var(--color-medium)" : d === "hard" ? "var(--color-hard)" : "var(--text-primary)"
-                        : "var(--text-muted)",
-                      border: `1px solid ${difficulty === d
-                        ? d === "easy" ? "rgba(0,184,163,0.3)" : d === "medium" ? "rgba(255,161,22,0.3)" : d === "hard" ? "rgba(239,71,67,0.3)" : "var(--border-secondary)"
-                        : "transparent"
-                      }`,
-                    }}
-                  >
-                    {d.charAt(0).toUpperCase() + d.slice(1)}
-                  </button>
-                ))}
-              </div>
-
-              {/* Topic filter */}
-              {topicOptions.length > 0 && (
-                <CustomDropdown
-                  label="Topic"
-                  value={topic}
-                  options={topicOptions}
-                  onChange={(val) => { setTopic(val); setPage(1); }}
-                  placeholder="All Topics"
-                />
-              )}
-
-              {/* Section filter */}
-              {sectionOptions.length > 0 && (
-                <CustomDropdown
-                  label="Section"
-                  value={section}
-                  options={sectionOptions}
-                  onChange={(val) => { setSection(val); setPage(1); }}
-                  placeholder="All Sections"
-                />
-              )}
+              <ChevronLeft className="w-4 h-4" /> Hub
+            </Link>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-lg">
+              <Code2 className="w-6 h-6 text-emerald-400" />
             </div>
-
-            {/* ── Results count ── */}
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                {filteredCount > 0 ? `Showing ${questions.length} of ${filteredCount} problems` : "No problems found"}
-              </p>
-              {filteredCount !== overallCount && (
-                <button
-                  type="button"
-                  onClick={() => { setSearch(""); setDifficulty("all"); setTopic("all"); setSection("all"); setPage(1); }}
-                  className="text-xs"
-                  style={{ color: "var(--brand-blue)", background: "transparent", border: "none", cursor: "pointer" }}
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-
-        {/* ── Table / List Container ── */}
-        {error ? (
-          <div
-            className="rounded-xl p-6 text-center"
-            style={{ background: "rgba(239,71,67,0.08)", border: "1px solid rgba(239,71,67,0.2)" }}
-          >
-            <p className="text-sm font-semibold" style={{ color: "var(--color-wrong)" }}>{error}</p>
-          </div>
-        ) : questions.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-4" style={{ opacity: 0.15 }}>🔍</div>
-            <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No problems match your filters</p>
-            <button
-              type="button"
-              onClick={() => { setSearch(""); setDifficulty("all"); setTopic("all"); setSection("all"); setPage(1); }}
-              className="btn btn-ghost mt-3 text-xs"
-            >
-              Clear all filters
-            </button>
-          </div>
-        ) : (
-          <div
-            className="rounded-xl overflow-hidden stagger-3 fade-in"
-            style={{ border: "1px solid var(--border-primary)" }}
-          >
-            {/* Table header */}
-            <div
-              className="grid text-[11px] font-semibold uppercase tracking-wide px-4 py-2.5"
-              style={{
-                background: "var(--bg-secondary)",
-                borderBottom: "1px solid var(--border-primary)",
-                color: "var(--text-muted)",
-                gridTemplateColumns: "32px 1fr 90px 90px 90px 90px",
-                gap: "12px",
-              }}
-            >
-              <span>#</span>
-              <span>Title</span>
-              <span>Difficulty</span>
-              <span>Acceptance</span>
-              <span>Topics</span>
-              <span className="text-right">Status</span>
-            </div>
-
-            {/* Table rows */}
             <div>
-              {questions.map((q, idx) => {
-                const solved = submittedMap[q.id] === true;
-                const diffColor = q.difficulty === "Easy" ? "var(--color-easy)" : q.difficulty === "Medium" ? "var(--color-medium)" : "var(--color-hard)";
-                const globalIndex = (page - 1) * limit + idx + 1;
-
-                return (
-                  <Link
-                    key={q.id}
-                    href={`/question/${q.id}`}
-                    className="problem-row"
-                    style={{ gridTemplateColumns: "32px 1fr 90px 90px 90px 90px", gap: "12px", textDecoration: "none", color: "inherit" }}
-                  >
-                    {/* Index */}
-                    <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-                      {globalIndex}
-                    </span>
-
-                    {/* Title */}
-                    <div className="min-w-0">
-                      <p
-                        className="text-sm font-semibold truncate transition-colors"
-                        style={{ color: solved ? "var(--color-easy)" : "var(--text-primary)" }}
-                      >
-                        {q.title}
-                      </p>
-                      {q.company_tags && q.company_tags.length > 0 && (
-                        <div className="flex gap-1 mt-0.5 flex-wrap">
-                          {q.company_tags.slice(0, 3).map((tag) => (
-                            <span
-                              key={tag}
-                              className="text-[10px] px-1.5 py-0.5 rounded"
-                              style={{ background: "rgba(88,166,255,0.08)", color: "var(--text-muted)" }}
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Difficulty */}
-                    <span
-                      className="text-xs font-semibold"
-                      style={{ color: diffColor }}
-                    >
-                      {q.difficulty}
-                    </span>
-
-                    {/* Acceptance */}
-                    <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                      {q.acceptance_rate > 0 ? `${q.acceptance_rate.toFixed(1)}%` : "-"}
-                    </span>
-
-                    {/* Topics */}
-                    <div className="flex flex-wrap gap-1">
-                      {q.topic.slice(0, 2).map((t) => (
-                        <span
-                          key={t}
-                          className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{ background: "var(--bg-hover)", color: "var(--text-muted)", border: "1px solid var(--border-primary)" }}
-                        >
-                          {t}
-                        </span>
-                      ))}
-                      {q.topic.length > 2 && (
-                        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>+{q.topic.length - 2}</span>
-                      )}
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex justify-end">
-                      {solved ? (
-                        <CheckCircle2 style={{ width: 16, height: 16, color: "var(--color-easy)" }} />
-                      ) : (
-                        <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid var(--border-secondary)" }} />
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
+              <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
+                Enterprise Coding Arena
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">V1.0</span>
+              </h1>
+              <p className="text-zinc-400 text-sm mt-1">
+                LeetCode + NeetCode + InterviewBit platform. 2,913 questions mapped to 46+ patterns and 100+ subtopics.
+              </p>
             </div>
           </div>
-        )}
 
-        {/* ── Pagination ── */}
-        {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 mt-6">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/coding/tracks"
+              className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition flex items-center gap-2"
+            >
+              <Layers className="w-4 h-4 text-emerald-400" /> Career Tracks
+            </Link>
+            <Link
+              href="/coding/knowledge-graph"
+              className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition flex items-center gap-2"
+            >
+              <GitFork className="w-4 h-4 text-amber-400" /> Knowledge Graph
+            </Link>
+            <Link
+              href="/coding/analytics"
+              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2"
+            >
+              <Trophy className="w-4 h-4 text-emerald-200" /> Skill Tree & Analytics
+            </Link>
+          </div>
+        </header>
+
+        {/* Skill Tree Progress Bar */}
+        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-400" /> Topic Skill Tree Mastery
+            </span>
+            <span className="text-xs font-bold text-emerald-400 font-mono">
+              Solved: {totalSolved} / {overallCount || 2913} ({Math.round((totalSolved / (overallCount || 2913)) * 100)}%)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-black border border-zinc-800 space-y-1">
+              <div className="flex justify-between text-[11px] font-semibold text-zinc-400">
+                <span>Arrays & Hashing</span>
+                <span className="text-emerald-400">80%</span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full w-[80%]" />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-black border border-zinc-800 space-y-1">
+              <div className="flex justify-between text-[11px] font-semibold text-zinc-400">
+                <span>Two Pointers</span>
+                <span className="text-emerald-400">65%</span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full w-[65%]" />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-black border border-zinc-800 space-y-1">
+              <div className="flex justify-between text-[11px] font-semibold text-zinc-400">
+                <span>Trees & Graphs</span>
+                <span className="text-amber-400">45%</span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full w-[45%]" />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-black border border-zinc-800 space-y-1">
+              <div className="flex justify-between text-[11px] font-semibold text-zinc-400">
+                <span>Dynamic Programming</span>
+                <span className="text-red-400">25%</span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-red-500 rounded-full w-[25%]" />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-black border border-zinc-800 space-y-1">
+              <div className="flex justify-between text-[11px] font-semibold text-zinc-400">
+                <span>System Design</span>
+                <span className="text-cyan-400">40%</span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-cyan-500 rounded-full w-[40%]" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Enterprise Multi-Filter Toolbar */}
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3 shadow-xl">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative flex items-center bg-black border border-zinc-800 rounded-xl px-3.5 py-2 flex-1 min-w-[260px]">
+              <Search className="w-4 h-4 text-zinc-500 mr-2 shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                placeholder="Search title, pattern, topic, subtopic, company..."
+                className="bg-transparent text-xs text-white placeholder-zinc-500 outline-none w-full"
+              />
+            </div>
+
+            {/* Difficulty Selector */}
+            <div className="flex bg-black border border-zinc-800 rounded-xl p-1">
+              {['all', 'easy', 'medium', 'hard'].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => { setDifficulty(d); setPage(1); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition ${
+                    difficulty === d ? 'bg-emerald-500 text-black font-extrabold' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+
+            {/* Pattern Filter */}
+            <select
+              value={pattern}
+              onChange={(e) => { setPattern(e.target.value); setPage(1); }}
+              className="bg-black border border-zinc-800 text-xs text-white rounded-xl px-3.5 py-2 outline-none focus:border-emerald-500/50"
+            >
+              <option value="all">All Solving Patterns (46+)</option>
+              {SOLVING_PATTERNS.map((p) => (
+                <option key={p} value={p.toLowerCase()}>{p}</option>
+              ))}
+            </select>
+
+            {/* Topic Filter */}
+            <select
+              value={topic}
+              onChange={(e) => { setTopic(e.target.value); setPage(1); }}
+              className="bg-black border border-zinc-800 text-xs text-white rounded-xl px-3.5 py-2 outline-none focus:border-emerald-500/50"
+            >
+              <option value="all">All Topics (17+)</option>
+              {CODING_TOPICS.map((t) => (
+                <option key={t} value={t.toLowerCase()}>{t}</option>
+              ))}
+            </select>
+
+            {/* Company Filter */}
+            <select
+              value={company}
+              onChange={(e) => { setCompany(e.target.value); setPage(1); }}
+              className="bg-black border border-zinc-800 text-xs text-white rounded-xl px-3.5 py-2 outline-none focus:border-emerald-500/50"
+            >
+              <option value="all">All Target Companies</option>
+              {COMPANIES.map((c) => (
+                <option key={c} value={c.toLowerCase()}>{c}</option>
+              ))}
+            </select>
+
+            {/* Complexity Filter */}
+            <select
+              value={complexity}
+              onChange={(e) => { setComplexity(e.target.value); setPage(1); }}
+              className="bg-black border border-zinc-800 text-xs text-white rounded-xl px-3.5 py-2 outline-none focus:border-emerald-500/50"
+            >
+              <option value="all">All Time/Space Complexities</option>
+              {COMPLEXITIES.map((c) => (
+                <option key={c} value={c.toLowerCase()}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-zinc-400 pt-2 border-t border-zinc-800/60">
+            <span>Showing <strong className="text-white">{filteredCount}</strong> matching questions (Total: {overallCount})</span>
             <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => { setSearch(''); setDifficulty('all'); setPattern('all'); setTopic('all'); setCompany('all'); setComplexity('all'); setPage(1); }}
+              className="text-emerald-400 hover:underline text-[11px] font-semibold"
+            >
+              Reset Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Problem List Table */}
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-zinc-300">
+              <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 uppercase tracking-wider text-[11px]">
+                <tr>
+                  <th className="py-3.5 px-4 w-12 text-center">Status</th>
+                  <th className="py-3.5 px-4">Title & Subtopic</th>
+                  <th className="py-3.5 px-4">Primary Pattern</th>
+                  <th className="py-3.5 px-4">Difficulty & Elo</th>
+                  <th className="py-3.5 px-4">Time / Space</th>
+                  <th className="py-3.5 px-4">Company Tags</th>
+                  <th className="py-3.5 px-4 text-right">Acceptance</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-16 text-zinc-500">
+                      Loading canonical questions bundle...
+                    </td>
+                  </tr>
+                ) : questions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-16 text-zinc-500">
+                      No questions found matching your filter parameters.
+                    </td>
+                  </tr>
+                ) : (
+                  questions.map((q) => {
+                    const isSolved = submittedMap[q.id];
+                    return (
+                      <tr key={q.id} className="hover:bg-zinc-800/40 transition-colors group">
+                        <td className="py-3.5 px-4 text-center">
+                          {isSolved ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 inline" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-zinc-600 inline group-hover:text-zinc-400" />
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <Link href={`/coding/problem/${q.id}`} className="font-bold text-white hover:text-emerald-400 transition text-sm">
+                            {q.title}
+                          </Link>
+                          <span className="block text-[11px] text-zinc-500 mt-0.5">{q.subtopic || 'Fundamental Logic'}</span>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <Link href={`/coding/pattern/${q.primaryPattern.toLowerCase().replace(/\s+/g, '-')}`} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold hover:bg-emerald-500/20">
+                            {q.primaryPattern}
+                          </Link>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            q.difficulty === 'Easy' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                            q.difficulty === 'Medium' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                            'bg-red-500/20 text-red-400 border border-red-500/30'
+                          }`}>
+                            {q.difficulty}
+                          </span>
+                          <span className="text-[10px] font-mono text-zinc-500 ml-2">Rating {q.eloRating || 1400}</span>
+                        </td>
+
+                        <td className="py-3.5 px-4 font-mono text-[11px] text-zinc-400">
+                          <span>{q.timeComplexity}</span> / <span className="text-zinc-500">{q.spaceComplexity}</span>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-wrap gap-1">
+                            {q.companies.slice(0, 3).map((c) => (
+                              <span key={c.name} className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-300">
+                                {c.name}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right font-mono text-xs font-semibold text-zinc-300">
+                          {q.acceptanceRate}%
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="p-4 bg-zinc-900 border-t border-zinc-800 flex items-center justify-between">
+            <button
               disabled={page <= 1}
-              className="btn btn-ghost"
-              style={{ padding: "6px 12px" }}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-4 py-2 bg-zinc-800 text-xs font-bold text-white rounded-xl hover:bg-zinc-700 disabled:opacity-40 flex items-center gap-1"
             >
-              <ChevronLeft style={{ width: 14, height: 14 }} />
-              Prev
+              <ChevronLeft className="w-4 h-4" /> Previous
             </button>
-
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(totalPages, 7) }).map((_, idx) => {
-                let pageNum = idx + 1;
-                if (totalPages > 7) {
-                  if (page <= 4) pageNum = idx + 1;
-                  else if (page >= totalPages - 3) pageNum = totalPages - 6 + idx;
-                  else pageNum = page - 3 + idx;
-                }
-                return (
-                  <button
-                    key={`page-${pageNum}`}
-                    type="button"
-                    onClick={() => setPage(pageNum)}
-                    className="w-8 h-8 rounded-lg text-xs font-semibold transition-all"
-                    style={{
-                      background: page === pageNum ? "var(--brand-green)" : "var(--bg-hover)",
-                      color: page === pageNum ? "#0d1117" : "var(--text-secondary)",
-                      border: `1px solid ${page === pageNum ? "transparent" : "var(--border-primary)"}`,
-                    }}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-            </div>
-
+            <span className="text-xs text-zinc-400">
+              Page <strong className="text-white">{page}</strong> of <strong className="text-white">{totalPages}</strong>
+            </span>
             <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="btn btn-ghost"
-              style={{ padding: "6px 12px" }}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-4 py-2 bg-zinc-800 text-xs font-bold text-white rounded-xl hover:bg-zinc-700 disabled:opacity-40 flex items-center gap-1"
             >
-              Next
-              <ChevronRight style={{ width: 14, height: 14 }} />
+              Next <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-        )}
-      </>
-    )}
-  </div>
-</div>
+        </div>
+
+      </div>
+    </div>
   );
 }

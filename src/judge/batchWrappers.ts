@@ -185,7 +185,7 @@ function buildPythonBatchWrapper(userCode: string, functionName: string, cases: 
         __output = ""
         __error = None
         try:
-            __result = obj.${functionName}(${args})
+            __result = _invoke_fn("${functionName}", ${args})
             __output = _format_result(__result)
         except Exception as exc:
             __error = str(exc) or exc.__class__.__name__
@@ -200,6 +200,18 @@ import sys
 import json
 import time
 
+def _invoke_fn(fn_name, *args):
+    if "Solution" in globals():
+        try:
+            obj = Solution()
+            if hasattr(obj, fn_name):
+                return getattr(obj, fn_name)(*args)
+        except Exception:
+            pass
+    if fn_name in globals() and callable(globals()[fn_name]):
+        return globals()[fn_name](*args)
+    raise NameError(f"Function {fn_name} or class Solution not found")
+
 def _format_result(value):
   if isinstance(value, bool):
     return "true" if value else "false"
@@ -211,7 +223,6 @@ def _format_result(value):
 
 if __name__ == "__main__":
     try:
-        obj = Solution()
 ${casesCode}
     except Exception as exc:
         sys.stderr.write(f"ERROR: {exc}")
@@ -231,7 +242,7 @@ ${prelude.length > 0 ? `${prelude.join("\n")}\n` : ""}    const __caseStart = Da
     let __output = "";
     let __error = null;
     try {
-      const __result = obj.${functionName}(${args});
+      const __result = __invokeFn("${functionName}", [${args}]);
       __output = _formatResult(__result);
     } catch (error) {
       __error = error && error.message ? error.message : String(error);
@@ -243,6 +254,25 @@ ${prelude.length > 0 ? `${prelude.join("\n")}\n` : ""}    const __caseStart = Da
     .join("\n");
 
   return `${userCode}
+
+function __invokeFn(fnName, argsArray) {
+  if (typeof Solution !== "undefined") {
+    try {
+      const obj = new Solution();
+      if (typeof obj[fnName] === "function") {
+        return obj[fnName](...argsArray);
+      }
+    } catch (e) {}
+  }
+  if (typeof globalThis[fnName] === "function") {
+    return globalThis[fnName](...argsArray);
+  }
+  try {
+    const directFn = eval(fnName);
+    if (typeof directFn === "function") return directFn(...argsArray);
+  } catch (e) {}
+  throw new Error("Function " + fnName + " or class Solution not found");
+}
 
 function _formatResult(value) {
   if (Array.isArray(value)) {
@@ -258,7 +288,6 @@ function _formatResult(value) {
 }
 
 (() => {
-  const obj = new Solution();
 ${casesCode}
 })();
 `;

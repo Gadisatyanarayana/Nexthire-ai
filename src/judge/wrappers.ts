@@ -506,12 +506,11 @@ function parseCppParams(code: string, functionName?: string): string[] {
 
 function parsePythonParams(code: string, functionName?: string): string[] {
   const classMatch = code.match(/class\s+Solution\b[\s\S]*/m);
-  if (!classMatch) return [];
+  const searchBody = classMatch ? classMatch[0] : code;
 
-  const classBody = classMatch[0];
   if (functionName && functionName.trim()) {
     const targetPattern = new RegExp(`^\\s*def\\s+${escapeRegExp(functionName.trim())}\\s*\\(([^)]*)\\)\\s*:`, "m");
-    const targetMatch = classBody.match(targetPattern);
+    const targetMatch = searchBody.match(targetPattern);
     if (targetMatch?.[1]?.trim()) {
       return splitTopLevel(targetMatch[1], ",")
         .map((part) => part.trim())
@@ -523,11 +522,11 @@ function parsePythonParams(code: string, functionName?: string): string[] {
 
   const methodPattern = /^\s*def\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*:/gm;
   const methods: Array<{ name: string; params: string }> = [];
-  let match: RegExpExecArray | null = methodPattern.exec(classBody);
+  let match: RegExpExecArray | null = methodPattern.exec(searchBody);
 
   while (match) {
     methods.push({ name: match[1], params: match[2] || "" });
-    match = methodPattern.exec(classBody);
+    match = methodPattern.exec(searchBody);
   }
 
   if (methods.length === 0) return [];
@@ -546,7 +545,7 @@ function parsePythonParams(code: string, functionName?: string): string[] {
 function parseJavascriptParams(code: string, functionName?: string): string[] {
   if (functionName && functionName.trim()) {
     const targetPattern = new RegExp(
-      `class\\s+Solution[\\s\\S]*?\\b(?:async\\s+)?${escapeRegExp(functionName.trim())}\\s*\\(([^)]*)\\)\\s*\\{`,
+      `(?:class\\s+Solution[\\s\\S]*?\\b(?:async\\s+)?${escapeRegExp(functionName.trim())}|(?:function|const|let|var)\\s+${escapeRegExp(functionName.trim())}\\s*=?\\s*(?:function)?)\\s*\\(([^)]*)\\)`,
       "m"
     );
     const targetMatch = code.match(targetPattern);
@@ -560,6 +559,8 @@ function parseJavascriptParams(code: string, functionName?: string): string[] {
   const patterns = [
     /class\s+Solution[\s\S]*?\b[A-Za-z_]\w*\s*\(([^)]*)\)\s*\{/m,
     /class\s+Solution[\s\S]*?\(([^)]*)\)\s*\{/m,
+    /function\s+[A-Za-z_]\w*\s*\(([^)]*)\)/m,
+    /(?:const|let|var)\s+[A-Za-z_]\w*\s*=\s*(?:function)?\s*\(([^)]*)\)/m,
   ];
 
   for (const pattern of patterns) {
@@ -892,64 +893,79 @@ export function buildJavascriptInvocationPlan(userCode: string, input: string, i
   return { preludeLines, args };
 }
 
+function sanitizeDetectedName(name: string | undefined, defaultName = "solve"): string {
+  if (!name) return defaultName;
+  const cleaned = String(name)
+    .replace(/^[^a-zA-Z_]+/, "")
+    .replace(/[^a-zA-Z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  if (!cleaned || /^[0-9]/.test(cleaned)) return defaultName;
+  return cleaned;
+}
+
 export function detectFunctionName(language: SupportedLanguage, code: string, hint?: string): string {
   if (hint && hint.trim()) {
-    const selectedHint = hint.trim();
-    const hintExists =
-      (language === "java" && new RegExp(`class\\s+Solution[\\s\\S]*?\\b(?:public|private|protected)?\\s*(?:static\\s+)?[\\w<>\\[\\], ?]+\\s+${escapeRegExp(selectedHint)}\\s*\\(`, "m").test(code))
-      || (language === "cpp" && new RegExp(`class\\s+Solution[\\s\\S]*?\\b[A-Za-z_][\\w:<>,\\s*&]*\\s+${escapeRegExp(selectedHint)}\\s*\\([^)]*\\)\\s*\\{`, "m").test(code))
-      || (language === "javascript" && new RegExp(`class\\s+Solution[\\s\\S]*?\\b(?:async\\s+)?${escapeRegExp(selectedHint)}\\s*\\([^)]*\\)\\s*\\{`, "m").test(code))
-      || (language === "python" && new RegExp(`^\\s*def\\s+${escapeRegExp(selectedHint)}\\s*\\([^)]*\\)\\s*:`, "m").test(code));
+    const selectedHint = sanitizeDetectedName(hint.trim(), "");
+    if (selectedHint) {
+      const hintExists =
+        (language === "java" && new RegExp(`class\\s+Solution[\\s\\S]*?\\b(?:public|private|protected)?\\s*(?:static\\s+)?[\\w<>\\[\\], ?]+\\s+${escapeRegExp(selectedHint)}\\s*\\(`, "m").test(code))
+        || (language === "cpp" && new RegExp(`class\\s+Solution[\\s\\S]*?\\b[A-Za-z_][\\w:<>,\\s*&]*\\s+${escapeRegExp(selectedHint)}\\s*\\([^)]*\\)\\s*\\{`, "m").test(code))
+        || (language === "javascript" && new RegExp(`(?:class\\s+Solution[\\s\\S]*?\\b(?:async\\s+)?${escapeRegExp(selectedHint)}|(?:function|const|let|var)\\s+${escapeRegExp(selectedHint)})\\s*(?:=\\s*(?:function)?|\\()`, "m").test(code))
+        || (language === "python" && new RegExp(`^\\s*def\\s+${escapeRegExp(selectedHint)}\\s*\\(`, "m").test(code));
 
-    if (hintExists) return selectedHint;
+      if (hintExists) return selectedHint;
+    }
   }
 
   if (language === "java") {
     const match = code.match(/class\s+Solution[\s\S]*?\b(?:public|private|protected)?\s*(?:static\s+)?[\w<>\[\], ?]+\s+([A-Za-z_]\w*)\s*\(/m);
-    return match?.[1] || "solve";
+    return sanitizeDetectedName(match?.[1], "solve");
   }
 
   if (language === "cpp") {
     const match = code.match(/class\s+Solution[\s\S]*?\b[A-Za-z_][\w:<>,\s*&]*\s+([A-Za-z_]\w*)\s*\([^)]*\)\s*\{/m);
-    return match?.[1] || "solve";
+    return sanitizeDetectedName(match?.[1], "solve");
   }
 
   if (language === "javascript") {
     const classMatch = code.match(/class\s+Solution\b[\s\S]*/m);
-    if (!classMatch) return "solve";
+    if (classMatch) {
+      const classBody = classMatch[0];
+      const methodPattern = /^\s*(?:async\s+)?([A-Za-z_]\w*)\s*\([^)]*\)\s*\{/gm;
+      const methods: string[] = [];
+      let match: RegExpExecArray | null = methodPattern.exec(classBody);
 
-    const classBody = classMatch[0];
-    const methodPattern = /^\s*(?:async\s+)?([A-Za-z_]\w*)\s*\([^)]*\)\s*\{/gm;
-    const methods: string[] = [];
-    let match: RegExpExecArray | null = methodPattern.exec(classBody);
+      while (match) {
+        methods.push(match[1]);
+        match = methodPattern.exec(classBody);
+      }
 
-    while (match) {
-      methods.push(match[1]);
-      match = methodPattern.exec(classBody);
+      const selected = methods.find((name) => name !== "constructor" && !name.startsWith("_")) || methods[0];
+      if (selected) return sanitizeDetectedName(selected, "solve");
     }
 
-    const selected = methods.find((name) => name !== "constructor" && !name.startsWith("_")) || methods[0];
-    return selected || "solve";
+    const funcMatch = code.match(/function\s+([A-Za-z_]\w*)\s*\(/m)
+      || code.match(/(?:const|let|var)\s+([A-Za-z_]\w*)\s*=/m);
+    return sanitizeDetectedName(funcMatch?.[1], "solve");
   }
 
   const classMatch = code.match(/class\s+Solution\b[\s\S]*/m);
-  if (!classMatch) return "solve";
-
-  const classBody = classMatch[0];
+  const searchBody = classMatch ? classMatch[0] : code;
   const methodPattern = /^\s*def\s+([A-Za-z_]\w*)\s*\(/gm;
   const methods: string[] = [];
-  let match: RegExpExecArray | null = methodPattern.exec(classBody);
+  let match: RegExpExecArray | null = methodPattern.exec(searchBody);
 
   while (match) {
     methods.push(match[1]);
-    match = methodPattern.exec(classBody);
+    match = methodPattern.exec(searchBody);
   }
 
   const selected = methods.find((name) => !/^__.*__$/.test(name) && !name.startsWith("_"))
     || methods.find((name) => name !== "__init__")
     || methods[0];
 
-  return selected || "solve";
+  return sanitizeDetectedName(selected, "solve");
 }
 
 export function hasUserDefinedMain(language: SupportedLanguage, code: string): boolean {

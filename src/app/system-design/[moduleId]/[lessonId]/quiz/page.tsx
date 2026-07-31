@@ -120,7 +120,24 @@ export default function LessonQuizPage() {
         })}
       </div>
 
-      <div className="flex justify-end pt-8 border-t border-foreground/10">
+      <div className="flex flex-wrap justify-between items-center gap-4 pt-8 border-t border-foreground/10">
+        <button
+          onClick={() => {
+            setSelectedOptions({});
+            setAnswersRevealed({});
+            setLoading(true);
+            fetch(`/api/v1/system-design/lessons/${lessonId}`)
+              .then((res) => res.json())
+              .then((data) => {
+                setLessonData(data.lesson);
+                setLoading(false);
+              })
+              .catch(() => setLoading(false));
+          }}
+          className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-6 py-3 rounded-lg font-bold transition-colors inline-flex items-center gap-2"
+        >
+          Regenerate Different Questions &rarr;
+        </button>
         <Link 
           href={`/system-design/${moduleId}`}
           className="bg-foreground hover:bg-foreground/90 text-background px-6 py-3 rounded-lg font-bold transition-colors inline-flex items-center gap-2"

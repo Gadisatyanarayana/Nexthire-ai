@@ -21,12 +21,35 @@ export class WeakTopicCoach {
     try {
       plan = await SafeLLMClient.generateStructuredJSON(messages, schema);
     } catch (error) {
-      console.warn("[WeakTopicCoach] AI generation failed, using fallback.", error);
+      let extractedWeakTopics: any[] = [];
+      if (analytics?.mastery && Array.isArray(analytics.mastery)) {
+        extractedWeakTopics = analytics.mastery
+          .filter((m: any) => (m.mastery_score || 0) < 75)
+          .map((m: any) => ({
+            topic: m.topic_id || "Quantitative Fundamentals",
+            reason: `Accuracy is at ${Math.round(m.mastery_score || 50)}%. Needs practice on core shortcuts.`,
+            priority: (m.mastery_score || 0) < 50 ? "High" : "Medium"
+          })).slice(0, 3);
+      }
+
+      if (extractedWeakTopics.length === 0) {
+        extractedWeakTopics = [
+          { topic: "Percentages & Applications", reason: "Fundamental concept required for Data Interpretation", priority: "High" },
+          { topic: "Data Interpretation (Tables)", reason: "High weightage in TCS NQT & Infosys tests", priority: "High" },
+          { topic: "Seating Arrangement & Puzzles", reason: "Improves analytical speed and accuracy", priority: "Medium" }
+        ];
+      }
+
       plan = {
-        summary: "Focus on your lowest scoring topics and attempt a custom mock test.",
-        weakTopics: [],
-        dailyPlan: ["Review weak formulas", "Take a custom practice quiz", "Analyze mistakes"],
-        recommendedMockType: "custom"
+        summary: "Target your lowest scoring topics and complete recommended practice modules.",
+        weakTopics: extractedWeakTopics,
+        dailyPlan: [
+          "Day 1: Review formulas & core shortcuts for weak topics",
+          "Day 2: Solve 20 high-frequency practice questions",
+          "Day 3: Take a timed company pattern mock test"
+        ],
+        recommendedMockType: "custom",
+        recommendedRoute: "/aptitude/practice"
       };
     }
 

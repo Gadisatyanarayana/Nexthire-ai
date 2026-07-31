@@ -181,20 +181,26 @@ function readStoredForm(): FormState {
 function Glass({ children, isDark, className }: { children: React.ReactNode; isDark: boolean; className?: string }) {
   return (
     <section
-      className={`rounded-2xl ${
-        isDark ? "bg-white/5" : "bg-white/90"
+      className={`relative overflow-hidden rounded-2xl backdrop-blur-xl border transition-all duration-300 ${
+        isDark 
+          ? "bg-white/[0.03] border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] hover:bg-white/[0.05]" 
+          : "bg-white/70 border-black/5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] hover:bg-white/90"
       } ${className ?? ""}`}
     >
-      {children}
+      {/* Subtle top glare effect */}
+      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${isDark ? 'from-transparent via-white/20 to-transparent' : 'from-transparent via-white/80 to-transparent'}`} />
+      <div className="relative z-10">
+        {children}
+      </div>
     </section>
   );
 }
 
 function fieldClass(isDark: boolean): string {
-  return `w-full rounded-xl px-3 py-2.5 outline-none transition ${
+  return `w-full rounded-xl px-4 py-3 outline-none transition-all duration-300 border ${
     isDark
-      ? "bg-white/10 text-white placeholder:text-gray-500"
-      : "bg-black/5 text-black placeholder:text-gray-500"
+      ? "bg-black/20 border-white/10 text-white placeholder:text-gray-500 focus:bg-white/5 focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 shadow-inner"
+      : "bg-white border-black/10 text-black placeholder:text-gray-400 focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 shadow-sm shadow-black/5"
   }`;
 }
 
@@ -618,14 +624,14 @@ export default function ResumeBuilderPage() {
     <button
       onClick={() => improveField(key, section)}
       disabled={loadingImprove[key] || !form[key].trim()}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-300 relative overflow-hidden group ${
         isDark 
-          ? "bg-white/20 text-white hover:bg-white/30 disabled:opacity-50" 
-          : "bg-black/15 text-black hover:bg-black/25 disabled:opacity-50"
+          ? "bg-brand-purple/20 text-brand-purple hover:bg-brand-purple/30 border border-brand-purple/40 shadow-[0_0_15px_rgba(138,43,226,0.25)] hover:shadow-[0_0_20px_rgba(138,43,226,0.4)] disabled:opacity-50" 
+          : "bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20 border border-brand-purple/30 shadow-sm disabled:opacity-50"
       }`}
     >
-      {loadingImprove[key] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-      {loadingImprove[key] ? "Improving..." : "AI"}
+      {loadingImprove[key] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_5px_rgba(138,43,226,0.8)]" />}
+      <span className="relative z-10">{loadingImprove[key] ? "Improving..." : "AI Enhance"}</span>
     </button>
   );
 
@@ -663,12 +669,14 @@ export default function ResumeBuilderPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <label
-                className={`inline-flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold ${
-                  isDark ? "bg-white/10 text-white hover:bg-white/20" : "bg-black/10 text-black hover:bg-black/20"
+                className={`inline-flex cursor-pointer items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all duration-300 ${
+                  isDark 
+                    ? "bg-gradient-to-r from-brand-blue/20 to-brand-purple/20 text-white hover:from-brand-blue/40 hover:to-brand-purple/40 border border-brand-blue/30 shadow-[0_0_15px_rgba(var(--brand-blue-rgb),0.3)] hover:shadow-[0_0_25px_rgba(var(--brand-blue-rgb),0.5)]" 
+                    : "bg-gradient-to-r from-brand-blue/10 to-brand-purple/10 text-brand-blue hover:from-brand-blue/20 hover:to-brand-purple/20 border border-brand-blue/30 shadow-sm hover:shadow-md"
                 }`}
               >
-                {loadingAuto ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-                Auto-fill From Resume Or Photo
+                {loadingAuto ? <Loader2 className="h-5 w-5 animate-spin" /> : <UploadCloud className="h-5 w-5" />}
+                {loadingAuto ? "Scanning Document..." : "Auto-fill From Resume"}
                 <input type="file" accept=".pdf,.doc,.docx,.txt,image/*" capture="environment" className="hidden" onChange={autoFillFromResume} />
               </label>
               <button

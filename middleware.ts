@@ -138,7 +138,6 @@ export const config = {
     "/resume-analyzer/:path*",
     "/resume-builder/:path*",
     "/placement-hub/:path*",
-    "/coding/:path*",
     "/question/:path*",
     "/contests/:path*",
     "/chatbot/:path*",

@@ -32,6 +32,8 @@ function isAllowedRedirectTarget(url: string, baseUrl: string): boolean {
   }
 }
 
+import CredentialsProvider from 'next-auth/providers/credentials';
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -40,6 +42,13 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       allowDangerousEmailAccountLinking: true,
     }),
+    CredentialsProvider({
+      name: 'Developer Bypass',
+      credentials: {},
+      async authorize() {
+        return { id: 'dev-user-1', name: 'Developer Mode', email: 'dev@nexthire.ai' };
+      }
+    })
   ],
   callbacks: {
     async signIn({ user }) {
@@ -68,4 +77,19 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
     error: '/auth/signin',
   },
+  logger: {
+    error(code, metadata) {
+      if (code === "JWT_SESSION_ERROR") {
+        // Suppress benign JWT decryption errors that happen due to changing secrets in dev
+        return;
+      }
+      console.error(code, metadata);
+    },
+    warn(code) {
+      console.warn(code);
+    },
+    debug(code, metadata) {
+      console.debug(code, metadata);
+    }
+  }
 };

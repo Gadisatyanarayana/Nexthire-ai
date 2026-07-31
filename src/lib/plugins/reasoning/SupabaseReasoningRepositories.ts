@@ -51,10 +51,16 @@ export class SupabaseReasoningLessonRepository extends SupabaseReasoningBaseRepo
   }
 
   public async getAll(): Promise<any[]> {
+    const { data: mods } = await this.client
+      .from("platform_modules")
+      .select("id")
+      .eq("domain_id", "logical-reasoning");
+    const modIds = (mods || []).map((m: any) => m.id);
+    if (!modIds.length) return [];
     const { data, error } = await this.client
       .from("platform_lessons")
-      .select("*, platform_modules!inner(domain_id)")
-      .eq("platform_modules.domain_id", "logical-reasoning")
+      .select("*")
+      .in("module_id", modIds)
       .order("id");
     if (error) throw error;
     return data || [];
@@ -86,7 +92,9 @@ export class SupabaseReasoningQuestionRepository extends SupabaseReasoningBaseRe
       .eq("lesson_id", lessonId)
       .limit(limit);
     if (error) throw error;
-    return data || [];
+    if (data && data.length > 0) return data;
+    const { getFallbackQuestionsForLesson } = await import("../../learning/fallbackQuestions");
+    return getFallbackQuestionsForLesson(lessonId, "reasoning", limit);
   }
 
   public async getByCompany(companyName: string, limit: number): Promise<any[]> {

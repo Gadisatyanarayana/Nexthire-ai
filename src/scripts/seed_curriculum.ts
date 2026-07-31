@@ -229,6 +229,28 @@ const curriculumData: DomainInput[] = [
           { id: "rc-inference-based", title: "Inference-Based Reading Comprehension", description: "Drawing logical conclusions not explicitly stated.", difficulty: "hard", concepts: ["Implied author sentiments", "Extrapolating scenarios", "Implicit arguments analysis"] },
           { id: "rc-tone-theme", title: "Tone & Theme Analysis", description: "Identifying the author's voice and main theme of the passage.", difficulty: "hard", concepts: ["Tone vocabulary (Sarcastic, Nostalgic, Objective)", "Main Idea extraction", "Suitable title identification"] }
         ]
+      },
+      {
+        id: "va-reasoning",
+        title: "Sentence Completion & Para Jumbles",
+        description: "Cohesion, logical sequence, and contextual sentence completion.",
+        level_order: 4,
+        lessons: [
+          { id: "para-jumbles", title: "Para Jumbles & Order of Sentences", description: "Rearranging scrambled sentences into a coherent paragraph.", difficulty: "medium", concepts: ["Mandatory pair identification", "Pronoun-Noun linkers", "Chronological and logical flow"] },
+          { id: "sentence-completion", title: "Sentence Completion & Fillers", description: "Filling missing blanks using vocabulary context and grammar rules.", difficulty: "easy", concepts: ["Single and double blank fillers", "Conjunction tone shifts (However, Although)", "Contextual clues"] },
+          { id: "paragraph-completion", title: "Paragraph Completion & Summary", description: "Choosing the best concluding sentence or summary for a paragraph.", difficulty: "hard", concepts: ["Paragraph theme alignment", "Logical conclusion validation", "Redundant option elimination"] }
+        ]
+      },
+      {
+        id: "va-business-english",
+        title: "Business English & Error Spotting",
+        description: "Enterprise communication, modifier rules, and error spotting.",
+        level_order: 5,
+        lessons: [
+          { id: "error-spotting", title: "Error Spotting & Sentence Correction", description: "Identifying grammatical, syntax, and punctuation errors in sentences.", difficulty: "medium", concepts: ["Tense consistency errors", "Subject-verb mismatches", "Prepositional misuses"] },
+          { id: "modifiers-dangling-clauses", title: "Modifiers & Dangling Clauses", description: "Fixing misplaced modifiers and dangling participle clauses.", difficulty: "hard", concepts: ["Dangling participles", "Misplaced adjective clauses", "Parallelism rules"] },
+          { id: "business-correspondence", title: "Business Communication & Email Etiquette", description: "Professional vocabulary, formal register, and email etiquette.", difficulty: "easy", concepts: ["Formal vs informal register", "Standard email phrases", "Professional vocabulary"] }
+        ]
       }
     ]
   }

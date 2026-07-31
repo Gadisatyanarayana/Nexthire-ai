@@ -30,42 +30,73 @@ class SupabaseBaseRepository {
   }
 }
 
+async function withQueryTimeout<T>(queryFn: () => Promise<T>, timeoutMs: number = 300): Promise<T | null> {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), timeoutMs);
+  });
+  try {
+    const res = await Promise.race([queryFn(), timeoutPromise]);
+    clearTimeout(timer!);
+    return res;
+  } catch {
+    clearTimeout(timer!);
+    return null;
+  }
+}
+
 export class SupabaseLessonRepository extends SupabaseBaseRepository implements ILessonRepository {
   public async getById(id: string): Promise<any> {
-    const { data, error } = await this.client
-      .from("platform_lessons")
-      .select("*")
-      .eq("id", id)
-      .single();
-    if (error) throw error;
-    return data;
+    const res = await withQueryTimeout(async () => {
+      const { data, error } = await this.client
+        .from("platform_lessons")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) return null;
+      return data;
+    }, 300);
+    return res;
   }
 
   public async getByModule(moduleId: string): Promise<any[]> {
-    const { data, error } = await this.client
-      .from("platform_lessons")
-      .select("*")
-      .eq("module_id", moduleId)
-      .order("id");
-    if (error) throw error;
-    return data || [];
+    const res = await withQueryTimeout(async () => {
+      const { data, error } = await this.client
+        .from("platform_lessons")
+        .select("*")
+        .eq("module_id", moduleId)
+        .order("id");
+      if (error) return [];
+      return data || [];
+    }, 300);
+    return res || [];
   }
 
   public async getAll(): Promise<any[]> {
-    const { data, error } = await this.client
-      .from("platform_lessons")
-      .select("*, platform_modules!inner(domain_id)")
-      .eq("platform_modules.domain_id", "quantitative-aptitude")
-      .order("id");
-    if (error) throw error;
-    return data || [];
+    const res = await withQueryTimeout(async () => {
+      const { data: mods } = await this.client
+        .from("platform_modules")
+        .select("id")
+        .eq("domain_id", "quantitative-aptitude");
+      const modIds = (mods || []).map((m: any) => m.id);
+      if (!modIds.length) return [];
+      const { data, error } = await this.client
+        .from("platform_lessons")
+        .select("*")
+        .in("module_id", modIds)
+        .order("id");
+      if (error) return [];
+      return data || [];
+    }, 300);
+    return res || [];
   }
 
   public async save(lesson: any): Promise<void> {
-    const { error } = await this.client
-      .from("platform_lessons")
-      .upsert(lesson);
-    if (error) throw error;
+    try {
+      await this.client.from("platform_lessons").upsert(lesson);
+    } catch (e) {
+      console.warn("Could not save lesson to remote DB:", e);
+    }
   }
 }
 
@@ -87,7 +118,9 @@ export class SupabaseQuestionRepository extends SupabaseBaseRepository implement
       .eq("lesson_id", lessonId)
       .limit(limit);
     if (error) throw error;
-    return data || [];
+    if (data && data.length > 0) return data;
+    const { getFallbackQuestionsForLesson } = await import("../fallbackQuestions");
+    return getFallbackQuestionsForLesson(lessonId, "aptitude", limit);
   }
 
   public async getByCompany(companyName: string, limit: number): Promise<any[]> {

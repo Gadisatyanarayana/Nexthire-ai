@@ -23,8 +23,8 @@ type SubmitBody = {
 
 const MIN_VISIBLE_CASES = 2;
 const MAX_VISIBLE_CASES = 3;
-const MIN_HIDDEN_CASES = 20;
-const MAX_HIDDEN_CASES = 20;
+const MIN_HIDDEN_CASES = 50;
+const MAX_HIDDEN_CASES = 100;
 const DEFAULT_SUBMIT_RATE_LIMIT_PER_MIN = 300;
 
 function parseRateLimitPerMinute(raw: string | undefined, fallback: number): number {
@@ -70,7 +70,7 @@ function normalizeSubmitCasePolicy(cases: JudgeCase[]): {
 
   if (hidden.length > MAX_HIDDEN_CASES) {
     hidden = hidden.slice(0, MAX_HIDDEN_CASES);
-    warnings.push("Hidden test cases were trimmed to 20 to match platform policy.");
+    warnings.push("Hidden test cases were trimmed to 100 to match platform policy.");
   }
 
   const hiddenSeedPool = [...hidden, ...visible];
@@ -86,7 +86,7 @@ function normalizeSubmitCasePolicy(cases: JudgeCase[]): {
   }
 
   if (hidden.length < MIN_HIDDEN_CASES) {
-    warnings.push("Hidden test case pool is below 20. Regenerate problem testcases for full policy compliance.");
+    warnings.push("Hidden test case pool is below 50. Regenerate problem testcases for full policy compliance.");
   }
 
   return {

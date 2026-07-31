@@ -3,41 +3,54 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { 
   ArrowLeft, Clock, Zap, Target, BookOpen, 
-  CheckCircle, PlayCircle, FileText, ChevronRight, Download
+  CheckCircle, PlayCircle, FileText, ChevronRight, Download,
+  HelpCircle, ShieldCheck, Award, Briefcase
 } from "lucide-react";
 import { LearningService } from "@/lib/learning/services/LearningService";
 import { ProgressTracker } from "@/components/learning/ProgressTracker";
+import { getFallbackQuestionsForLesson } from "@/lib/learning/fallbackQuestions";
+import { InteractivePracticeQuestion } from "@/components/learning/InteractivePracticeQuestion";
+import { PracticeQuestionsSection } from "@/components/learning/PracticeQuestionsSection";
+import { DownloadNotesButton } from "@/components/learning/DownloadNotesButton";
+import { LessonOutlineSidebar } from "@/components/learning/LessonOutlineSidebar";
 
 export const revalidate = 3600;
 
 export default async function LessonViewerPage({ 
   params 
 }: { 
-  params: { domainId: string, moduleId: string, lessonId: string } 
+  params: Promise<{ domainId: string, moduleId: string, lessonId: string }> 
 }) {
-  const { domainId, moduleId, lessonId } = params;
+  const { domainId, moduleId, lessonId } = await params;
+  const normalizedDomainId = LearningService.queries.normalizeDomainId(domainId);
   
   // 1. Fetch domain, module, and lesson
   const domains = await LearningService.queries.getDomains();
-  const currentDomain = domains.find(d => d.id === domainId);
+  const currentDomain = domains.find(d => d.id === normalizedDomainId);
   
-  const modules = await LearningService.queries.getModules(domainId);
+  const modules = await LearningService.queries.getModules(normalizedDomainId);
   const currentModule = modules.find(m => m.id === moduleId);
 
-  const lesson = await LearningService.queries.getLesson(lessonId, domainId);
+  const lesson = await LearningService.queries.getLesson(lessonId, normalizedDomainId);
   
   if (!currentDomain || !currentModule || !lesson) {
     return notFound();
   }
 
+  const domainPath = normalizedDomainId === "logical-reasoning" ? "reasoning" : normalizedDomainId === "verbal-ability" ? "verbal" : "aptitude";
+
   // 2. Fetch concepts for this lesson
   const concepts = await LearningService.queries.getConceptsByLesson(lessonId);
+  const formulas = await LearningService.queries.getFormulasByLesson(lessonId);
   
   // 3. Fetch questions preview to get practice count & companies
-  const practiceQuestions = await LearningService.queries.getQuestionPreview(lessonId, 50, domainId);
+  let practiceQuestions = await LearningService.queries.getQuestionPreview(lessonId, 50, normalizedDomainId);
+  if (!practiceQuestions || practiceQuestions.length === 0) {
+    practiceQuestions = getFallbackQuestionsForLesson(lessonId, normalizedDomainId, 10);
+  }
   
   // 3b. Determine Next and Previous lessons
-  const moduleLessons = await LearningService.queries.getLessonsByModule(moduleId, domainId);
+  const moduleLessons = await LearningService.queries.getLessonsByModule(moduleId, normalizedDomainId);
   const currentIndex = moduleLessons.findIndex(l => l.id === lessonId);
   const prevLesson = currentIndex > 0 ? moduleLessons[currentIndex - 1] : null;
   const nextLesson = currentIndex !== -1 && currentIndex < moduleLessons.length - 1 ? moduleLessons[currentIndex + 1] : null;
@@ -48,9 +61,9 @@ export default async function LessonViewerPage({
   )).slice(0, 3);
 
   // 4. Safe defaults
-  const skills = lesson.skills || [];
+  const skills = Array.isArray(lesson.skills) ? lesson.skills : [];
   const resources = lesson.resources || {};
-  const difficultyLabel = lesson.difficulty.charAt(0).toUpperCase() + lesson.difficulty.slice(1);
+  const difficultyLabel = (lesson.difficulty || "medium").charAt(0).toUpperCase() + (lesson.difficulty || "medium").slice(1);
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30">
@@ -98,6 +111,14 @@ export default async function LessonViewerPage({
                 <Clock className="w-3.5 h-3.5" />
                 {lesson.reading_time || "15 mins"}
               </span>
+              <DownloadNotesButton
+                lessonTitle={lesson.title}
+                moduleTitle={currentModule.title}
+                domainTitle={currentDomain.title}
+                concepts={concepts}
+                formulas={formulas}
+                questions={practiceQuestions}
+              />
             </div>
 
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
@@ -143,22 +164,24 @@ export default async function LessonViewerPage({
                     {concept.description}
                   </p>
                   
-                  {/* Mock content rendering for empty concepts */}
+                  {/* Rich Concept Explanation */}
                   <div className="mt-6 p-6 rounded-xl bg-zinc-900 border border-zinc-800">
                     <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-emerald-500" />
-                      Concept Explanation
+                      Concept Explanation & Theory
                     </h4>
-                    <p className="text-sm text-zinc-400 leading-relaxed mb-4">
-                      This is a placeholder for detailed markdown rendering of the concept content. 
-                      In the production runtime, this section will parse the rich text/markdown blocks associated with the concept from the database, rendering code snippets, mathematical formulas, and embedded media.
+                    <p className="text-sm text-zinc-300 leading-relaxed mb-4">
+                      {concept.description || lesson.description || "Mastering this concept requires understanding the underlying mathematical and logical relationships used by top recruitment platforms."}
                     </p>
                     
-                    {resources.formulas && resources.formulas.length > 0 && index === 0 && (
+                    {resources.formulas && (Array.isArray(resources.formulas) ? resources.formulas.length > 0 : true) && (
                       <div className="bg-black border border-zinc-800 rounded-lg p-4 font-mono text-sm text-emerald-300 overflow-x-auto">
-                        {/* Key Formula */}
-                        <br />
-                        {resources.formulas[0].formula_text || resources.formulas[0].text}
+                        <div className="text-xs font-bold text-zinc-500 uppercase mb-2">Key Formula / Shortcut Bit</div>
+                        {(Array.isArray(resources.formulas) ? resources.formulas : [resources.formulas]).map((f: any, idx: number) => (
+                          <div key={idx} className="mb-2 last:mb-0">
+                            {typeof f === "string" ? f : (f?.formula_text || f?.text || f?.title || JSON.stringify(f))}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -168,10 +191,14 @@ export default async function LessonViewerPage({
             
             {concepts.length === 0 && (
               <div className="p-8 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20">
-                <p className="text-zinc-500">No concepts found for this lesson.</p>
+                <p className="text-zinc-400 font-semibold mb-2">{lesson.description || "Comprehensive Theory & Core Concepts"}</p>
+                <p className="text-zinc-500 text-sm">Review the practice questions and bits below to master this topic.</p>
               </div>
             )}
           </section>
+
+          {/* Practice Questions & The Bits Section */}
+          <PracticeQuestionsSection questions={practiceQuestions} lessonId={lessonId} />
 
           {/* Navigation Buttons */}
           <section className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-zinc-800">
@@ -233,56 +260,29 @@ export default async function LessonViewerPage({
               )}
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 relative z-10">
-                <button className="w-full sm:w-auto px-8 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
+                <Link
+                  href={`/${domainPath}/practice/${lessonId}`}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
+                >
                   <PlayCircle className="w-5 h-5" />
                   Start Practice
-                </button>
-                <button className="w-full sm:w-auto px-8 py-3.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition border border-zinc-700 flex items-center justify-center gap-2">
+                </Link>
+                <Link
+                  href={`/${domainPath}/mock-tests`}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition border border-zinc-700 flex items-center justify-center gap-2"
+                >
                   <FileText className="w-5 h-5" />
                   Take Assessment
-                </button>
+                </Link>
               </div>
             </div>
           </section>
 
         </main>
         
-        {/* Navigation Sidebar */}
-        <aside className="hidden lg:block sticky top-24">
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">
-              Lesson Outline
-            </h4>
-            
-            <nav className="space-y-1">
-              {concepts.map((concept, index) => (
-                <a 
-                  key={concept.id}
-                  href={`#concept-${index}`}
-                  className="block px-3 py-2 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition line-clamp-1"
-                >
-                  {index + 1}. {concept.title}
-                </a>
-              ))}
-              <a 
-                href="#practice"
-                className="block px-3 py-2 mt-4 text-sm font-bold text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition"
-              >
-                Practice Questions
-              </a>
-            </nav>
-            
-            <div className="mt-8 pt-6 border-t border-zinc-800 space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-500">
-                Resources
-              </h4>
-              <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition border border-zinc-800">
-                <Download className="w-4 h-4 text-zinc-500" />
-                Lesson Notes PDF
-              </button>
-            </div>
-            
-          </div>
+        {/* Sticky Table of Contents Sidebar */}
+        <aside className="hidden lg:block">
+          <LessonOutlineSidebar concepts={concepts} />
         </aside>
 
       </div>

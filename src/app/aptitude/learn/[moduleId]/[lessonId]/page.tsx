@@ -17,7 +17,7 @@ export default async function LessonPage({ params }: { params: Promise<{ moduleI
     getLesson(resolvedParams.lessonId),
     getModule(resolvedParams.moduleId),
     getFormulasByLesson(resolvedParams.lessonId),
-    getQuestionPreview(resolvedParams.lessonId, 4),
+    getQuestionPreview(resolvedParams.lessonId, 25),
     getModules(),
     import("@/lib/api/aptitudeV2").then(m => m.getAllLessons()),
     getServerUserId()

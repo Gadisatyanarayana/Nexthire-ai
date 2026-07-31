@@ -6,6 +6,7 @@ import { ReasoningQuestion } from "@/models/reasoning";
 import { CheckCircle, XCircle, ArrowLeft, Loader2, HelpCircle, Clock, Lightbulb } from "lucide-react";
 import { DifficultyBadge } from "@/components/reasoning/DifficultyBadge";
 import Link from "next/link";
+import { getFallbackQuestionsForLesson } from "@/lib/learning/fallbackQuestions";
 
 export default function AdaptivePracticePage() {
   const params = useParams();
@@ -31,7 +32,7 @@ export default function AdaptivePracticePage() {
       try {
         const res = await fetch(`/api/v1/reasoning/questions?lesson_id=${lessonId}&limit=15`);
         const data = await res.json();
-        if (data.success && data.data) {
+        if (data.success && data.data && data.data.length > 0) {
           setQuestions(data.data);
           
           // Respect the clicked question ID from URL
@@ -41,9 +42,12 @@ export default function AdaptivePracticePage() {
             const idx = data.data.findIndex((q: any) => q.id === qId);
             if (idx !== -1) setCurrentIdx(idx);
           }
+        } else {
+          setQuestions(getFallbackQuestionsForLesson(lessonId, "reasoning", 15) as any);
         }
       } catch (e) {
         console.error(e);
+        setQuestions(getFallbackQuestionsForLesson(lessonId, "reasoning", 15) as any);
       } finally {
         setLoading(false);
       }

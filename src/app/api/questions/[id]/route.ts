@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MOCK_QUESTIONS } from "@/lib/codingQuestions";
+import { MOCK_QUESTIONS, sanitizeFunctionName } from "@/lib/codingQuestions";
 import { supabase } from "@/lib/supabase";
 import { getAdminClient } from "@/lib/supabaseAdmin";
 import { readJsonCache, writeJsonCache, getCacheTtlSeconds } from "@/lib/appCache";
+import { getDefaultHiddenCaseCount } from "@/lib/questionPolicy";
 
 type LeetCodeDetail = {
   title?: string;
@@ -275,7 +276,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       });
     }
 
-    const { data, error } = await supabase.from("questions").select("*").eq("id", id).maybeSingle();
+    const admin = getAdminClient();
+    const { data, error } = await admin.from("questions").select("*").eq("id", id).maybeSingle();
 
     if (data && !error) {
       const companyTags = Array.isArray(data.company_tags) ? data.company_tags.map((v: unknown) => String(v)) : [];
@@ -389,17 +391,21 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
         : dbSampleCases.length > 0
           ? dbSampleCases
           : effectiveTestcases.slice(0, 2);
-      const hiddenCaseCount = hasNormalizedSplit
+      const rawHiddenCount = hasNormalizedSplit
         ? normalizedHiddenCount
         : dbHiddenCases.length > 0
           ? dbHiddenCases.length
           : Math.max(0, effectiveTestcases.length - sampleCasesForClient.length);
+      const hiddenCaseCount = Math.max(
+        getDefaultHiddenCaseCount(enriched.difficulty || data.difficulty),
+        rawHiddenCount
+      );
 
       const responsePayload = buildQuestionResponse({
         question: {
           ...data,
           problem_id: resolvedProblemId || null,
-          function_name: data.function_name ? String(data.function_name) : undefined,
+          function_name: sanitizeFunctionName(data.function_name ? String(data.function_name) : data.title, "solve"),
           input_type: data.input_type ? String(data.input_type) : undefined,
           output_type: data.output_type ? String(data.output_type) : undefined,
           title: enriched.title || data.title,

@@ -99,7 +99,7 @@ export function SearchDialog({ isOpen, onClose }: { isOpen: boolean, onClose: ()
           {!loading && formulas.length > 0 && (
             <div className="mb-2">
               <div className="px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Formulas</div>
-              {formulas.map(formula => (
+              {(Array.isArray(formulas) ? formulas : []).map(formula => (
                 <Link
                   key={formula.id}
                   href={`/aptitude/formulas/${formula.id}`}

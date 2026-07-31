@@ -6,6 +6,7 @@ import { AptitudeQuestion } from "@/models/aptitude";
 import { CheckCircle, XCircle, ArrowLeft, Loader2, HelpCircle, Clock, Lightbulb } from "lucide-react";
 import { DifficultyBadge } from "@/components/aptitude/DifficultyBadge";
 import Link from "next/link";
+import { getFallbackQuestionsForLesson } from "@/lib/learning/fallbackQuestions";
 
 export default function AdaptivePracticePage() {
   const params = useParams();
@@ -31,7 +32,7 @@ export default function AdaptivePracticePage() {
       try {
         const res = await fetch(`/api/v1/aptitude/questions?lesson_id=${lessonId}&limit=15`);
         const data = await res.json();
-        if (data.success && data.data) {
+        if (data.success && data.data && data.data.length > 0) {
           setQuestions(data.data);
           
           // Respect the clicked question ID from URL
@@ -41,9 +42,12 @@ export default function AdaptivePracticePage() {
             const idx = data.data.findIndex((q: any) => q.id === qId);
             if (idx !== -1) setCurrentIdx(idx);
           }
+        } else {
+          setQuestions(getFallbackQuestionsForLesson(lessonId, "aptitude", 15));
         }
       } catch (e) {
         console.error(e);
+        setQuestions(getFallbackQuestionsForLesson(lessonId, "aptitude", 15));
       } finally {
         setLoading(false);
       }
@@ -163,48 +167,59 @@ export default function AdaptivePracticePage() {
               <DifficultyBadge difficulty={q.difficulty} />
             </div>
 
-            <p className="text-lg font-medium text-white mb-4 leading-relaxed">
-              {q.question}
-            </p>
-            
-            {q.apt_company_tags && q.apt_company_tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {(q.apt_company_tags as any[]).map((tag, idx) => (
-                  <span key={idx} className="px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase rounded-md border border-blue-500/20">
-                    {tag.company_name}
-                  </span>
-                ))}
-              </div>
-            )}
+            {(() => {
+              const qText = q.question || (q as any).question_text || (q as any).title || "Practice Question";
+              const qOptions = Array.isArray(q.options) && q.options.length > 0 
+                ? q.options 
+                : ["Option A", "Option B", "Option C", "Option D"];
 
-            <div className="grid gap-3 mb-6">
-              {q.options?.map((opt, oIdx) => {
-                let borderClass = "border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300";
-                
-                if (revealed) {
-                  if (oIdx === correctIdx) {
-                    borderClass = "border-emerald-500 bg-emerald-500/10 text-emerald-400";
-                  } else if (selectedOpt === oIdx) {
-                    borderClass = "border-red-500 bg-red-500/10 text-red-400";
-                  } else {
-                    borderClass = "border-zinc-800 bg-zinc-900/50 opacity-50";
-                  }
-                } else if (selectedOpt === oIdx) {
-                  borderClass = "border-emerald-500/50 bg-zinc-800 text-white";
-                }
+              return (
+                <>
+                  <p className="text-lg font-medium text-white mb-4 leading-relaxed">
+                    {qText}
+                  </p>
 
-                return (
-                  <button
-                    key={oIdx}
-                    disabled={revealed}
-                    onClick={() => handleSelectOption(oIdx)}
-                    className={`text-left p-4 rounded-xl border transition-all ${borderClass}`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
+                  {q.apt_company_tags && q.apt_company_tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {(q.apt_company_tags as any[]).map((tag, idx) => (
+                        <span key={idx} className="px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase rounded-md border border-blue-500/20">
+                          {tag.company_name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid gap-3 mb-6">
+                    {qOptions.map((opt, oIdx) => {
+                      let borderClass = "border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300";
+                      
+                      if (revealed) {
+                        if (oIdx === correctIdx) {
+                          borderClass = "border-emerald-500 bg-emerald-500/10 text-emerald-400";
+                        } else if (selectedOpt === oIdx) {
+                          borderClass = "border-red-500 bg-red-500/10 text-red-400";
+                        } else {
+                          borderClass = "border-zinc-800 bg-zinc-900/50 opacity-50";
+                        }
+                      } else if (selectedOpt === oIdx) {
+                        borderClass = "border-emerald-500/50 bg-zinc-800 text-white";
+                      }
+
+                      return (
+                        <button
+                          key={oIdx}
+                          disabled={revealed}
+                          onClick={() => handleSelectOption(oIdx)}
+                          className={`text-left p-4 rounded-xl border transition-all ${borderClass}`}
+                        >
+                          {String(opt || `Option ${oIdx + 1}`)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
 
             {!revealed && (
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between border-t border-zinc-800 pt-6 mt-6">

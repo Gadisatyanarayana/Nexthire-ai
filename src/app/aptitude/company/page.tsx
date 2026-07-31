@@ -3,17 +3,16 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { Building2, ArrowRight } from "lucide-react";
 
+import { LearningQueryService } from "@/lib/learning/services/LearningQueryService";
+
 export const revalidate = 3600;
 
 export default async function CompanyGridPage() {
-  const host = (await headers()).get("host");
-  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-
   let companies: any[] = [];
   try {
-    const res = await fetch(`${protocol}://${host}/api/v1/aptitude/company`);
-    const data = await res.json();
-    if (data.success) companies = data.data;
+    const supabase = LearningQueryService.getRawClient();
+    const { data } = await supabase.from("apt_companies").select("*").order("name");
+    companies = data || [];
   } catch (e) {
     console.error(e);
   }

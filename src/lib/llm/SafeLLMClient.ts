@@ -70,13 +70,18 @@ export class SafeLLMClient {
     let provider = config.provider || 'groq';
     let model = config.model;
 
-    if (provider === 'openrouter' && !process.env.OPENROUTER_API_KEY) {
+    if (provider === 'openrouter' && (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY.includes("mock"))) {
       logger.warn("OpenRouter API key is missing. Falling back to Groq.");
       provider = 'groq';
       model = process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
     }
 
     if (provider === 'groq') {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey || apiKey === "your-groq-api-key" || apiKey.includes("mock") || apiKey.trim() === "") {
+        logger.warn("Groq API key is missing or mock. Fast-failing immediately to fallback stream.");
+        return this.createFallbackStream(messages);
+      }
       if (!model || model.includes('/') || model.includes('claude') || model.includes('gpt')) {
         model = process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
       }
@@ -113,6 +118,10 @@ export class SafeLLMClient {
 
         if (!response.ok) {
           const errBody = await response.text();
+          if (response.status === 401 || errBody.includes("invalid_api_key")) {
+            logger.warn("LLM API key invalid or missing. Failing fast to fallback.");
+            attempt = maxRetries; // Fail fast without wasting 24 seconds
+          }
           throw new Error(`HTTP ${response.status}: ${errBody}`);
         }
 
@@ -241,5 +250,38 @@ export class SafeLLMClient {
       throw new Error(`LLM output did not match required schema: ${errMessage}`);
     }
   }
+
+  private static createFallbackStream(messages: LLMMessage[]): Response {
+    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || "Help me with this topic";
+    const systemPromptMsg = messages.find(m => m.role === 'system')?.content || "";
+
+    const { AITutorEngine } = require("@/lib/learning/engines/legacy/AITutorEngine");
+    const textResponse = AITutorEngine.generateNaturalFallbackResponse(lastUserMessage, systemPromptMsg);
+
+    const encoder = new TextEncoder();
+    const words = textResponse.split(" ");
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        for (const word of words) {
+          const sseData = `data: ${JSON.stringify({ choices: [{ delta: { content: word + " " } }] })}\n\n`;
+          controller.enqueue(encoder.encode(sseData));
+          await new Promise(r => setTimeout(r, 30));
+        }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      }
+    });
+
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive'
+      }
+    });
+  }
 }
+
 

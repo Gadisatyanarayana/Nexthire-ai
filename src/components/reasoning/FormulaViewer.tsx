@@ -14,7 +14,7 @@ export function FormulaViewer({ formulas }: { formulas: ReasoningFormula[] }) {
         Key Formulas
       </h3>
 
-      {formulas.map((rawFormula, idx) => {
+      {(Array.isArray(formulas) ? formulas : []).map((rawFormula, idx) => {
         const formula = FormulaEngine.parseMetadata(rawFormula);
         const f = formula as any;
         return (

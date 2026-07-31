@@ -97,11 +97,21 @@ export default function PlacementHubPage() {
       {
         title: "Reasoning Practice",
         href: "/reasoning",
-        subtitle: "Verbal, logical, and analytical reasoning puzzles for assessments.",
+        subtitle: "Logical and analytical reasoning puzzles for MNC assessments.",
         bullets: [
           "Timed test metrics for speed audit",
           "Blood relations, syllogisms, and seating puzzles",
           "Detailed logic walkthrough steps",
+        ],
+      },
+      {
+        title: "Verbal Ability Hub",
+        href: "/verbal",
+        subtitle: "Grammar, vocabulary, reading comprehension, and sentence correction.",
+        bullets: [
+          "Grammar rules and sentence error detection",
+          "Reading comprehension passages with timed MCQs",
+          "Vocabulary builders and TCS/Infosys verbal patterns",
         ],
       },
       {

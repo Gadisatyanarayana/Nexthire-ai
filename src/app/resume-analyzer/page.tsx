@@ -74,15 +74,15 @@ type AnalyzerWorkspaceSnapshot = {
 };
 
 function scoreClass(score: number, isDark: boolean): string {
-  if (score < 50) return isDark ? "text-gray-300" : "text-gray-700";
-  if (score <= 75) return isDark ? "text-white" : "text-black";
-  return isDark ? "text-white" : "text-black";
+  if (score < 50) return isDark ? "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.8)]" : "text-red-600";
+  if (score <= 75) return isDark ? "text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" : "text-amber-600";
+  return isDark ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" : "text-emerald-600";
 }
 
 function strokeColor(score: number): string {
-  if (score < 50) return "#7a7a7a";
-  if (score <= 75) return "#9a9a9a";
-  return "#111111";
+  if (score < 50) return "#ef4444"; // red-500
+  if (score <= 75) return "#f59e0b"; // amber-500
+  return "#10b981"; // emerald-500
 }
 
 function Ring({ score, isDark }: { score: number; isDark: boolean }) {
@@ -92,16 +92,18 @@ function Ring({ score, isDark }: { score: number; isDark: boolean }) {
   const circumference = 2 * Math.PI * radius;
   const progress = Math.max(0, Math.min(100, score));
   const offset = circumference - (progress / 100) * circumference;
+  const color = strokeColor(progress);
 
   return (
     <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="-rotate-90">
+      <div className="absolute inset-0 rounded-full blur-[25px] opacity-30 mix-blend-screen" style={{ backgroundColor: color }} />
+      <svg width={size} height={size} className="-rotate-90 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)"}
+          stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
           strokeWidth={stroke}
         />
         <circle
@@ -109,17 +111,17 @@ function Ring({ score, isDark }: { score: number; isDark: boolean }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={strokeColor(progress)}
+          stroke={color}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="transition-[stroke-dashoffset] duration-700"
+          className="transition-[stroke-dashoffset] duration-1000 ease-out"
         />
       </svg>
-      <div className="absolute text-center">
-        <div className={`text-4xl font-bold ${scoreClass(progress, isDark)}`}>{progress}</div>
-        <div className={`text-xs uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-600"}`}>ATS</div>
+      <div className="absolute text-center z-20">
+        <div className={`text-5xl font-black tracking-tighter ${scoreClass(progress, isDark)}`}>{progress}</div>
+        <div className={`text-xs font-bold uppercase tracking-widest mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>ATS Score</div>
       </div>
     </div>
   );
@@ -128,13 +130,17 @@ function Ring({ score, isDark }: { score: number; isDark: boolean }) {
 function Glass({ children, isDark, className }: { children: React.ReactNode; isDark: boolean; className?: string }) {
   return (
     <section
-      className={`rounded-2xl border backdrop-blur-xl ${
-        isDark
-          ? "bg-white/5 border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
-          : "bg-white/90 border-black/10 shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
+      className={`relative overflow-hidden rounded-2xl backdrop-blur-xl border transition-all duration-300 ${
+        isDark 
+          ? "bg-white/[0.03] border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] hover:bg-white/[0.05]" 
+          : "bg-white/70 border-black/5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] hover:bg-white/90"
       } ${className ?? ""}`}
     >
-      {children}
+      {/* Subtle top glare effect */}
+      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${isDark ? 'from-transparent via-white/20 to-transparent' : 'from-transparent via-white/80 to-transparent'}`} />
+      <div className="relative z-10">
+        {children}
+      </div>
     </section>
   );
 }
@@ -142,12 +148,17 @@ function Glass({ children, isDark, className }: { children: React.ReactNode; isD
 function ScoreBar({ label, value, isDark }: { label: string; value: number; isDark: boolean }) {
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between text-sm">
-        <span className={isDark ? "text-gray-300" : "text-gray-700"}>{label}</span>
+      <div className="mb-1.5 flex items-center justify-between text-sm font-semibold">
+        <span className={isDark ? "text-gray-200" : "text-gray-800"}>{label}</span>
         <span className={scoreClass(value, isDark)}>{value}%</span>
       </div>
-      <div className={`h-2 rounded-full ${isDark ? "bg-white/10" : "bg-black/10"}`}>
-        <div className={`h-2 rounded-full ${isDark ? "bg-white" : "bg-black"}`} style={{ width: `${value}%` }} />
+      <div className={`h-2.5 rounded-full overflow-hidden ${isDark ? "bg-white/10" : "bg-black/10"} shadow-inner`}>
+        <div 
+          className={`h-full rounded-full transition-all duration-1000 ease-out relative ${
+            isDark ? "bg-gradient-to-r from-brand-blue to-brand-purple" : "bg-gradient-to-r from-brand-blue/90 to-brand-purple/90"
+          }`} 
+          style={{ width: `${value}%` }} 
+        />
       </div>
     </div>
   );
@@ -635,21 +646,21 @@ export default function ResumeAnalyzerPage() {
         </div>
 
         <Glass isDark={isDark} className="p-6">
-          <h3 className={`mb-3 text-lg font-semibold ${isDark ? "text-white" : "text-black"}`}>Keyword Analysis</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className={`mb-2 text-xs uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-600"}`}>Matched / Included</p>
+          <h3 className={`mb-4 text-xl font-bold ${isDark ? "text-white" : "text-black"}`}>Keyword Analysis</h3>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className={`p-4 rounded-xl border ${isDark ? "bg-white/[0.02] border-white/5" : "bg-black/[0.02] border-black/5"}`}>
+              <p className={`mb-3 text-xs font-bold uppercase tracking-widest ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>Matched / Included</p>
               <div className="flex flex-wrap gap-2">
-                {includedKeywords.length === 0 ? <span className={isDark ? "text-gray-400" : "text-gray-600"}>--</span> : includedKeywords.map((k) => (
-                  <span key={k} className={`rounded-full border px-2.5 py-1 text-xs ${isDark ? "border-white/20 bg-white/10 text-white" : "border-black/20 bg-black/5 text-black"}`}>{k}</span>
+                {includedKeywords.length === 0 ? <span className={isDark ? "text-gray-500 italic" : "text-gray-500 italic"}>No keywords detected yet.</span> : includedKeywords.map((k) => (
+                  <span key={k} className={`rounded-full border px-3 py-1 text-xs font-medium transition-all hover:scale-105 ${isDark ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.1)]" : "border-emerald-500/20 bg-emerald-50 text-emerald-700 shadow-sm"}`}>{k}</span>
                 ))}
               </div>
             </div>
-            <div>
-              <p className={`mb-2 text-xs uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-600"}`}>Missing</p>
+            <div className={`p-4 rounded-xl border ${isDark ? "bg-white/[0.02] border-white/5" : "bg-black/[0.02] border-black/5"}`}>
+              <p className={`mb-3 text-xs font-bold uppercase tracking-widest ${isDark ? "text-red-400" : "text-red-600"}`}>Missing</p>
               <div className="flex flex-wrap gap-2">
-                {missingKeywords.length === 0 ? <span className={isDark ? "text-gray-400" : "text-gray-600"}>--</span> : missingKeywords.map((k) => (
-                  <span key={k} className={`rounded-full border px-2.5 py-1 text-xs ${isDark ? "border-white/20 bg-white/10 text-white" : "border-black/20 bg-black/5 text-black"}`}>{k}</span>
+                {missingKeywords.length === 0 ? <span className={isDark ? "text-gray-500 italic" : "text-gray-500 italic"}>No keywords missing.</span> : missingKeywords.map((k) => (
+                  <span key={k} className={`rounded-full border px-3 py-1 text-xs font-medium transition-all hover:scale-105 ${isDark ? "border-red-500/30 bg-red-500/10 text-red-300 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-red-500/20 bg-red-50 text-red-700 shadow-sm"}`}>{k}</span>
                 ))}
               </div>
             </div>
@@ -775,29 +786,49 @@ export default function ResumeAnalyzerPage() {
           )}
         </Glass>
 
-        <Glass isDark={isDark} className="p-6">
-          <h3 className={`mb-3 text-lg font-semibold ${isDark ? "text-white" : "text-black"}`}>Job Match (Advanced)</h3>
-          <p className={`mb-3 text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{matchSummary}</p>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-black/10 bg-black/5"}`}>
-              <p className={`text-xs uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-600"}`}>Match</p>
-              <p className={`mt-2 text-3xl font-bold ${matchPercentage === null ? (isDark ? "text-gray-500" : "text-gray-500") : scoreClass(matchPercentage, isDark)}`}>
-                {matchPercentage === null ? "--" : `${matchPercentage}%`}
-              </p>
+        <Glass isDark={isDark} className="p-6 border-t-4 border-t-brand-purple/50">
+          <div className="flex items-center gap-3 mb-2">
+            <Target className={`h-6 w-6 ${isDark ? "text-brand-purple" : "text-brand-purple"}`} />
+            <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-black"}`}>Job Description Matcher</h3>
+          </div>
+          <p className={`mb-6 text-sm ${isDark ? "text-gray-300" : "text-gray-600"}`}>{matchSummary}</p>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className={`rounded-xl border p-5 flex flex-col justify-center items-center ${isDark ? "bg-white/[0.02] border-white/5" : "bg-black/[0.02] border-black/5"}`}>
+              <p className={`text-xs uppercase font-bold tracking-widest ${isDark ? "text-gray-400" : "text-gray-500"}`}>Overall Match</p>
+              <div className="relative mt-3 flex items-center justify-center">
+                <svg className="w-24 h-24 -rotate-90 transform drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+                  <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className={isDark ? "text-white/10" : "text-black/5"} />
+                  {matchPercentage !== null && (
+                    <circle 
+                      cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" 
+                      strokeDasharray="251" strokeDashoffset={251 - (251 * matchPercentage) / 100}
+                      strokeLinecap="round"
+                      className={`transition-all duration-1000 ease-out ${scoreClass(matchPercentage, isDark).split(' ')[0]}`}
+                    />
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className={`text-2xl font-black ${matchPercentage === null ? (isDark ? "text-gray-500" : "text-gray-400") : scoreClass(matchPercentage, isDark)}`}>
+                    {matchPercentage === null ? "--" : `${matchPercentage}%`}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-black/10 bg-black/5"}`}>
-              <p className={`mb-2 text-xs uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-600"}`}>Matched Skills</p>
+            
+            <div className={`rounded-xl border p-5 ${isDark ? "bg-white/[0.02] border-white/5" : "bg-black/[0.02] border-black/5"}`}>
+              <p className={`mb-3 text-xs font-bold uppercase tracking-widest ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>Matched Skills</p>
               <div className="flex flex-wrap gap-2">
-                {matchedKeywords.length === 0 ? <span className={isDark ? "text-gray-400" : "text-gray-600"}>--</span> : matchedKeywords.map((k) => (
-                  <span key={k} className={`rounded-full border px-2.5 py-1 text-xs ${isDark ? "border-white/20 bg-white/10 text-white" : "border-black/20 bg-black/5 text-black"}`}>{k}</span>
+                {matchedKeywords.length === 0 ? <span className={isDark ? "text-gray-500 italic" : "text-gray-500 italic"}>None detected.</span> : matchedKeywords.map((k) => (
+                  <span key={k} className={`rounded-full border px-3 py-1 text-xs font-medium transition-all hover:scale-105 ${isDark ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.1)]" : "border-emerald-500/20 bg-emerald-50 text-emerald-700 shadow-sm"}`}>{k}</span>
                 ))}
               </div>
             </div>
-            <div className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-black/10 bg-black/5"}`}>
-              <p className={`mb-2 text-xs uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-600"}`}>Missing Skills</p>
+            
+            <div className={`rounded-xl border p-5 ${isDark ? "bg-white/[0.02] border-white/5" : "bg-black/[0.02] border-black/5"}`}>
+              <p className={`mb-3 text-xs font-bold uppercase tracking-widest ${isDark ? "text-red-400" : "text-red-600"}`}>Missing Skills</p>
               <div className="flex flex-wrap gap-2">
-                {jobMissing.length === 0 ? <span className={isDark ? "text-gray-400" : "text-gray-600"}>--</span> : jobMissing.map((k) => (
-                  <span key={k} className={`rounded-full border px-2.5 py-1 text-xs ${isDark ? "border-white/20 bg-white/10 text-white" : "border-black/20 bg-black/5 text-black"}`}>{k}</span>
+                {jobMissing.length === 0 ? <span className={isDark ? "text-gray-500 italic" : "text-gray-500 italic"}>None detected.</span> : jobMissing.map((k) => (
+                  <span key={k} className={`rounded-full border px-3 py-1 text-xs font-medium transition-all hover:scale-105 ${isDark ? "border-red-500/30 bg-red-500/10 text-red-300 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-red-500/20 bg-red-50 text-red-700 shadow-sm"}`}>{k}</span>
                 ))}
               </div>
             </div>
