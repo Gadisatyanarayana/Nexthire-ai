@@ -31,7 +31,7 @@ export default function MonacoEditorWrapper({
         inherit: true,
         rules: [],
         colors: {
-          'editor.background': '#1e293b', // Tailwind slate-800
+          'editor.background': '#181818',
         }
       });
       monaco.editor.setTheme('nexthire-dark');

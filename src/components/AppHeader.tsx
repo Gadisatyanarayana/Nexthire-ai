@@ -178,9 +178,10 @@ export function AppHeader() {
           {!isAuthRoute && status !== 'authenticated' && (
             <Link
               href="/auth/signin"
-              className="rounded-xl bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:opacity-90"
+              className="rounded-xl bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:opacity-90 flex items-center gap-2 shadow-md"
             >
-              Get Started
+              <img src="/google.svg" alt="Google" className="w-4 h-4 shrink-0" />
+              Sign in with Google
             </Link>
           )}
           <UserAvatarDropdown />

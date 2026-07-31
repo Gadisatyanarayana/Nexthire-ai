@@ -14,27 +14,35 @@ function calculateElo(difficulty: string, title: string): number {
   if (difficulty === "Medium") base = 1600;
   if (difficulty === "Hard") base = 1950;
 
-  // Add deterministic variance based on title length
   const offset = (title.length * 13) % 150;
   return base + offset;
 }
 
 function inferPrimaryPattern(title: string, topics: string[]): string {
   const t = title.toLowerCase();
-  const topStr = topics.map((x) => x.toLowerCase()).join(" ");
+  const topStr = topics.map((x) => String(x).toLowerCase()).join(" ");
 
-  if (t.includes("two sum") || t.includes("3sum") || t.includes("4sum") || t.includes("container with most water") || t.includes("trapping rain water")) return "Two Pointers";
-  if (t.includes("sliding window") || t.includes("longest substring") || t.includes("minimum window")) return "Sliding Window";
-  if (t.includes("binary search") || t.includes("search in rotated") || t.includes("find minimum in rotated")) return "Binary Search";
-  if (t.includes("merge intervals") || t.includes("insert interval") || t.includes("overlapping")) return "Merge Intervals";
-  if (t.includes("linked list cycle") || t.includes("middle of linked list")) return "Fast Slow Pointer";
-  if (t.includes("lru cache") || t.includes("lfu cache") || t.includes("design")) return "Design Data Structure";
-  if (t.includes("word search") || t.includes("n-queens") || t.includes("sudoku") || t.includes("permutations") || t.includes("subsets")) return "Backtracking";
-  if (t.includes("climbing stairs") || t.includes("coin change") || t.includes("house robber") || t.includes("longest increasing subsequence") || t.includes("knapsack")) return "Dynamic Programming";
-  if (t.includes("number of islands") || t.includes("course schedule") || t.includes("graph") || topStr.includes("graph")) return "BFS";
-  if (t.includes("tree") || topStr.includes("binary tree")) return "Tree DFS";
-  if (topStr.includes("heap") || t.includes("top k") || t.includes("kth largest")) return "Heap / Priority Queue";
-  if (topStr.includes("stack") || t.includes("valid parentheses") || t.includes("daily temperatures")) return "Monotonic Stack";
+  if (t.includes("3sum") || t.includes("4sum") || t.includes("two sum") || t.includes("container with most water") || t.includes("trapping rain water") || t.includes("sort colors") || t.includes("valid palindrome") || topStr.includes("two pointers")) return "Two Pointers";
+  if (t.includes("4sum ii") || t.includes("contains duplicate") || t.includes("valid anagram") || t.includes("group anagrams")) return "Hashing";
+  if (t.includes("fast slow") || t.includes("linked list cycle") || t.includes("middle of linked list") || t.includes("happy number") || topStr.includes("fast slow")) return "Fast Slow Pointer";
+  if (t.includes("dp") || t.includes("dynamic programming") || t.includes("climbing stairs") || t.includes("coin change") || t.includes("house robber") || t.includes("longest increasing") || t.includes("knapsack") || t.includes("edit distance") || t.includes("partition equal") || topStr.includes("dynamic programming")) return "Dynamic Programming";
+  if (t.includes("memoization") || t.includes("memo")) return "Memoization";
+  if (t.includes("tabulation")) return "Tabulation";
+  if (t.includes("bitmask dp") || t.includes("bitmask")) return "Bitmask DP";
+  if (t.includes("sliding window") || t.includes("longest substring") || t.includes("minimum window") || t.includes("max consecutive") || topStr.includes("sliding window")) return "Sliding Window";
+  if (t.includes("binary search") || t.includes("search in rotated") || t.includes("find minimum in rotated") || topStr.includes("binary search")) return "Binary Search";
+  if (t.includes("merge intervals") || t.includes("insert interval") || t.includes("overlapping") || topStr.includes("intervals")) return "Merge Intervals";
+  if (t.includes("word search") || t.includes("n-queens") || t.includes("sudoku") || t.includes("permutations") || t.includes("subsets") || t.includes("combination sum") || topStr.includes("backtracking")) return "Backtracking";
+  if (t.includes("number of islands") || t.includes("course schedule") || t.includes("bfs") || t.includes("shortest path") || topStr.includes("bfs")) return "BFS";
+  if (t.includes("tree") || t.includes("binary tree") || t.includes("dfs") || topStr.includes("dfs")) return "Tree DFS";
+  if (topStr.includes("heap") || t.includes("heap") || t.includes("top k") || t.includes("kth largest") || t.includes("priority queue")) return "Heap / Priority Queue";
+  if (t.includes("largest rectangle") || t.includes("daily temperatures") || t.includes("next greater") || topStr.includes("monotonic stack")) return "Monotonic Stack";
+  if (t.includes("sliding window maximum") || topStr.includes("monotonic queue")) return "Monotonic Queue";
+  if (t.includes("prefix sum") || t.includes("product of array except self") || t.includes("product except self") || t.includes("range sum query") || t.includes("subarray sum equals k")) return "Prefix Sum";
+  if (topStr.includes("trie") || t.includes("trie") || t.includes("prefix tree")) return "Trie";
+  if (topStr.includes("union") || t.includes("dsu") || t.includes("disjoint set") || topStr.includes("union find")) return "Union Find (DSU)";
+  if (t.includes("greedy") || t.includes("jump game") || t.includes("gas station") || topStr.includes("greedy")) return "Greedy";
+  if (t.includes("bit") || t.includes("single number") || t.includes("counting bits") || topStr.includes("bit manipulation")) return "Bit Manipulation";
 
   return "Two Pointers";
 }
@@ -43,7 +51,7 @@ function inferSecondaryPatterns(primary: string, title: string): string[] {
   const secondaries: string[] = [];
   const t = title.toLowerCase();
 
-  if (primary !== "Sorting" && (t.includes("sort") || t.includes("3sum") || t.includes("interval"))) secondaries.push("Sorting");
+  if (primary !== "Sorting" && (t.includes("sort") || t.includes("3sum") || t.includes("4sum") || t.includes("interval"))) secondaries.push("Sorting");
   if (primary !== "Hash Table" && (t.includes("sum") || t.includes("contains") || t.includes("subsets"))) secondaries.push("Hash Table");
   if (primary !== "Greedy" && (t.includes("jump") || t.includes("interval") || t.includes("gas station"))) secondaries.push("Greedy");
   if (primary !== "Memoization" && primary === "Dynamic Programming") secondaries.push("Memoization");
@@ -67,10 +75,23 @@ function inferTopic(title: string, rawTopics: string[]): string {
   return "Arrays";
 }
 
-function inferSubtopic(topic: string, title: string): string {
+function inferSubtopic(topic: string, title: string, primaryPattern: string): string {
   const t = title.toLowerCase();
+
+  if (t.includes("3sum") || t.includes("4sum") || t.includes("two sum") || t.includes("container with most water")) return "Multi-Pointer Target Search";
+  if (t.includes("prefix sum") || t.includes("range sum query") || t.includes("product except self")) return "Prefix Sum & Range Queries";
+  if (primaryPattern === "Two Pointers") return "Two Pointers Target Search";
+  if (primaryPattern === "Hashing") return "Hash Map Complement Search";
+  if (primaryPattern === "Sliding Window") return "Dynamic Window Traversal";
+  if (primaryPattern === "Monotonic Stack") return "Monotonic Range Evaluation";
+  if (primaryPattern === "Monotonic Queue") return "Sliding Window Max Optimization";
+  if (primaryPattern === "Dynamic Programming") return "Optimal Substructure & Memoization";
+  if (primaryPattern === "Binary Search") return "Logarithmic Search Halving";
+  if (primaryPattern === "Fast Slow Pointer") return "Cycle Detection & Midpoint";
+  if (primaryPattern === "Greedy") return "Local Optimal Choice";
+  if (primaryPattern === "Math") return "Number Theory & Arithmetic";
+
   if (topic === "Arrays") {
-    if (t.includes("sum")) return "Prefix Sum & Subarrays";
     if (t.includes("rotate")) return "Array Rotation";
     if (t.includes("max")) return "Kadane's Algorithm";
     return "Searching & Sorting";
@@ -92,7 +113,7 @@ function inferComplexities(primaryPattern: string, difficulty: string): { time: 
   if (primaryPattern === "Two Pointers") return { time: "O(n)", space: "O(1)" };
   if (primaryPattern === "Binary Search") return { time: "O(log n)", space: "O(1)" };
   if (primaryPattern === "Sliding Window") return { time: "O(n)", space: "O(1)" };
-  if (primaryPattern === "Dynamic Programming") {
+  if (primaryPattern.includes("Dynamic Programming") || primaryPattern === "DP") {
     if (difficulty === "Hard") return { time: "O(n²)", space: "O(n²)" };
     return { time: "O(n)", space: "O(n)" };
   }
@@ -143,13 +164,15 @@ function buildInterviewInsights(title: string, topic: string, primaryPattern: st
   };
 }
 
-export function enrichQuestionMetadata(q: CodingQuestion): QuestionRichMetadata {
+export function enrichQuestionMetadata(q: CodingQuestion & { sub_pattern?: string }): QuestionRichMetadata {
   const rawTopics = Array.isArray(q.topic) ? q.topic : [q.topic || "Arrays"];
   const topic = inferTopic(q.title, rawTopics);
-  const subtopic = inferSubtopic(topic, q.title);
-
   const primaryPattern = inferPrimaryPattern(q.title, rawTopics);
-  const secondaryPatterns = inferSecondaryPatterns(primaryPattern, q.title);
+  const subtopic = inferSubtopic(topic, q.title, primaryPattern);
+
+  const secondaryPatterns = Array.isArray(q.pattern_tags) && q.pattern_tags.length > 1
+    ? q.pattern_tags.slice(1)
+    : inferSecondaryPatterns(primaryPattern, q.title);
 
   const complexities = inferComplexities(primaryPattern, q.difficulty);
   const eloRating = calculateElo(q.difficulty, q.title);
@@ -171,7 +194,7 @@ export function enrichQuestionMetadata(q: CodingQuestion): QuestionRichMetadata 
     difficulty: (q.difficulty || "Medium") as "Easy" | "Medium" | "Hard",
     eloRating,
     acceptanceRate: q.acceptance_rate || 52,
-    topics: [topic],
+    topics: [topic, ...rawTopics],
     subtopic,
     primaryPattern,
     secondaryPatterns,
@@ -201,7 +224,7 @@ export function enrichQuestionMetadata(q: CodingQuestion): QuestionRichMetadata 
     ],
     editorial: `### Problem Overview\nThe problem **${q.title}** asks us to operate on **${topic}** data structures using **${primaryPattern}**.\n\n### Key Intuition\nBy observing the problem constraints, we can avoid the brute force $O(n^2)$ approach by maintaining active pointers or state variables.\n\n### Complexity Analysis\n- **Time Complexity**: ${complexities.time}\n- **Space Complexity**: ${complexities.space}`,
     sampleTestCases: q.examples ? q.examples.map(e => ({ input: e.input || "", output: e.output || "" })) : [{ input: "nums = [2,7,11,15], target = 9", output: "[0,1]" }],
-    hiddenTestCases: q.testcases ? q.testcases.map(t => ({ input: t.input || "", output: t.expectedOutput || "" })) : [{ input: "nums = [3,2,4], target = 6", output: "[1,2]" }],
+    hiddenTestCases: q.testcases ? q.testcases.map(t => ({ input: t.input || "", output: t.expectedOutput || "" })) : [{ input: "nums = [3,2,4], target = 6", output: "[0,1]" }],
     starterCode: q.starter_code || {
       python: `class Solution:\n    def solve(self, nums: List[int]) -> int:\n        pass`,
       cpp: `class Solution {\npublic:\n    int solve(vector<int>& nums) {\n        return 0;\n    }\n};`,

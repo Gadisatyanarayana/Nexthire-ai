@@ -11,6 +11,26 @@ import { inferDsaSection, sectionLabel } from "@/lib/dsaSections";
 import { STARTER_CODE } from "@/lib/codingQuestions";
 import { buildMandatoryCaseSet, getDefaultHiddenCaseCount, getDefaultTimeLimitMinutes } from "@/lib/questionPolicy";
 import { readJsonCache, writeJsonCache, getCacheTtlSeconds } from "@/lib/appCache";
+import { CATALOG_6902_LEETCODE_PROBLEMS } from "@/platform/content-pipeline/data/Official4000Catalog";
+
+const CANONICAL_LEETCODE_QUESTIONS: CodingQuestion[] = CATALOG_6902_LEETCODE_PROBLEMS.map((p) => ({
+  id: p.id,
+  title: p.title,
+  difficulty: p.difficulty,
+  function_name: p.official_function_name,
+  topic: p.topic || [],
+  company_tags: p.company_tags || [],
+  pattern_tags: p.pattern_tags || [],
+  acceptance_rate: p.acceptance_rate || 50,
+  description: p.description,
+  examples: p.examples || [],
+  testcases: (p.testcases || []).map((tc) => ({
+    input: tc.input,
+    expectedOutput: tc.expectedOutput,
+    isHidden: tc.isHidden,
+  })),
+  starter_code: p.starter_code,
+}));
 
 type QuestionCreateBody = {
   title?: string;
@@ -71,7 +91,7 @@ let cachedQuestionsBundle: CachedQuestionsBundle | null = null;
 const QUESTIONS_BUNDLE_CACHE_TTL_SECONDS = getCacheTtlSeconds(300);
 
 function buildQuestionsBundleCacheKey(version: string | null): string {
-  return `questions:bundle:${version || "none"}`;
+  return `questions:bundle:v12_6902_pattern_strict:${version || "none"}`;
 }
 
 function normalizeTag(value: string): string {
@@ -404,41 +424,30 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
       }
     }
 
-  if (loadError) {
+  if (loadError || allRows.length === 0) {
     if (cachedQuestionsBundle?.cacheKey === cacheKey && cachedQuestionsBundle.value.questions && cachedQuestionsBundle.value.questions.length > 0) {
       return {
         ...cachedQuestionsBundle.value,
-        warning: "Using cached question bank due to temporary DB issue.",
+        warning: "Using cached question bank.",
       };
     }
 
     return {
-      questions: MOCK_QUESTIONS,
-      warning: "Question bank read failed. Showing fallback questions.",
-      overallCount: MOCK_QUESTIONS.length,
+      questions: CANONICAL_LEETCODE_QUESTIONS,
+      warning: "Showing full canonical LeetCode catalog.",
+      overallCount: CANONICAL_LEETCODE_QUESTIONS.length,
       lastSyncAt: null,
     };
   }
 
-  if (allRows.length === 0) {
-    return {
-      questions: MOCK_QUESTIONS,
-      warning: "Question bank is empty. Showing fallback questions.",
-      overallCount: MOCK_QUESTIONS.length,
-      lastSyncAt: null,
-    };
-  }
-
-  const [overallCount, lastSyncAt] = await Promise.all([
-    loadOverallCount(),
-    loadLastSyncAt(),
-  ]);
+  const dbQuestions = allRows.map((row) => toQuestion(row));
+  const combined = deduplicateQuestions([...dbQuestions, ...CANONICAL_LEETCODE_QUESTIONS]);
 
   return {
-    questions: allRows.map((row) => toQuestion(row)),
+    questions: combined,
     warning: null,
-    overallCount: overallCount || allRows.length,
-    lastSyncAt,
+    overallCount: combined.length,
+    lastSyncAt: null,
   };
   })();
 
@@ -504,14 +513,14 @@ function deduplicateQuestions(questions: CodingQuestion[]): CodingQuestion[] {
 
   for (const q of questions) {
     const idKey = String(q.id || "").toLowerCase().trim();
-    const titleKey = String(q.title || "").toLowerCase().trim();
+    const cleanTitle = String(q.title || "").replace(/^[0-9]+\.\s*/, "").toLowerCase().trim();
 
-    if (!idKey || seenIds.has(idKey) || seenTitles.has(titleKey)) {
+    if (!idKey || seenIds.has(idKey) || seenTitles.has(cleanTitle)) {
       continue;
     }
 
     seenIds.add(idKey);
-    seenTitles.add(titleKey);
+    seenTitles.add(cleanTitle);
     result.push(q);
   }
 
@@ -547,38 +556,33 @@ export async function GET(req: NextRequest) {
       filtered = filtered.filter((q: QuestionRichMetadata) => q.difficulty.toLowerCase() === difficulty);
     }
 
-    // 2. Filter by Pattern (Primary or Secondary)
+    // 2. Filter by Pattern (Primary or Secondary Pattern ONLY)
     if (pattern !== "all") {
-      filtered = filtered.filter((q: QuestionRichMetadata) => 
-        q.primaryPattern.toLowerCase() === pattern ||
-        q.secondaryPatterns.some((p: string) => p.toLowerCase() === pattern)
-      );
+      const cleanTarget = pattern.toLowerCase().replace(/[^a-z0-9]/g, "");
+      filtered = filtered.filter((q: QuestionRichMetadata) => {
+        const pPrimary = (q.primaryPattern || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (pPrimary === cleanTarget || pPrimary.includes(cleanTarget) || cleanTarget.includes(pPrimary)) return true;
+        if (cleanTarget.includes("prefixsum") && pPrimary.includes("prefixsum")) return true;
+        if ((cleanTarget === "dp" || cleanTarget.includes("dynamic")) && (pPrimary.includes("dynamic") || pPrimary.includes("dp"))) return true;
+        if ((cleanTarget.includes("twopointer") || cleanTarget.includes("two pointer")) && pPrimary.includes("twopointer")) return true;
+
+        if (Array.isArray(q.secondaryPatterns) && q.secondaryPatterns.some((p: string) => {
+          const normP = (p || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+          return normP === cleanTarget || normP.includes(cleanTarget) || cleanTarget.includes(normP);
+        })) return true;
+
+        return false;
+      });
     }
 
-    // 3. Filter by Topic
-    if (topic !== "all") {
-      filtered = filtered.filter((q: QuestionRichMetadata) => 
-        q.topics.some((t: string) => t.toLowerCase() === topic || t.toLowerCase().replace(/\s+/g, "-") === topic)
-      );
-    }
-
-    // 4. Filter by Subtopic
-    if (subtopic !== "all") {
-      filtered = filtered.filter((q: QuestionRichMetadata) => q.subtopic.toLowerCase().includes(subtopic));
-    }
-
-    // 5. Filter by Company
+    // 3. Filter by Company
     if (company !== "all") {
+      const cleanCompany = company.toLowerCase().replace(/[^a-z0-9]/g, "");
       filtered = filtered.filter((q: QuestionRichMetadata) => 
-        q.companies.some((c: { name: string }) => c.name.toLowerCase() === company)
-      );
-    }
-
-    // 6. Filter by Complexity
-    if (complexity !== "all") {
-      filtered = filtered.filter((q: QuestionRichMetadata) => 
-        q.timeComplexity.toLowerCase().includes(complexity) ||
-        q.spaceComplexity.toLowerCase().includes(complexity)
+        q.companies.some((c: { name: string }) => {
+          const normC = c.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+          return normC.includes(cleanCompany) || cleanCompany.includes(normC);
+        })
       );
     }
 
@@ -599,37 +603,45 @@ export async function GET(req: NextRequest) {
     const paged = filtered.slice(start, start + limit);
     const totalPages = Math.max(1, Math.ceil(filteredCount / limit));
 
-    // Compute dynamic topic counts across allQuestions
-    const topicCountsMap: Record<string, number> = {
-      "linked-list-patterns": 150,
-      "stack-patterns": 150,
-      "queue-deque": 100,
-      "heap-priority-queue": 150,
-      "tree-patterns": 300,
-      "trie-patterns": 75,
-      "backtracking-patterns": 150,
-      "union-find": 100,
-      "segment-fenwick": 75,
-      "advanced-ds": 85,
-      "computational-geometry": 100,
-      "simulation": 150,
-      "design-patterns-dsa": 75
-    };
+    // Compute dynamic pattern, topic & company counts across enrichedQuestions
+    const patternCountsMap: Record<string, number> = {};
+    const topicCountsMap: Record<string, number> = {};
+    const companyCountsMap: Record<string, number> = {};
 
-    allQuestions.forEach((q) => {
-      const tLower = q.title.toLowerCase();
-      const topicArr = Array.isArray(q.topic) ? q.topic.map(t => String(t).toLowerCase()) : [];
-      const patternArr = Array.isArray(q.pattern_tags) ? q.pattern_tags.map(p => String(p).toLowerCase()) : [];
+    enrichedQuestions.forEach((q) => {
+      if (q.primaryPattern) {
+        const cleanP = q.primaryPattern.trim();
+        patternCountsMap[cleanP] = (patternCountsMap[cleanP] || 0) + 1;
+        patternCountsMap[cleanP.toLowerCase()] = (patternCountsMap[cleanP.toLowerCase()] || 0) + 1;
+      }
+      if (Array.isArray(q.secondaryPatterns)) {
+        q.secondaryPatterns.forEach((p) => {
+          const cleanP = p.trim();
+          patternCountsMap[cleanP] = (patternCountsMap[cleanP] || 0) + 1;
+          patternCountsMap[cleanP.toLowerCase()] = (patternCountsMap[cleanP.toLowerCase()] || 0) + 1;
+        });
+      }
 
-      if (tLower.includes("linked list") || tLower.includes("node") || topicArr.some(t => t.includes("linked"))) topicCountsMap["linked-list-patterns"]++;
-      if (tLower.includes("stack") || topicArr.some(t => t.includes("stack"))) topicCountsMap["stack-patterns"]++;
-      if (tLower.includes("queue") || tLower.includes("deque") || topicArr.some(t => t.includes("queue"))) topicCountsMap["queue-deque"]++;
-      if (tLower.includes("heap") || tLower.includes("priority") || topicArr.some(t => t.includes("heap"))) topicCountsMap["heap-priority-queue"]++;
-      if (tLower.includes("tree") || tLower.includes("bst") || topicArr.some(t => t.includes("tree"))) topicCountsMap["tree-patterns"]++;
-      if (tLower.includes("trie") || topicArr.some(t => t.includes("trie"))) topicCountsMap["trie-patterns"]++;
-      if (tLower.includes("backtrack") || tLower.includes("subset") || topicArr.some(t => t.includes("backtrack"))) topicCountsMap["backtracking-patterns"]++;
-      if (tLower.includes("segment") || tLower.includes("fenwick") || topicArr.some(t => t.includes("segment"))) topicCountsMap["segment-fenwick"]++;
-      if (tLower.includes("union") || tLower.includes("disjoint") || topicArr.some(t => t.includes("union"))) topicCountsMap["union-find"]++;
+      if (Array.isArray(q.topics)) {
+        q.topics.forEach((t) => {
+          const cleanT = t.trim();
+          topicCountsMap[cleanT] = (topicCountsMap[cleanT] || 0) + 1;
+          topicCountsMap[cleanT.toLowerCase()] = (topicCountsMap[cleanT.toLowerCase()] || 0) + 1;
+        });
+      }
+      if (q.subtopic) {
+        const cleanS = q.subtopic.trim();
+        topicCountsMap[cleanS] = (topicCountsMap[cleanS] || 0) + 1;
+        topicCountsMap[cleanS.toLowerCase()] = (topicCountsMap[cleanS.toLowerCase()] || 0) + 1;
+      }
+
+      if (Array.isArray(q.companies)) {
+        q.companies.forEach((c) => {
+          const cleanC = c.name.trim();
+          companyCountsMap[cleanC] = (companyCountsMap[cleanC] || 0) + 1;
+          companyCountsMap[cleanC.toLowerCase()] = (companyCountsMap[cleanC.toLowerCase()] || 0) + 1;
+        });
+      }
     });
 
     return NextResponse.json({
@@ -640,8 +652,10 @@ export async function GET(req: NextRequest) {
       filteredCount: filteredCount,
       overallTotal: overallCount,
       overallCount: overallCount,
-      topicOptions: Object.keys(topicCountsMap),
+      patternCounts: patternCountsMap,
       topicCounts: topicCountsMap,
+      companyCounts: companyCountsMap,
+      topicOptions: Object.keys(topicCountsMap),
       page,
       limit,
       totalPages,

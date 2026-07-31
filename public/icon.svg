@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <style>
+      .blue-fill { fill: #2563EB; }
+      .blue-stroke { stroke: #2563EB; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .brand-text { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-weight: 900; fill: #2563EB; }
+    </style>
+  </defs>
+
+  <!-- Background Circle for contrast in both dark & light tab bars -->
+  <circle cx="256" cy="256" r="250" fill="#FFFFFF" />
+
+  <!-- Outer Brush Circle (Hand-brushed organic ring style) -->
+  <path d="M 256 18 
+           C 370 14, 475 90, 492 205 
+           C 510 325, 435 445, 315 482 
+           C 190 520, 55 440, 22 315 
+           C -10 190, 75 50, 205 22 
+           C 255 12, 315 15, 360 28" 
+        stroke="#2563EB" stroke-width="14" fill="none" stroke-linecap="round" />
+        
+  <path d="M 220 28 
+           C 340 18, 460 100, 480 230 
+           C 498 350, 410 468, 280 488 
+           C 150 505, 32 415, 25 280
+           C 20 180, 100 40, 230 25" 
+        stroke="#2563EB" stroke-width="6" fill="none" opacity="0.75" stroke-linecap="round" />
+
+  <!-- Inner Tie Icon (Acts as the 'I' in NEXT HIRE) -->
+  <!-- Top Dot / Head of the 'I' -->
+  <circle cx="178" cy="155" r="32" class="blue-fill" />
+
+  <!-- Tie Body -->
+  <!-- Upper Knot -->
+  <path d="M 152 204 L 204 204 L 198 238 L 158 238 Z" class="blue-fill" />
+  <!-- Tie Drop (Tapering to sharp bottom point) -->
+  <path d="M 157 242 
+           L 199 242 
+           L 207 335 
+           L 178 405 
+           L 149 335 Z" class="blue-fill" />
+
+  <!-- Brand Typography -->
+  <!-- Top Line: NEXT (Right of the top dot) -->
+  <text x="222" y="178" class="brand-text" font-size="78" letter-spacing="4">NEXT</text>
+
+  <!-- Bottom Line Left: H (Left of the tie) -->
+  <text x="96" y="356" class="brand-text" font-size="92">H</text>
+
+  <!-- Bottom Line Right: RE (Right of the tie) -->
+  <text x="222" y="356" class="brand-text" font-size="92" letter-spacing="4">RE</text>
+</svg>

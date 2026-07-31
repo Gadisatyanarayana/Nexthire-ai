@@ -53,8 +53,8 @@ CREATE TRIGGER set_coding_details_updated_at
 -- 2. Editor Sessions table (Autosave and Persistence)
 CREATE TABLE IF NOT EXISTS coding_editor_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tenant_id UUID NOT NULL,
-  user_id UUID NOT NULL,
+  tenant_id UUID NOT NULL REFERENCES platform_tenants(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   question_id UUID NOT NULL REFERENCES platform_questions(id) ON DELETE CASCADE,
   current_language TEXT NOT NULL DEFAULT 'javascript',
   code_content TEXT NOT NULL DEFAULT '',
@@ -63,12 +63,6 @@ CREATE TABLE IF NOT EXISTS coding_editor_sessions (
   last_saved_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   UNIQUE(user_id, question_id)
 );
-
--- Drop legacy FK constraints if table was created previously with them
-DO $$ BEGIN
-  ALTER TABLE coding_editor_sessions DROP CONSTRAINT IF EXISTS coding_editor_sessions_tenant_id_fkey;
-  ALTER TABLE coding_editor_sessions DROP CONSTRAINT IF EXISTS coding_editor_sessions_user_id_fkey;
-EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 -- RLS for coding_editor_sessions
 ALTER TABLE coding_editor_sessions ENABLE ROW LEVEL SECURITY;
@@ -107,8 +101,8 @@ CREATE TRIGGER set_editor_session_updated_at
 -- 3. Coding Submissions table (For Judges, Contests, Analytics)
 CREATE TABLE IF NOT EXISTS coding_submissions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tenant_id UUID NOT NULL,
-  user_id UUID NOT NULL,
+  tenant_id UUID NOT NULL REFERENCES platform_tenants(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   question_id UUID NOT NULL REFERENCES platform_questions(id) ON DELETE CASCADE,
   language TEXT NOT NULL,
   source_code TEXT NOT NULL,
@@ -119,12 +113,6 @@ CREATE TABLE IF NOT EXISTS coding_submissions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   finished_at TIMESTAMP WITH TIME ZONE
 );
-
--- Drop legacy FK constraints if table was created previously with them
-DO $$ BEGIN
-  ALTER TABLE coding_submissions DROP CONSTRAINT IF EXISTS coding_submissions_tenant_id_fkey;
-  ALTER TABLE coding_submissions DROP CONSTRAINT IF EXISTS coding_submissions_user_id_fkey;
-EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 -- RLS for coding_submissions
 ALTER TABLE coding_submissions ENABLE ROW LEVEL SECURITY;
@@ -191,3 +179,4 @@ BEGIN
     256
   ) ON CONFLICT (question_id) DO NOTHING;
 END $$;
+

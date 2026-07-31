@@ -1,23 +1,29 @@
-import { OFFICIAL_LEETCODE_CATALOG, CanonicalLeetCodeProblem } from "./OfficialLeetCodeCatalog";
-import { OFFICIAL_LEETCODE_CATALOG_PART2 } from "./OfficialLeetCodeCatalogPart2";
-import { OFFICIAL_LEETCODE_CATALOG_PART3 } from "./OfficialLeetCodeCatalogPart3";
+import { CanonicalLeetCodeProblem } from "./OfficialLeetCodeCatalog";
+import { CATALOG_6902_LEETCODE_PROBLEMS } from "./Official4000Catalog";
 
-export const ALL_OFFICIAL_LEETCODE_PROBLEMS: CanonicalLeetCodeProblem[] = [
-  ...OFFICIAL_LEETCODE_CATALOG,
-  ...OFFICIAL_LEETCODE_CATALOG_PART2,
-  ...OFFICIAL_LEETCODE_CATALOG_PART3
-];
+export { type CanonicalLeetCodeProblem } from "./OfficialLeetCodeCatalog";
+
+export const ALL_OFFICIAL_LEETCODE_PROBLEMS: CanonicalLeetCodeProblem[] = CATALOG_6902_LEETCODE_PROBLEMS;
 
 /**
- * Searches the official LeetCode catalog by matching normalized ID, Title, or official function name.
+ * Searches the official LeetCode catalog across all 6,902 problems by matching normalized ID, Title, Slug, or official function name.
  */
 export function matchCanonicalLeetCodeProblem(titleOrId: string): CanonicalLeetCodeProblem | null {
   if (!titleOrId) return null;
-  const norm = titleOrId.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const norm = String(titleOrId).toLowerCase().replace(/[^a-z0-9]/g, "");
+  
+  // Direct match first
+  const direct = ALL_OFFICIAL_LEETCODE_PROBLEMS.find(p => {
+    const pIdNorm = p.id.toLowerCase().replace(/[^a-z0-9]/g, "");
+    return pIdNorm === norm || p.id.toLowerCase() === titleOrId.toLowerCase();
+  });
+  if (direct) return direct;
+
+  // Title / function name match
   return ALL_OFFICIAL_LEETCODE_PROBLEMS.find(p => {
     const pIdNorm = p.id.toLowerCase().replace(/[^a-z0-9]/g, "");
     const pTitleNorm = p.title.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const pFnNorm = p.official_function_name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const pFnNorm = (p.official_function_name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     return norm.includes(pIdNorm) || norm.includes(pTitleNorm) || norm.includes(pFnNorm) || pTitleNorm.includes(norm) || pIdNorm.includes(norm);
   }) || null;
 }

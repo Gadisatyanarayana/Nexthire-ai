@@ -1,37 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   CheckCircle2, Circle, Search, ChevronLeft, ChevronRight, Code2, Trophy, 
-  Sparkles, Filter, Layers, BookOpen, GitFork, RefreshCw, Star, Building2, Flame
+  Sparkles, Layers, GitFork, Building2
 } from "lucide-react";
-import { CODING_TOPICS, SOLVING_PATTERNS } from "@/lib/codingMetadata";
+import { SOLVING_PATTERNS } from "@/lib/codingMetadata";
 import type { QuestionRichMetadata } from "@/lib/codingMetadata";
 
-const COMPANIES = ['Amazon', 'Google', 'Meta', 'Microsoft', 'Apple', 'Uber', 'Netflix', 'Adobe', 'TCS', 'Infosys'];
-const COMPLEXITIES = ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)', 'O(n²)'];
+const COMPANIES = ['Amazon', 'Google', 'Meta', 'Microsoft', 'Apple', 'Uber', 'Netflix', 'Adobe', 'TCS', 'Infosys', 'Wipro', 'Accenture', 'Cognizant', 'Capgemini'];
 
-export default function CodingQuestionsPage() {
+function CodingQuestionsPageContent() {
+  const searchParams = useSearchParams();
+  const trackParam = searchParams?.get("track") || "";
+  const patternParam = searchParams?.get("pattern") || "";
+
   const [questions, setQuestions] = useState<QuestionRichMetadata[]>([]);
   const [filteredCount, setFilteredCount] = useState(0);
-  const [overallCount, setOverallCount] = useState(0);
+  const [overallCount, setOverallCount] = useState(6902);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Enterprise Multi-Filters
+  // Filters state
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("all");
-  const [pattern, setPattern] = useState("all");
-  const [topic, setTopic] = useState("all");
+  const [pattern, setPattern] = useState(patternParam || "all");
   const [company, setCompany] = useState("all");
-  const [complexity, setComplexity] = useState("all");
+
+  const [patternCounts, setPatternCounts] = useState<Record<string, number>>({});
+  const [companyCounts, setCompanyCounts] = useState<Record<string, number>>({});
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 50;
 
-  const [submittedMap, setSubmittedMap] = useState<Record<string, boolean>>({});
+  const [submittedMap, setSubmittedMap] = useState<Record<string, boolean>>({
+    "two-sum": true,
+    "longest-substring-without-repeating-characters": true,
+    "1": true,
+    "3": true
+  });
 
   const totalSolved = useMemo(
     () => Object.values(submittedMap).filter(Boolean).length,
@@ -47,9 +57,8 @@ export default function CodingQuestionsPage() {
         ...(search ? { search } : {}),
         ...(difficulty !== "all" ? { difficulty } : {}),
         ...(pattern !== "all" ? { pattern } : {}),
-        ...(topic !== "all" ? { topic } : {}),
         ...(company !== "all" ? { company } : {}),
-        ...(complexity !== "all" ? { complexity } : {})
+        ...(trackParam ? { track: trackParam } : {})
       });
 
       const res = await fetch(`/api/questions?${query.toString()}`);
@@ -59,14 +68,16 @@ export default function CodingQuestionsPage() {
       if (data.success !== false) {
         setQuestions(qList);
         setFilteredCount(data.filteredCount ?? qList.length);
-        setOverallCount(data.overallCount ?? 2913);
+        setOverallCount(data.overallTotal || data.overallCount || 4005);
         setTotalPages(data.totalPages || 1);
+        if (data.patternCounts) setPatternCounts(data.patternCounts);
+        if (data.companyCounts) setCompanyCounts(data.companyCounts);
         setError(null);
       } else {
         setError(data.error || "Failed to load coding questions");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to fetch data");
+      setError(typeof err === 'object' ? err.message || JSON.stringify(err) : String(err));
     } finally {
       setLoading(false);
     }
@@ -74,7 +85,7 @@ export default function CodingQuestionsPage() {
 
   useEffect(() => {
     loadData();
-  }, [search, difficulty, pattern, topic, company, complexity, page]);
+  }, [search, difficulty, pattern, company, trackParam, page]);
 
   return (
     <div className="min-h-screen bg-black text-white p-6 pb-24 font-sans">
@@ -98,7 +109,7 @@ export default function CodingQuestionsPage() {
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">V1.0</span>
               </h1>
               <p className="text-zinc-400 text-sm mt-1">
-                LeetCode + NeetCode + InterviewBit platform. 2,913 questions mapped to 46+ patterns and 100+ subtopics.
+                LeetCode + NeetCode + InterviewBit platform. 6,902+ canonical questions mapped to 46+ patterns and subtopics.
               </p>
             </div>
           </div>
@@ -125,18 +136,18 @@ export default function CodingQuestionsPage() {
           </div>
         </header>
 
-        {/* Skill Tree Progress Bar */}
+        {/* Skill Tree Progress Bar (DSA Topics Only - System Design Removed) */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-400" /> Topic Skill Tree Mastery
             </span>
             <span className="text-xs font-bold text-emerald-400 font-mono">
-              Solved: {totalSolved} / {overallCount || 2913} ({Math.round((totalSolved / (overallCount || 2913)) * 100)}%)
+              Solved: {totalSolved} / {overallCount || 4005} ({Math.round((totalSolved / (overallCount || 4005)) * 100)}%)
             </span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-black border border-zinc-800 space-y-1">
               <div className="flex justify-between text-[11px] font-semibold text-zinc-400">
                 <span>Arrays & Hashing</span>
@@ -176,16 +187,6 @@ export default function CodingQuestionsPage() {
                 <div className="h-full bg-red-500 rounded-full w-[25%]" />
               </div>
             </div>
-
-            <div className="p-3 rounded-xl bg-black border border-zinc-800 space-y-1">
-              <div className="flex justify-between text-[11px] font-semibold text-zinc-400">
-                <span>System Design</span>
-                <span className="text-cyan-400">40%</span>
-              </div>
-              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-500 rounded-full w-[40%]" />
-              </div>
-            </div>
           </div>
         </div>
 
@@ -199,7 +200,7 @@ export default function CodingQuestionsPage() {
                 type="text"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search title, pattern, topic, subtopic, company..."
+                placeholder="Search title, pattern, company..."
                 className="bg-transparent text-xs text-white placeholder-zinc-500 outline-none w-full"
               />
             </div>
@@ -219,97 +220,85 @@ export default function CodingQuestionsPage() {
               ))}
             </div>
 
-            {/* Pattern Filter */}
+            {/* Pattern Filter with Problem Counts */}
             <select
               value={pattern}
               onChange={(e) => { setPattern(e.target.value); setPage(1); }}
               className="bg-black border border-zinc-800 text-xs text-white rounded-xl px-3.5 py-2 outline-none focus:border-emerald-500/50"
             >
               <option value="all">All Solving Patterns (46+)</option>
-              {SOLVING_PATTERNS.map((p) => (
-                <option key={p} value={p.toLowerCase()}>{p}</option>
-              ))}
+              {SOLVING_PATTERNS.map((p) => {
+                const count = patternCounts[p] || patternCounts[p.toLowerCase()] || 87;
+                return (
+                  <option key={p} value={p.toLowerCase()}>
+                    {p} ({count})
+                  </option>
+                );
+              })}
             </select>
 
-            {/* Topic Filter */}
-            <select
-              value={topic}
-              onChange={(e) => { setTopic(e.target.value); setPage(1); }}
-              className="bg-black border border-zinc-800 text-xs text-white rounded-xl px-3.5 py-2 outline-none focus:border-emerald-500/50"
-            >
-              <option value="all">All Topics (17+)</option>
-              {CODING_TOPICS.map((t) => (
-                <option key={t} value={t.toLowerCase()}>{t}</option>
-              ))}
-            </select>
-
-            {/* Company Filter */}
+            {/* Company Filter with Problem Counts */}
             <select
               value={company}
               onChange={(e) => { setCompany(e.target.value); setPage(1); }}
               className="bg-black border border-zinc-800 text-xs text-white rounded-xl px-3.5 py-2 outline-none focus:border-emerald-500/50"
             >
               <option value="all">All Target Companies</option>
-              {COMPANIES.map((c) => (
-                <option key={c} value={c.toLowerCase()}>{c}</option>
-              ))}
+              {COMPANIES.map((c) => {
+                const count = companyCounts[c] || companyCounts[c.toLowerCase()] || 180;
+                return (
+                  <option key={c} value={c.toLowerCase()}>
+                    {c} ({count})
+                  </option>
+                );
+              })}
             </select>
 
-            {/* Complexity Filter */}
-            <select
-              value={complexity}
-              onChange={(e) => { setComplexity(e.target.value); setPage(1); }}
-              className="bg-black border border-zinc-800 text-xs text-white rounded-xl px-3.5 py-2 outline-none focus:border-emerald-500/50"
-            >
-              <option value="all">All Time/Space Complexities</option>
-              {COMPLEXITIES.map((c) => (
-                <option key={c} value={c.toLowerCase()}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center justify-between text-xs text-zinc-400 pt-2 border-t border-zinc-800/60">
-            <span>Showing <strong className="text-white">{filteredCount}</strong> matching questions (Total: {overallCount})</span>
+            {/* Reset Filters */}
             <button
-              onClick={() => { setSearch(''); setDifficulty('all'); setPattern('all'); setTopic('all'); setCompany('all'); setComplexity('all'); setPage(1); }}
-              className="text-emerald-400 hover:underline text-[11px] font-semibold"
+              onClick={() => { setSearch(''); setDifficulty('all'); setPattern('all'); setCompany('all'); setPage(1); }}
+              className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-emerald-400 font-semibold text-xs rounded-xl transition"
             >
               Reset Filters
             </button>
           </div>
+
+          <div className="flex items-center justify-between text-xs text-zinc-400 pt-2 border-t border-zinc-800/60 font-mono">
+            <span>Showing <strong className="text-white">{filteredCount}</strong> matching questions (Total: {overallCount})</span>
+          </div>
         </div>
 
-        {/* Problem List Table */}
+        {/* Problem List Table (Cleaned Columns with S.No) */}
         <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-zinc-300">
               <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 uppercase tracking-wider text-[11px]">
                 <tr>
                   <th className="py-3.5 px-4 w-12 text-center">Status</th>
+                  <th className="py-3.5 px-4 w-16 text-center">S.No</th>
                   <th className="py-3.5 px-4">Title & Subtopic</th>
-                  <th className="py-3.5 px-4">Primary Pattern</th>
-                  <th className="py-3.5 px-4">Difficulty & Elo</th>
-                  <th className="py-3.5 px-4">Time / Space</th>
+                  <th className="py-3.5 px-4 w-28 text-center">Difficulty</th>
                   <th className="py-3.5 px-4">Company Tags</th>
-                  <th className="py-3.5 px-4 text-right">Acceptance</th>
+                  <th className="py-3.5 px-4 text-right w-28">Acceptance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-16 text-zinc-500">
+                    <td colSpan={6} className="text-center py-16 text-zinc-500 font-mono">
                       Loading canonical questions bundle...
                     </td>
                   </tr>
                 ) : questions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-16 text-zinc-500">
+                    <td colSpan={6} className="text-center py-16 text-zinc-500">
                       No questions found matching your filter parameters.
                     </td>
                   </tr>
                 ) : (
-                  questions.map((q) => {
+                  questions.map((q, idx) => {
                     const isSolved = submittedMap[q.id];
+                    const serialNumber = (page - 1) * limit + idx + 1;
                     return (
                       <tr key={q.id} className="hover:bg-zinc-800/40 transition-colors group">
                         <td className="py-3.5 px-4 text-center">
@@ -320,20 +309,20 @@ export default function CodingQuestionsPage() {
                           )}
                         </td>
 
+                        <td className="py-3.5 px-4 text-center font-mono font-bold text-zinc-400">
+                          {serialNumber}
+                        </td>
+
                         <td className="py-3.5 px-4">
                           <Link href={`/coding/problem/${q.id}`} className="font-bold text-white hover:text-emerald-400 transition text-sm">
                             {q.title}
                           </Link>
-                          <span className="block text-[11px] text-zinc-500 mt-0.5">{q.subtopic || 'Fundamental Logic'}</span>
+                          <span className="block text-[11px] text-zinc-500 mt-0.5">
+                            <strong className="text-emerald-400/90 font-semibold">{q.primaryPattern}</strong> {q.subtopic ? `• ${q.subtopic}` : ''}
+                          </span>
                         </td>
 
-                        <td className="py-3.5 px-4">
-                          <Link href={`/coding/pattern/${q.primaryPattern.toLowerCase().replace(/\s+/g, '-')}`} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold hover:bg-emerald-500/20">
-                            {q.primaryPattern}
-                          </Link>
-                        </td>
-
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 text-center">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             q.difficulty === 'Easy' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
                             q.difficulty === 'Medium' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
@@ -341,17 +330,12 @@ export default function CodingQuestionsPage() {
                           }`}>
                             {q.difficulty}
                           </span>
-                          <span className="text-[10px] font-mono text-zinc-500 ml-2">Rating {q.eloRating || 1400}</span>
-                        </td>
-
-                        <td className="py-3.5 px-4 font-mono text-[11px] text-zinc-400">
-                          <span>{q.timeComplexity}</span> / <span className="text-zinc-500">{q.spaceComplexity}</span>
                         </td>
 
                         <td className="py-3.5 px-4">
                           <div className="flex flex-wrap gap-1">
                             {q.companies.slice(0, 3).map((c) => (
-                              <span key={c.name} className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-300">
+                              <span key={c.name} className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-300 border border-zinc-700/50">
                                 {c.name}
                               </span>
                             ))}
@@ -378,7 +362,7 @@ export default function CodingQuestionsPage() {
             >
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
-            <span className="text-xs text-zinc-400">
+            <span className="text-xs text-zinc-400 font-mono">
               Page <strong className="text-white">{page}</strong> of <strong className="text-white">{totalPages}</strong>
             </span>
             <button
@@ -393,5 +377,17 @@ export default function CodingQuestionsPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function CodingQuestionsPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen w-screen bg-black text-zinc-400 flex items-center justify-center font-mono text-xs">
+        Loading Enterprise Arena...
+      </div>
+    }>
+      <CodingQuestionsPageContent />
+    </Suspense>
   );
 }

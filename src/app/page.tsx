@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <main className="min-h-[calc(100vh-64px)] w-full bg-background text-foreground premium-glow-bg overflow-hidden flex flex-col items-center justify-center">
       {/* ── Solar System Hero ── */}
-      <div className="relative w-full max-w-5xl mx-auto flex items-center justify-center flex-1">
+      <div className="relative w-full max-w-full mx-auto flex items-center justify-center flex-1 overflow-hidden">
         <SolarSystem />
       </div>
       {/* Background Glow */}

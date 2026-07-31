@@ -9,6 +9,15 @@ import { authOptions } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "NEXTHIRE",
   description: "Empower your career with AI-powered resume analysis, building, and job-matching",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/icon.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {

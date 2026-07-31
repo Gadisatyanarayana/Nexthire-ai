@@ -14,17 +14,17 @@ import {
   Layers
 } from "lucide-react";
 
-// Cinematic Lucide icons
+// Cinematic 3D Solar System Planets & Orbits
 const skills = [
-  { icon: Layout, color: "#61DAFB", distance: 160, size: 55, duration: 25, delay: 0 },
-  { icon: Layers, color: "#ffffff", distance: 160, size: 60, duration: 25, delay: 12.5 },
-  { icon: Server, color: "#339933", distance: 280, size: 55, duration: 45, delay: 5 },
-  { icon: Terminal, color: "#3776AB", distance: 280, size: 65, duration: 45, delay: 27 },
-  { icon: Code2, color: "#E34F26", distance: 440, size: 70, duration: 70, delay: 0 },
-  { icon: Cpu, color: "#8A2BE2", distance: 440, size: 75, duration: 70, delay: 35 },
-  { icon: Database, color: "#336791", distance: 620, size: 65, duration: 100, delay: 15 },
-  { icon: Box, color: "#2496ED", distance: 620, size: 60, duration: 100, delay: 65 },
-  { icon: Globe, color: "#F7DF1E", distance: 820, size: 85, duration: 140, delay: 30 },
+  { icon: Layout, name: "Frontend", color: "#61DAFB", distance: 170, size: 52, duration: 22, delay: 0 },
+  { icon: Layers, name: "Architecture", color: "#ffffff", distance: 170, size: 56, duration: 22, delay: 11 },
+  { icon: Server, name: "Backend", color: "#339933", distance: 300, size: 54, duration: 38, delay: 4 },
+  { icon: Terminal, name: "DevOps", color: "#3776AB", distance: 300, size: 62, duration: 38, delay: 23 },
+  { icon: Code2, name: "Core DSA", color: "#E34F26", distance: 460, size: 68, duration: 60, delay: 0 },
+  { icon: Cpu, name: "AI Engine", color: "#8A2BE2", distance: 460, size: 72, duration: 60, delay: 30 },
+  { icon: Database, name: "SQL & DB", color: "#336791", distance: 650, size: 66, duration: 90, delay: 15 },
+  { icon: Box, name: "Docker", color: "#2496ED", distance: 650, size: 60, duration: 90, delay: 60 },
+  { icon: Globe, name: "Web3", color: "#F7DF1E", distance: 860, size: 82, duration: 130, delay: 25 },
 ];
 
 export function SolarSystem() {
@@ -38,22 +38,22 @@ export function SolarSystem() {
 
   return (
     <div 
-      className="relative w-full h-[80vh] flex items-center justify-center mx-auto opacity-100 transition-opacity duration-1000 overflow-visible bg-transparent"
-      style={{ perspective: "1500px" }}
+      className="relative w-full h-[85vh] md:h-[92vh] flex items-center justify-center mx-auto opacity-100 transition-opacity duration-1000 overflow-hidden bg-transparent"
+      style={{ perspective: "1300px" }}
     >
-      {/* Background Nebula (Optimized) */}
+      {/* Deep Space Background Nebula */}
       <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center">
         <div 
-          className="absolute w-[800px] h-[800px] rounded-full opacity-60 animate-pulse" 
+          className="absolute w-[900px] h-[900px] rounded-full opacity-60 animate-pulse" 
           style={{ 
-            background: 'radial-gradient(circle at center, rgba(138,43,226,0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(circle at center, rgba(138,43,226,0.2) 0%, transparent 70%)',
             animationDuration: '8s' 
           }} 
         />
         <div 
-          className="absolute w-[600px] h-[600px] rounded-full opacity-50 animate-pulse" 
+          className="absolute w-[700px] h-[700px] rounded-full opacity-50 animate-pulse" 
           style={{ 
-            background: 'radial-gradient(circle at center, rgba(0,242,254,0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(circle at center, rgba(0,242,254,0.2) 0%, transparent 70%)',
             animationDuration: '6s', 
             animationDelay: '2s' 
           }} 
@@ -61,57 +61,53 @@ export function SolarSystem() {
       </div>
 
       <div 
-        className="relative w-full h-full flex items-center justify-center z-10"
-        style={{ transform: "rotateX(72deg)", transformStyle: "preserve-3d" }}
+        className="relative w-full h-full flex items-center justify-center z-10 scale-100 md:scale-110"
+        style={{ transform: "rotateX(68deg)", transformStyle: "preserve-3d" }}
       >
-        {/* Central Star (The Core) */}
+        {/* Central Sun Core */}
         <div 
-          className="absolute flex flex-col items-center justify-center w-48 h-48 rounded-full z-20"
+          className="absolute flex flex-col items-center justify-center w-44 h-44 md:w-56 md:h-56 rounded-full z-20"
           style={{ 
-            transform: "rotateX(-72deg)",
+            transform: "rotateX(-68deg)",
             transformStyle: "preserve-3d"
           }}
         >
-          {/* Corona Glow Layers (Optimized) */}
+          {/* Corona Solar Glow Layers */}
           <div 
-            className="absolute inset-0 rounded-full animate-pulse" 
+            className="absolute -inset-6 rounded-full animate-pulse" 
             style={{ 
               animationDuration: '3s',
-              boxShadow: '0 0 80px 20px rgba(0,242,254,0.15)'
+              boxShadow: '0 0 100px 30px rgba(0,242,254,0.35)'
             }} 
           />
           <div 
-            className="absolute -inset-10 rounded-full animate-pulse" 
+            className="absolute -inset-12 rounded-full animate-pulse" 
             style={{ 
               animationDuration: '5s', 
               animationDelay: '1s',
-              boxShadow: '0 0 100px 30px rgba(138,43,226,0.1)'
+              boxShadow: '0 0 140px 40px rgba(138,43,226,0.25)'
             }} 
           />
           
-          {/* Physical Star Sphere */}
-          <div className="relative flex items-center justify-center w-full h-full rounded-full border-2 border-brand-blue/50 overflow-hidden"
+          {/* Physical 3D Sun Sphere */}
+          <div className="relative flex items-center justify-center w-full h-full rounded-full border-2 border-cyan-300/60 overflow-hidden"
                style={{
-                 background: "radial-gradient(circle at 30% 30%, #00f2fe 0%, #4facfe 30%, #050505 90%)",
-                 boxShadow: "inset -20px -20px 50px rgba(0,0,0,0.9), inset 10px 10px 30px rgba(255,255,255,0.4), 0 0 100px rgba(0, 242, 254, 0.5)"
+                 background: "radial-gradient(circle at 30% 30%, #00f2fe 0%, #4facfe 35%, #08081a 90%)",
+                 boxShadow: "inset -25px -25px 60px rgba(0,0,0,0.95), inset 12px 12px 35px rgba(255,255,255,0.5), 0 0 120px rgba(0, 242, 254, 0.7)"
                }}
           >
-            {/* "NH" Logo */}
-            <div className="flex items-center justify-center font-black text-6xl tracking-tighter z-10">
-              <span className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]">N</span>
-              <span className="text-white/80 drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]">H</span>
+            <div className="flex items-center justify-center font-black text-6xl md:text-7xl tracking-tighter z-10">
+              <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.9)]">N</span>
+              <span className="text-white/80 drop-shadow-[0_0_20px_rgba(255,255,255,0.7)]">H</span>
             </div>
-            
-            {/* Plasma Surface Animation (Optional visual flair) */}
-            <div className="absolute inset-0 opacity-30 mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
           </div>
         </div>
 
-        {/* Cinematic Orbit Rings */}
-        {[320, 560, 880, 1240, 1640].map((size, idx) => (
+        {/* Cinematic Orbit Rings (Extending Outwards) */}
+        {[340, 600, 920, 1300, 1720].map((size, idx) => (
           <div 
             key={idx}
-            className="absolute rounded-full border border-foreground/15"
+            className="absolute rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
             style={{ 
               width: size, 
               height: size,
@@ -119,7 +115,7 @@ export function SolarSystem() {
           />
         ))}
 
-        {/* Orbiting Skills (Planets) */}
+        {/* Orbiting 3D Planets */}
         {skills.map((skill, i) => {
           const Icon = skill.icon;
           return (
@@ -156,44 +152,26 @@ export function SolarSystem() {
                   delay: -skill.delay,
                 }}
               >
-                {/* 3D Planet Sphere (Optimized) */}
+                {/* 3D Planet Sphere */}
                 <div
-                  className="group flex items-center justify-center w-full h-full rounded-full relative cursor-pointer transition-all duration-300 hover:scale-110"
+                  className="group flex items-center justify-center w-full h-full rounded-full relative cursor-pointer transition-all duration-300 hover:scale-125"
                   style={{ 
-                    transform: "rotateX(-72deg)",
-                    background: `radial-gradient(circle at 30% 30%, ${skill.color} 0%, #050505 85%)`,
-                    border: `1px solid ${skill.color}50`,
+                    transform: "rotateX(-68deg)",
+                    background: `radial-gradient(circle at 30% 30%, ${skill.color} 0%, #030308 85%)`,
+                    border: `1px solid ${skill.color}70`,
                     boxShadow: `
-                      inset -10px -10px 20px rgba(0,0,0,0.9), 
-                      inset 5px 5px 15px rgba(255,255,255,0.4), 
-                      0 0 20px ${skill.color}60
+                      inset -12px -12px 25px rgba(0,0,0,0.95), 
+                      inset 6px 6px 15px rgba(255,255,255,0.5), 
+                      0 0 25px ${skill.color}80
                     `
                   }}
                 >
-                  <Icon className="relative z-10 w-1/2 h-1/2 text-white/90 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                  <Icon className="relative z-10 w-1/2 h-1/2 text-white/90 drop-shadow-[0_0_10px_rgba(255,255,255,0.9)]" />
                 </div>
               </motion.div>
             </motion.div>
           );
         })}
-        
-        {/* Parallax Starfield */}
-        <div className="absolute inset-0 z-0 pointer-events-none" style={{ transform: "rotateX(-72deg) scale(2)" }}>
-           {Array.from({ length: 150 }).map((_, i) => (
-              <div 
-                key={i}
-                className="absolute rounded-full bg-foreground shadow-sm"
-                style={{
-                  width: Math.random() * 3 + 'px',
-                  height: Math.random() * 3 + 'px',
-                  top: Math.random() * 100 + '%',
-                  left: Math.random() * 100 + '%',
-                  opacity: Math.random() * 0.8 + 0.1,
-                  animation: `pulse ${Math.random() * 5 + 2}s infinite`,
-                }}
-              />
-           ))}
-        </div>
       </div>
     </div>
   );

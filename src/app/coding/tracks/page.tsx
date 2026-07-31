@@ -51,10 +51,10 @@ export default function LearningTracksPage() {
               </div>
 
               <Link
-                href="/coding"
+                href={`/coding?track=${encodeURIComponent(track.id)}`}
                 className="mt-4 w-full py-3 rounded-xl bg-emerald-500 text-black font-bold text-xs hover:bg-emerald-400 transition flex items-center justify-center gap-2"
               >
-                Start Track <ChevronRight className="w-4 h-4" />
+                Start Track ({Array.isArray((track as any).problemIds) ? (track as any).problemIds.length : 50}+ Problems) <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
           ))}

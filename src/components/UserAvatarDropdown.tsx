@@ -45,7 +45,6 @@ async function trackLogout(pathname: string | null) {
 }
 
 export function UserAvatarDropdown() {
-
   const { data: session } = useSession();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -74,30 +73,44 @@ export function UserAvatarDropdown() {
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [open]);
 
-
+  // If user is not authenticated, render top right Google User SVG button
   if (!session || !session.user) {
-    return null;
+    return (
+      <Link
+        href="/auth/signin"
+        className="h-11 w-11 flex items-center justify-center rounded-full border-2 border-white/30 bg-black/60 shadow-lg hover:border-emerald-400 hover:scale-105 transition-all group"
+        title="Sign in with Google"
+        aria-label="User sign in"
+      >
+        <img src="/google-user.svg" alt="Google User" className="h-full w-full object-cover transition group-hover:scale-105" />
+      </Link>
+    );
   }
 
-  const avatarSrc = session.user.image || '/default-avatar.png';
+  const avatarSrc = session.user.image || '/google.svg';
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="h-11 w-11 overflow-hidden rounded-full border-2 border-foreground/25 shadow-sm transition focus:outline-none hover:border-foreground/45"
+        className="h-11 w-11 overflow-hidden rounded-full border-2 border-foreground/30 shadow-md transition focus:outline-none hover:border-emerald-400 flex items-center justify-center bg-black/60"
         onClick={() => setOpen((v) => !v)}
         aria-label="User menu"
         type="button"
       >
-        <Image
-          src={avatarSrc}
-          alt={session.user.name || 'User'}
-          width={44}
-          height={44}
-          unoptimized
-          className="h-full w-full object-cover"
-        />
+        {session.user.image ? (
+          <Image
+            src={avatarSrc}
+            alt={session.user.name || 'User'}
+            width={44}
+            height={44}
+            unoptimized
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <img src="/google-user.svg" alt="Google User" className="h-full w-full object-cover" />
+        )}
       </button>
+
       {open && (
         <div
           className="absolute right-0 z-[200] mt-3 w-84 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 border-foreground/15 shadow-2xl"
@@ -105,45 +118,68 @@ export function UserAvatarDropdown() {
         >
           <div className="border-b border-foreground/10 px-4 py-4">
             <div className="flex items-center gap-3 min-w-0">
-              <Image
-                src={avatarSrc}
-                alt={session.user.name || 'User'}
-                width={40}
-                height={40}
-                unoptimized
-                className="h-10 w-10 shrink-0 rounded-full border border-foreground/15 object-cover"
-              />
+              {session.user.image ? (
+                <Image
+                  src={avatarSrc}
+                  alt={session.user.name || 'User'}
+                  width={40}
+                  height={40}
+                  unoptimized
+                  className="h-10 w-10 shrink-0 rounded-full border border-foreground/15 object-cover"
+                />
+              ) : (
+                <div className="h-10 w-10 shrink-0 rounded-full border border-foreground/15 flex items-center justify-center bg-black">
+                  <img src="/google.svg" alt="Google" className="h-5 w-5" />
+                </div>
+              )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="font-semibold text-foreground text-sm truncate">{session.user.name || 'User'}</div>
-                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${isAdmin ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500' : 'border-foreground/15 bg-foreground/5 text-foreground/70'}`}>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${isAdmin ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500' : 'border-foreground/15 bg-foreground/5 text-foreground/70'}`}>
+                    <img src="/google.svg" alt="Google" className="w-3.5 h-3.5 shrink-0" />
                     {isAdmin ? 'Admin' : 'User'}
                   </span>
                 </div>
-                <div className="text-xs text-foreground/70 truncate">{session.user.email || 'No email'}</div>
+                <div className="text-xs text-foreground/60 truncate">{session.user.email}</div>
               </div>
             </div>
           </div>
-          <div className="flex flex-col py-2">
-            <Link href="/profile" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Profile</Link>
-            <Link href="/settings" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Settings</Link>
-            <Link href="/dashboard" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Dashboard</Link>
-            <Link href="/resume-analyzer" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Resume Analyzer</Link>
-            <Link href="/resume-builder" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">Resume Builder</Link>
-            {isAdmin && (
-              <Link href="/admin" className="px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-foreground/5">
-                Admin Dashboard
-              </Link>
-            )}
+
+          <div className="p-2 space-y-1 text-sm font-medium">
+            <Link
+              href="/coding"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-foreground/10 text-foreground transition"
+            >
+              Coding Platform
+            </Link>
+            <Link
+              href="/placement-hub"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-foreground/10 text-foreground transition"
+            >
+              Placement Hub
+            </Link>
+            <Link
+              href="/admin/coding-audit"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-foreground/10 text-foreground transition text-emerald-400 font-bold"
+            >
+              QA Audit Dashboard
+            </Link>
+          </div>
+
+          <div className="p-2 border-t border-foreground/10">
             <button
-              onClick={async () => {
+              onClick={() => {
                 setOpen(false);
-                await trackLogout(pathname);
-                sessionStorage.removeItem(ACTIVITY_SESSION_KEY);
-                await signOut({ redirect: true, callbackUrl: "/" });
+                trackLogout(pathname);
+                signOut({ callbackUrl: '/' });
               }}
-              className="mt-1 border-t border-foreground/10 px-4 py-2.5 text-left text-sm text-foreground/90 transition-colors hover:bg-foreground/5"
-            >Logout</button>
+              className="w-full text-left px-3.5 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 transition font-semibold"
+            >
+              Sign out
+            </button>
           </div>
         </div>
       )}
