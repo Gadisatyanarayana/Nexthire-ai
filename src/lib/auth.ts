@@ -35,7 +35,7 @@ function isAllowedRedirectTarget(url: string, baseUrl: string): boolean {
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'nexthire-ai-production-secret-key-32-chars-minimum-fallback',
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',

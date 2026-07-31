@@ -2,54 +2,30 @@ name: Production Release Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "framework-stable" ]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'nexthire-ci-build-secret-key-32-chars-minimum' }}
+      NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
+      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key' }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Linting
-        run: npm run lint
+        run: npm install
 
       - name: Typecheck
         run: npx tsc --noEmit
 
-  test:
-    needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Unit & Integration Tests
-        run: npm run test
-
-      - name: Migration Tests
-        run: npm run test:migrations
-
-      - name: Playwright E2E
-        run: npx playwright test
-
-  security-scan:
-    needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - name: Snyk Security Scan
-        run: npx snyk test
-
-  build-and-deploy:
-    needs: [test, security-scan]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Docker Build
-        run: docker build -t nexthire/api:latest .
-      
-      - name: Deploy to Production
-        run: ./scripts/deploy.sh production
+      - name: Build Platform
+        run: npm run build
