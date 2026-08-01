@@ -30,12 +30,16 @@ export function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL/SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+    return null;
   }
 
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false },
-  });
+  try {
+    return createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+  } catch {
+    return null;
+  }
 }
 
 export const supabaseAdmin = getAdminClient();
@@ -48,7 +52,9 @@ export async function upsertUserAdmin(user: SyncUserInput) {
   };
 
   try {
-    const supabaseAdmin = getAdminClient();
+    const client = getAdminClient();
+    if (!client) return mockUser;
+
     const payload = {
       name: user.name,
       email: user.email,
@@ -57,7 +63,7 @@ export async function upsertUserAdmin(user: SyncUserInput) {
     };
 
     const doUpsert = async () => {
-      const { data } = await supabaseAdmin
+      const { data } = await client
         .from("users")
         .upsert(payload, { onConflict: "email" })
         .select("id, name, email")

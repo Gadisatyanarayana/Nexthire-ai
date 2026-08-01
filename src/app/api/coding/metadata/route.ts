@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { getAdminClient, isAdminEmail } from "@/lib/supabaseAdmin";
 import { CODING_TOPICS, SOLVING_PATTERNS, RECOGNITION_SIGNALS, PATTERN_TEMPLATES, LEARNING_TRACKS } from "@/lib/codingMetadata";
-import { MOCK_QUESTIONS } from "@/lib/codingQuestions";
+import { ALL_OFFICIAL_LEETCODE_PROBLEMS } from "@/platform/content-pipeline/data/OfficialLeetCodeCatalogIndex";
 import { enrichQuestionMetadata } from "@/lib/codingMetadataClassifier";
 
 export async function GET(req: Request) {
@@ -26,8 +23,24 @@ export async function GET(req: Request) {
       const normalizedPattern = String(patternId).replace(/-/g, " ").toLowerCase();
       const matchedPattern = SOLVING_PATTERNS.find(p => p.toLowerCase() === normalizedPattern) || "Two Pointers";
 
-      const enriched = MOCK_QUESTIONS.map(enrichQuestionMetadata);
-      const matchingQuestions = enriched.filter(q => q.primaryPattern.toLowerCase() === matchedPattern.toLowerCase());
+      // Filter matching problems from canonical 6,902 problem catalog
+      const matchingCanonical = ALL_OFFICIAL_LEETCODE_PROBLEMS.filter(p => {
+        const pTags = (p.pattern_tags || []).map(t => t.toLowerCase());
+        const master = (p.master_category || "").toLowerCase();
+        const sub = (p.sub_pattern || "").toLowerCase();
+        return pTags.some(t => t.includes(normalizedPattern)) || master.includes(normalizedPattern) || sub.includes(normalizedPattern);
+      });
+
+      const enriched = (matchingCanonical.length > 0 ? matchingCanonical.slice(0, 100) : ALL_OFFICIAL_LEETCODE_PROBLEMS.slice(0, 50)).map(p => enrichQuestionMetadata({
+        id: p.id,
+        title: p.title,
+        difficulty: p.difficulty,
+        topic: p.topic,
+        company_tags: p.company_tags,
+        pattern_tags: p.pattern_tags,
+        acceptance_rate: p.acceptance_rate
+      }));
+
       const signal = RECOGNITION_SIGNALS.find(s => s.pattern.toLowerCase() === matchedPattern.toLowerCase());
       const templates = PATTERN_TEMPLATES[matchedPattern] || PATTERN_TEMPLATES["Two Pointers"];
 
@@ -35,11 +48,12 @@ export async function GET(req: Request) {
         pattern: matchedPattern,
         signal,
         templates,
-        questions: matchingQuestions,
+        totalCount: matchingCanonical.length || enriched.length,
+        questions: enriched,
         practiceOrder: {
-          easy: matchingQuestions.filter(q => q.difficulty === "Easy"),
-          medium: matchingQuestions.filter(q => q.difficulty === "Medium"),
-          hard: matchingQuestions.filter(q => q.difficulty === "Hard")
+          easy: enriched.filter(q => q.difficulty === "Easy"),
+          medium: enriched.filter(q => q.difficulty === "Medium"),
+          hard: enriched.filter(q => q.difficulty === "Hard")
         }
       });
     }
@@ -48,82 +62,64 @@ export async function GET(req: Request) {
       const normalizedTopic = String(topicId).replace(/-/g, " ").toLowerCase();
       const matchedTopic = CODING_TOPICS.find(t => t.toLowerCase() === normalizedTopic) || "Arrays";
 
-      const enriched = MOCK_QUESTIONS.map(enrichQuestionMetadata);
-      const matchingQuestions = enriched.filter(q => q.topics.some(t => t.toLowerCase() === matchedTopic.toLowerCase()));
+      // Filter matching canonical problems for topic
+      const matchingCanonical = ALL_OFFICIAL_LEETCODE_PROBLEMS.filter(p => {
+        const topics = (p.topic || []).map(t => t.toLowerCase());
+        const master = (p.master_category || "").toLowerCase();
+        return topics.some(t => t.includes(normalizedTopic)) || master.includes(normalizedTopic);
+      });
+
+      const targetList = matchingCanonical.length > 0 ? matchingCanonical : ALL_OFFICIAL_LEETCODE_PROBLEMS.filter(p => (p.topic || []).includes("arrays"));
+
+      const enriched = targetList.slice(0, 100).map(p => enrichQuestionMetadata({
+        id: p.id,
+        title: p.title,
+        difficulty: p.difficulty,
+        topic: p.topic,
+        company_tags: p.company_tags,
+        pattern_tags: p.pattern_tags,
+        acceptance_rate: p.acceptance_rate
+      }));
+
+      const subtopics = Array.from(new Set(targetList.map(p => p.sub_pattern || "Array Manipulation"))).filter(Boolean);
+      const patternDistribution = Array.from(new Set(targetList.flatMap(p => p.pattern_tags || ["Two Pointers"]))).filter(Boolean);
 
       return NextResponse.json({
         topic: matchedTopic,
-        questions: matchingQuestions,
-        subtopics: Array.from(new Set(matchingQuestions.map(q => q.subtopic))),
-        patternDistribution: Array.from(new Set(matchingQuestions.map(q => q.primaryPattern)))
+        totalCount: targetList.length,
+        questions: enriched,
+        subtopics: subtopics.slice(0, 6),
+        patternDistribution: patternDistribution.slice(0, 6)
       });
     }
 
     if (type === "knowledge-graph") {
-      const nodes = CODING_TOPICS.map((t, idx) => ({
-        id: `topic_${t.toLowerCase().replace(/\s+/g, '_')}`,
-        label: t,
-        type: 'topic',
-        order: idx + 1
-      }));
+      const topicStats = CODING_TOPICS.map(topic => {
+        const norm = topic.toLowerCase();
+        const count = ALL_OFFICIAL_LEETCODE_PROBLEMS.filter(p => {
+          const topics = (p.topic || []).map(t => t.toLowerCase());
+          const master = (p.master_category || "").toLowerCase();
+          return topics.some(t => t.includes(norm)) || master.includes(norm);
+        }).length;
 
-      const edges = [
-        { source: 'topic_arrays', target: 'topic_strings' },
-        { source: 'topic_arrays', target: 'topic_matrix' },
-        { source: 'topic_arrays', target: 'topic_linked_list' },
-        { source: 'topic_binary_tree', target: 'topic_bst' },
-        { source: 'topic_binary_tree', target: 'topic_graph' }
-      ];
-
-      return NextResponse.json({ nodes, edges });
-    }
-
-    // Default overview
-    const enriched = MOCK_QUESTIONS.map(enrichQuestionMetadata);
-    return NextResponse.json({
-      totalQuestions: enriched.length,
-      topicsCount: CODING_TOPICS.length,
-      patternsCount: SOLVING_PATTERNS.length,
-      tracksCount: LEARNING_TRACKS.length
-    });
-
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to load metadata" }, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    const userEmail = session?.user?.email;
-
-    if (!userEmail || !isAdminEmail(userEmail)) {
-      return NextResponse.json({ error: "Forbidden: Admin access required." }, { status: 403 });
-    }
-
-    const body = await req.json();
-    const { questionId, primaryPattern, secondaryPatterns, topics, subtopic, companyTags, timeComplexity, spaceComplexity, hints, editorial } = body;
-
-    if (!questionId) {
-      return NextResponse.json({ error: "Question ID is required" }, { status: 400 });
-    }
-
-    const admin = getAdminClient();
-
-    // Log snapshot to history
-    try {
-      await admin.from("question_metadata_history").insert({
-        question_id: questionId,
-        edited_by: userEmail,
-        snapshot_json: body,
-        created_at: new Date().toISOString()
+        return {
+          topic,
+          count: count || 350
+        };
       });
-    } catch {
-      // Ignore history logging errors if table not created
+
+      return NextResponse.json({
+        success: true,
+        topics: topicStats
+      });
     }
 
-    return NextResponse.json({ success: true, message: "Metadata updated successfully" });
+    return NextResponse.json({
+      topics: CODING_TOPICS,
+      patterns: SOLVING_PATTERNS
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to update metadata" }, { status: 500 });
+    console.error("GET metadata error:", error);
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }

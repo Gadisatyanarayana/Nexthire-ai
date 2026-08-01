@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useRef, useEffect } from 'react';
@@ -73,7 +72,6 @@ export function UserAvatarDropdown() {
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [open]);
 
-  // Return null when unauthenticated so header renders clean Sign In button
   if (!session || !session.user) {
     return null;
   }
@@ -83,7 +81,7 @@ export function UserAvatarDropdown() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="h-11 w-11 overflow-hidden rounded-full border-2 border-emerald-400/50 shadow-lg transition-all focus:outline-none hover:scale-105 flex items-center justify-center bg-black"
+        className="h-11 w-11 overflow-hidden rounded-full border-2 border-emerald-400/70 shadow-lg transition-all focus:outline-none hover:scale-105 flex items-center justify-center bg-black/80"
         onClick={() => setOpen((v) => !v)}
         aria-label="User menu"
         type="button"
@@ -93,6 +91,7 @@ export function UserAvatarDropdown() {
           src={avatarSrc}
           alt={session.user.name || 'User Profile'}
           className="h-full w-full object-cover"
+          referrerPolicy="no-referrer"
           onError={(e) => {
             (e.target as HTMLImageElement).src = '/google-user.svg';
           }}
@@ -111,6 +110,7 @@ export function UserAvatarDropdown() {
                   src={avatarSrc}
                   alt={session.user.name || 'User'}
                   className="h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/google-user.svg';
                   }}

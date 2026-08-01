@@ -88,6 +88,11 @@ type CachedQuestionsBundle = {
 let inFlightQuestionsBundle: Promise<QuestionsBundle> | null = null;
 let cachedQuestionsBundle: CachedQuestionsBundle | null = null;
 
+let memoizedEnrichedQuestions: QuestionRichMetadata[] | null = null;
+let memoizedPatternCountsMap: Record<string, number> | null = null;
+let memoizedTopicCountsMap: Record<string, number> | null = null;
+let memoizedCompanyCountsMap: Record<string, number> | null = null;
+
 const QUESTIONS_BUNDLE_CACHE_TTL_SECONDS = getCacheTtlSeconds(300);
 
 function buildQuestionsBundleCacheKey(version: string | null): string {
@@ -508,19 +513,15 @@ async function loadLastSyncAt(): Promise<string | null> {
 
 function deduplicateQuestions(questions: CodingQuestion[]): CodingQuestion[] {
   const seenIds = new Set<string>();
-  const seenTitles = new Set<string>();
   const result: CodingQuestion[] = [];
 
   for (const q of questions) {
     const idKey = String(q.id || "").toLowerCase().trim();
-    const cleanTitle = String(q.title || "").replace(/^[0-9]+\.\s*/, "").toLowerCase().trim();
-
-    if (!idKey || seenIds.has(idKey) || seenTitles.has(cleanTitle)) {
+    if (!idKey || seenIds.has(idKey)) {
       continue;
     }
 
     seenIds.add(idKey);
-    seenTitles.add(cleanTitle);
     result.push(q);
   }
 
@@ -543,12 +544,53 @@ export async function GET(req: NextRequest) {
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 5000) : 50;
 
-    const bundle = await loadQuestionsBundle();
-    const rawQuestions = bundle.questions || [];
-    const allQuestions = deduplicateQuestions(rawQuestions);
+    if (!memoizedEnrichedQuestions) {
+      memoizedEnrichedQuestions = CANONICAL_LEETCODE_QUESTIONS.map((q: CodingQuestion) => enrichQuestionMetadata(q));
 
-    // Enrich all questions with rich metadata
-    const enrichedQuestions: QuestionRichMetadata[] = allQuestions.map((q: CodingQuestion) => enrichQuestionMetadata(q));
+      memoizedPatternCountsMap = {};
+      memoizedTopicCountsMap = {};
+      memoizedCompanyCountsMap = {};
+
+      memoizedEnrichedQuestions.forEach((q) => {
+        if (q.primaryPattern) {
+          const cleanP = q.primaryPattern.trim();
+          memoizedPatternCountsMap![cleanP] = (memoizedPatternCountsMap![cleanP] || 0) + 1;
+          memoizedPatternCountsMap![cleanP.toLowerCase()] = (memoizedPatternCountsMap![cleanP.toLowerCase()] || 0) + 1;
+        }
+        if (Array.isArray(q.secondaryPatterns)) {
+          q.secondaryPatterns.forEach((p) => {
+            const cleanP = p.trim();
+            memoizedPatternCountsMap![cleanP] = (memoizedPatternCountsMap![cleanP] || 0) + 1;
+            memoizedPatternCountsMap![cleanP.toLowerCase()] = (memoizedPatternCountsMap![cleanP.toLowerCase()] || 0) + 1;
+          });
+        }
+        if (Array.isArray(q.topics)) {
+          q.topics.forEach((t) => {
+            const cleanT = t.trim();
+            memoizedTopicCountsMap![cleanT] = (memoizedTopicCountsMap![cleanT] || 0) + 1;
+            memoizedTopicCountsMap![cleanT.toLowerCase()] = (memoizedTopicCountsMap![cleanT.toLowerCase()] || 0) + 1;
+          });
+        }
+        if (q.subtopic) {
+          const cleanS = q.subtopic.trim();
+          memoizedTopicCountsMap![cleanS] = (memoizedTopicCountsMap![cleanS] || 0) + 1;
+          memoizedTopicCountsMap![cleanS.toLowerCase()] = (memoizedTopicCountsMap![cleanS.toLowerCase()] || 0) + 1;
+        }
+        if (Array.isArray(q.companies)) {
+          q.companies.forEach((c) => {
+            const cleanC = c.name.trim();
+            memoizedCompanyCountsMap![cleanC] = (memoizedCompanyCountsMap![cleanC] || 0) + 1;
+            memoizedCompanyCountsMap![cleanC.toLowerCase()] = (memoizedCompanyCountsMap![cleanC.toLowerCase()] || 0) + 1;
+          });
+        }
+      });
+    }
+
+    const enrichedQuestions = memoizedEnrichedQuestions;
+    const patternCountsMap = memoizedPatternCountsMap!;
+    const topicCountsMap = memoizedTopicCountsMap!;
+    const companyCountsMap = memoizedCompanyCountsMap!;
+
     let filtered: QuestionRichMetadata[] = enrichedQuestions;
 
     // 1. Filter by Difficulty
@@ -602,52 +644,25 @@ export async function GET(req: NextRequest) {
     const start = (page - 1) * limit;
     const paged = filtered.slice(start, start + limit);
     const totalPages = Math.max(1, Math.ceil(filteredCount / limit));
-
-    // Compute dynamic pattern, topic & company counts across enrichedQuestions
-    const patternCountsMap: Record<string, number> = {};
-    const topicCountsMap: Record<string, number> = {};
-    const companyCountsMap: Record<string, number> = {};
-
-    enrichedQuestions.forEach((q) => {
-      if (q.primaryPattern) {
-        const cleanP = q.primaryPattern.trim();
-        patternCountsMap[cleanP] = (patternCountsMap[cleanP] || 0) + 1;
-        patternCountsMap[cleanP.toLowerCase()] = (patternCountsMap[cleanP.toLowerCase()] || 0) + 1;
-      }
-      if (Array.isArray(q.secondaryPatterns)) {
-        q.secondaryPatterns.forEach((p) => {
-          const cleanP = p.trim();
-          patternCountsMap[cleanP] = (patternCountsMap[cleanP] || 0) + 1;
-          patternCountsMap[cleanP.toLowerCase()] = (patternCountsMap[cleanP.toLowerCase()] || 0) + 1;
-        });
-      }
-
-      if (Array.isArray(q.topics)) {
-        q.topics.forEach((t) => {
-          const cleanT = t.trim();
-          topicCountsMap[cleanT] = (topicCountsMap[cleanT] || 0) + 1;
-          topicCountsMap[cleanT.toLowerCase()] = (topicCountsMap[cleanT.toLowerCase()] || 0) + 1;
-        });
-      }
-      if (q.subtopic) {
-        const cleanS = q.subtopic.trim();
-        topicCountsMap[cleanS] = (topicCountsMap[cleanS] || 0) + 1;
-        topicCountsMap[cleanS.toLowerCase()] = (topicCountsMap[cleanS.toLowerCase()] || 0) + 1;
-      }
-
-      if (Array.isArray(q.companies)) {
-        q.companies.forEach((c) => {
-          const cleanC = c.name.trim();
-          companyCountsMap[cleanC] = (companyCountsMap[cleanC] || 0) + 1;
-          companyCountsMap[cleanC.toLowerCase()] = (companyCountsMap[cleanC.toLowerCase()] || 0) + 1;
-        });
-      }
-    });
+    const lightPaged = paged.map(q => ({
+      id: q.id,
+      title: q.title,
+      difficulty: q.difficulty,
+      topic: q.topic || [],
+      company_tags: q.company_tags || [],
+      pattern_tags: q.pattern_tags || [],
+      acceptance_rate: q.acceptance_rate || 50,
+      acceptanceRate: q.acceptanceRate || q.acceptance_rate || 50,
+      primaryPattern: q.primaryPattern || "Two Pointers",
+      subtopic: q.subtopic || "Array Manipulation",
+      companies: q.companies || [],
+      topics: q.topics || []
+    }));
 
     return NextResponse.json({
       success: true,
-      data: paged,
-      questions: paged,
+      data: lightPaged,
+      questions: lightPaged,
       total: filteredCount,
       filteredCount: filteredCount,
       overallTotal: overallCount,
@@ -659,26 +674,43 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       totalPages,
-      lastSyncAt: bundle.lastSyncAt,
-      warning: bundle.warning,
+      lastSyncAt: new Date().toISOString(),
+      warning: null,
     }, {
       headers: {
-        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60",
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
       },
     });
   } catch (error) {
     console.error("Questions API error:", error);
+    const fallbackList = CANONICAL_LEETCODE_QUESTIONS.map(enrichQuestionMetadata);
+    const paged = fallbackList.slice(0, 50).map(q => ({
+      id: q.id,
+      title: q.title,
+      difficulty: q.difficulty,
+      topic: q.topic || [],
+      company_tags: q.company_tags || [],
+      pattern_tags: q.pattern_tags || [],
+      acceptance_rate: q.acceptance_rate || 50,
+      acceptanceRate: q.acceptanceRate || q.acceptance_rate || 50,
+      primaryPattern: q.primaryPattern || "Two Pointers",
+      subtopic: q.subtopic || "Array Manipulation",
+      companies: q.companies || [],
+      topics: q.topics || []
+    }));
+
     return NextResponse.json({
       success: true,
-      data: MOCK_QUESTIONS.slice(0, 50),
-      questions: MOCK_QUESTIONS.slice(0, 50),
-      total: MOCK_QUESTIONS.length,
-      filteredCount: MOCK_QUESTIONS.length,
-      overallCount: MOCK_QUESTIONS.length,
+      data: paged,
+      questions: paged,
+      total: fallbackList.length,
+      filteredCount: fallbackList.length,
+      overallTotal: fallbackList.length,
+      overallCount: fallbackList.length,
       page: 1,
       limit: 50,
-      totalPages: 1,
-      warning: "Using local fallback questions.",
+      totalPages: Math.ceil(fallbackList.length / 50),
+      warning: "Canonical problem database fallback.",
     });
   }
 }

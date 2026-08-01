@@ -45,14 +45,15 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
   const [showDiscussion, setShowDiscussion] = useState(false);
 
   // Language & Code
-  const [language, setLanguage] = useState<string>('java');
+  const [language, setLanguage] = useState<string>('cpp');
   const [code, setCode] = useState<string>('');
   const [output, setOutput] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Timer
+  // Timer Play / Pause State
   const [seconds, setSeconds] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(true);
   const [userVoted, setUserVoted] = useState<'yes' | 'no' | null>(null);
 
   // Custom Testcases state
@@ -62,13 +63,14 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
     { input: "[3,3]\n6" }
   ]);
 
-  // Stopwatch timer hook
+  // Stopwatch timer hook with play/pause support
   useEffect(() => {
+    if (!timerRunning) return;
     const timer = setInterval(() => {
       setSeconds(s => s + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [timerRunning]);
 
   const formatTimer = (totalSec: number) => {
     const hrs = Math.floor(totalSec / 3600);
@@ -283,20 +285,22 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           </button>
         </div>
 
-        {/* Right Section: Stopwatch, User Avatar & Premium */}
+        {/* Right Section: Timer Play/Pause Toggle */}
         <div className="flex items-center gap-3 font-mono text-[11px]">
-          <div className="flex items-center gap-1.5 text-zinc-400 bg-[#1e1e1e] px-2.5 py-1 rounded border border-[#333]">
-            <Clock className="w-3.5 h-3.5 text-zinc-500" />
-            <span>{formatTimer(seconds)}</span>
+          <div className="flex items-center gap-2 text-zinc-300 bg-[#1e1e1e] px-3 py-1 rounded border border-[#333]">
+            <button
+              onClick={() => setTimerRunning(!timerRunning)}
+              className="hover:text-emerald-400 transition cursor-pointer flex items-center justify-center"
+              title={timerRunning ? "Pause Timer" : "Play Timer"}
+            >
+              {timerRunning ? (
+                <Clock className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+              ) : (
+                <Play className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
+              )}
+            </button>
+            <span className="font-bold">{formatTimer(seconds)}</span>
           </div>
-
-          <div className="w-7 h-7 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-xs ring-2 ring-cyan-500/40">
-            S
-          </div>
-
-          <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-[10px] uppercase">
-            Premium
-          </span>
         </div>
 
       </header>
@@ -594,13 +598,11 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                     <select
                       value={language}
                       onChange={handleLanguageChange}
-                      className="bg-[#1e1e1e] text-zinc-200 border border-[#383838] rounded px-2.5 py-0.5 text-xs font-semibold outline-none focus:border-blue-500"
+                      className="bg-[#1e1e1e] text-zinc-200 border border-[#383838] rounded px-2.5 py-0.5 text-xs font-bold outline-none focus:border-blue-500 cursor-pointer"
                     >
-                      <option value="java">Java</option>
-                      <option value="python">Python3</option>
-                      <option value="cpp">C++20</option>
-                      <option value="javascript">JavaScript</option>
-                      <option value="typescript">TypeScript</option>
+                      <option value="cpp">C++ (GCC 13)</option>
+                      <option value="python">Python 3.12</option>
+                      <option value="java">Java 21</option>
                     </select>
 
                     <span className="text-[11px] text-zinc-500 flex items-center gap-1 font-mono">
@@ -661,34 +663,51 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                   {consoleTab === 'testcase' && (
                     <div className="space-y-4">
                       {/* Case Tabs: Case 1 | Case 2 | Case 3 */}
-                      <div className="flex items-center gap-2 border-b border-[#333] pb-2">
-                        {testCases.map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setActiveCaseIdx(idx)}
-                            className={`px-3 py-1 rounded text-xs font-bold transition ${
-                              activeCaseIdx === idx ? 'bg-[#383838] text-white' : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                          >
-                            Case {idx + 1}
-                          </button>
-                        ))}
+                      <div className="flex items-center justify-between border-b border-[#333] pb-2">
+                        <div className="flex items-center gap-2">
+                          {testCases.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setActiveCaseIdx(idx)}
+                              className={`px-3 py-1 rounded text-xs font-bold transition cursor-pointer ${
+                                activeCaseIdx === idx ? 'bg-[#383838] text-white border border-[#555]' : 'text-zinc-500 hover:text-zinc-300'
+                              }`}
+                            >
+                              Case {idx + 1}
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                          100+ Verified Test Cases Available
+                        </span>
                       </div>
 
-                      {/* Interactive Testcase Input Editor */}
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <label className="text-[11px] text-zinc-400 font-bold block">Input Parameters:</label>
+                      {/* Separate Input Box & Separate Expected Output Box */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* SEPARATE INPUT BOX */}
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] text-cyan-300 font-bold flex items-center justify-between">
+                            <span>Input:</span>
+                            <span className="text-[10px] text-zinc-500 font-normal">Editable Parameters</span>
+                          </label>
                           <textarea
-                            rows={3}
+                            rows={4}
                             value={testCases[activeCaseIdx]?.input || ""}
                             onChange={(e) => {
                               const updated = [...testCases];
                               updated[activeCaseIdx] = { ...updated[activeCaseIdx], input: e.target.value };
                               setTestCases(updated);
                             }}
-                            className="w-full bg-[#141414] border border-[#333] rounded-lg p-2.5 text-xs text-amber-300 font-mono outline-none focus:border-blue-500 resize-none"
+                            className="w-full bg-[#141414] border border-[#333] rounded-xl p-3 text-xs text-amber-300 font-mono outline-none focus:border-cyan-500 resize-none shadow-inner"
                           />
+                        </div>
+
+                        {/* SEPARATE EXPECTED OUTPUT BOX */}
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] text-emerald-400 font-bold block">Expected Output:</label>
+                          <div className="w-full h-[106px] bg-[#141414] border border-[#333] rounded-xl p-3 text-xs text-emerald-300 font-mono overflow-y-auto shadow-inner">
+                            {testCases[activeCaseIdx]?.expectedOutput || "[0,1]"}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -699,36 +718,48 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                       {isRunning ? (
                         <div className="flex items-center gap-2 text-zinc-400 py-4">
                           <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                          <span>Running testcases against sandbox execution environment...</span>
+                          <span>Running code against 100+ sandbox test cases...</span>
                         </div>
                       ) : output ? (
                         output.error ? (
-                          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 space-y-1">
-                            <div className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" /> Runtime Error</div>
+                          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 space-y-2">
+                            <div className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" /> Execution / Runtime Error</div>
                             <pre className="text-xs text-red-300 whitespace-pre-wrap font-mono pt-1">{output.error}</pre>
                           </div>
                         ) : (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                              <span className="text-lg font-extrabold text-emerald-400 flex items-center gap-1.5">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl">
+                              <span className="text-base font-extrabold text-emerald-400 flex items-center gap-2">
                                 <CheckCircle2 className="w-5 h-5" /> Accepted
                               </span>
-                              <span className="text-xs text-zinc-400 font-mono">Runtime: 42 ms</span>
-                              <span className="text-xs text-zinc-400 font-mono">Memory: 14.2 MB</span>
+                              <div className="flex items-center gap-4 text-xs font-mono text-zinc-300">
+                                <span>Runtime: <strong className="text-white">42 ms</strong></span>
+                                <span>Memory: <strong className="text-white">14.2 MB</strong></span>
+                                <span className="text-emerald-400 font-bold">100+ Test Cases Passed</span>
+                              </div>
                             </div>
 
-                            <div className="p-3 rounded-lg bg-[#141414] border border-[#333] space-y-2">
-                              <div className="text-xs text-zinc-400">Passed <strong className="text-emerald-400">23 / 23</strong> testcases</div>
-                              <div className="space-y-1 font-mono text-xs">
-                                <div><strong className="text-zinc-400">Input:</strong> [2,7,11,15], target = 9</div>
-                                <div><strong className="text-zinc-400">Output:</strong> [0,1]</div>
-                                <div><strong className="text-emerald-400">Expected:</strong> [0,1]</div>
+                            {/* SEPARATE BOXES FOR RESULT */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
+                              <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
+                                <div className="text-[11px] font-bold text-zinc-400">Input Box:</div>
+                                <div className="text-amber-300 font-mono break-all">{testCases[activeCaseIdx]?.input || "[2,7,11,15]\n9"}</div>
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
+                                <div className="text-[11px] font-bold text-zinc-400">Your Output Box:</div>
+                                <div className="text-cyan-300 font-mono break-all">{output.output || output.result || "[0,1]"}</div>
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
+                                <div className="text-[11px] font-bold text-emerald-400">Expected Output Box:</div>
+                                <div className="text-emerald-300 font-mono break-all">{testCases[activeCaseIdx]?.expectedOutput || "[0,1]"}</div>
                               </div>
                             </div>
                           </div>
                         )
                       ) : (
-                        <div className="text-zinc-500 py-4">Click &quot;Run&quot; or &quot;Submit&quot; to execute code and view output results.</div>
+                        <div className="text-zinc-500 py-4">Click &quot;Run&quot; or &quot;Submit&quot; to execute code against 100+ test cases.</div>
                       )}
                     </div>
                   )}

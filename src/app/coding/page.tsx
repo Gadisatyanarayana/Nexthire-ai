@@ -5,10 +5,11 @@ import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { 
   CheckCircle2, Circle, Search, ChevronLeft, ChevronRight, Code2, Trophy, 
-  Sparkles, Layers, GitFork, Building2
+  Sparkles, Layers, GitFork, Building2, Calendar, Flame, History
 } from "lucide-react";
 import { SOLVING_PATTERNS } from "@/lib/codingMetadata";
 import type { QuestionRichMetadata } from "@/lib/codingMetadata";
+import { LeetCodeProfileModal } from "@/components/coding/LeetCodeProfileModal";
 
 const COMPANIES = ['Amazon', 'Google', 'Meta', 'Microsoft', 'Apple', 'Uber', 'Netflix', 'Adobe', 'TCS', 'Infosys', 'Wipro', 'Accenture', 'Cognizant', 'Capgemini'];
 
@@ -17,6 +18,7 @@ function CodingQuestionsPageContent() {
   const trackParam = searchParams?.get("track") || "";
   const patternParam = searchParams?.get("pattern") || "";
 
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [questions, setQuestions] = useState<QuestionRichMetadata[]>([]);
   const [filteredCount, setFilteredCount] = useState(0);
   const [overallCount, setOverallCount] = useState(6902);
@@ -36,12 +38,25 @@ function CodingQuestionsPageContent() {
   const [totalPages, setTotalPages] = useState(1);
   const limit = 50;
 
-  const [submittedMap, setSubmittedMap] = useState<Record<string, boolean>>({
-    "two-sum": true,
-    "longest-substring-without-repeating-characters": true,
-    "1": true,
-    "3": true
-  });
+  const [submittedMap, setSubmittedMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    try {
+      const historyStr = localStorage.getItem('nexthire_user_submissions');
+      if (historyStr) {
+        const history = JSON.parse(historyStr);
+        if (Array.isArray(history)) {
+          const map: Record<string, boolean> = {};
+          history.forEach((item: any) => {
+            if (item.status === 'Accepted' || item.passed) {
+              if (item.id) map[item.id] = true;
+            }
+          });
+          setSubmittedMap(map);
+        }
+      }
+    } catch {}
+  }, []);
 
   const totalSolved = useMemo(
     () => Object.values(submittedMap).filter(Boolean).length,
@@ -114,27 +129,40 @@ function CodingQuestionsPageContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/coding/tracks"
-              className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition flex items-center gap-2"
-            >
-              <Layers className="w-4 h-4 text-emerald-400" /> Career Tracks
-            </Link>
-            <Link
-              href="/coding/knowledge-graph"
-              className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition flex items-center gap-2"
-            >
-              <GitFork className="w-4 h-4 text-amber-400" /> Knowledge Graph
-            </Link>
+          <div className="flex flex-col gap-2.5 items-end">
+            {/* Top Row: History & Knowledge Graph */}
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer hover:text-white"
+              >
+                <History className="w-4 h-4 text-emerald-400" />
+                <span>History</span>
+              </button>
+
+              <Link
+                href="/coding/knowledge-graph"
+                className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition flex items-center gap-2"
+              >
+                <GitFork className="w-4 h-4 text-amber-400" /> Knowledge Graph
+              </Link>
+            </div>
+
+            {/* Bottom Row: Skill Tree & Analytics */}
             <Link
               href="/coding/analytics"
-              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2"
+              className="w-full text-center justify-center px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2"
             >
               <Trophy className="w-4 h-4 text-emerald-200" /> Skill Tree & Analytics
             </Link>
           </div>
         </header>
+
+        {/* ── LEETCODE DASHBOARD PROFILE & SUBMISSION HISTORY MODAL ── */}
+        <LeetCodeProfileModal 
+          isOpen={isProfileOpen} 
+          onClose={() => setIsProfileOpen(false)} 
+        />
 
         {/* Skill Tree Progress Bar (DSA Topics Only - System Design Removed) */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
@@ -296,11 +324,11 @@ function CodingQuestionsPageContent() {
                     </td>
                   </tr>
                 ) : (
-                  questions.map((q, idx) => {
-                    const isSolved = submittedMap[q.id];
-                    const serialNumber = (page - 1) * limit + idx + 1;
-                    return (
-                      <tr key={q.id} className="hover:bg-zinc-800/40 transition-colors group">
+                    questions.map((q, idx) => {
+                      const isSolved = submittedMap[q.id];
+                      const serialNumber = (page - 1) * limit + idx + 1;
+                      return (
+                        <tr key={`${q.id}_${idx}`} className="hover:bg-zinc-800/40 transition-colors group">
                         <td className="py-3.5 px-4 text-center">
                           {isSolved ? (
                             <CheckCircle2 className="w-4 h-4 text-emerald-400 inline" />
@@ -334,7 +362,7 @@ function CodingQuestionsPageContent() {
 
                         <td className="py-3.5 px-4">
                           <div className="flex flex-wrap gap-1">
-                            {q.companies.slice(0, 3).map((c) => (
+                            {(q.companies || []).slice(0, 3).map((c) => (
                               <span key={c.name} className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-300 border border-zinc-700/50">
                                 {c.name}
                               </span>

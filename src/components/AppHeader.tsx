@@ -8,7 +8,7 @@ import { Briefcase, FileText, Sparkles } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/UserAvatarDropdown';
 
 export function AppHeader() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const hideHeader = pathname !== '/';
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -175,7 +175,7 @@ export function AppHeader() {
         </nav>
 
         <div className="flex items-center justify-self-end gap-3 md:gap-4 pr-1">
-          {!isAuthRoute && status !== 'authenticated' ? (
+          {!isAuthRoute && !session?.user && status !== 'authenticated' ? (
             <Link
               href="/auth/signin"
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2 text-sm font-bold transition-all shadow-lg hover:scale-105"

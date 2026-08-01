@@ -11,10 +11,22 @@ interface ContinueLearningWidgetProps {
 export default function ContinueLearningWidget({ recommendationPayload }: ContinueLearningWidgetProps) {
   if (!recommendationPayload) return null;
 
-  // Destructure the new contract format
-  const { recommendation, reason, generatedBy } = recommendationPayload;
-  
-  if (!recommendation) return null;
+  const payloadObj = Array.isArray(recommendationPayload) ? (recommendationPayload[0] || {}) : recommendationPayload;
+  const { recommendation, reason, generatedBy } = payloadObj || {};
+
+  if (!recommendation) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl bg-zinc-900/60 border border-zinc-800 p-6 flex items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-white mb-1">Start Your Learning Journey</h3>
+          <p className="text-xs text-zinc-400">Explore our structured DSA & CS core curriculum to begin.</p>
+        </div>
+        <Link href="/coding" className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition">
+          Browse Courses
+        </Link>
+      </div>
+    );
+  }
 
   const { type, data, resumeUrl, estimatedTimeRemaining } = recommendation;
   
@@ -52,17 +64,17 @@ export default function ContinueLearningWidget({ recommendationPayload }: Contin
 
           <div className="flex items-center gap-2 text-sm text-indigo-200/70">
             <Clock className="w-4 h-4" />
-            <span>Estimated time: {estimatedTimeRemaining} min</span>
+            <span>Estimated time: {estimatedTimeRemaining || 15} min</span>
           </div>
         </div>
       </div>
       
       <Link 
-        href={resumeUrl}
-        className="relative z-10 whitespace-nowrap bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-colors flex items-center gap-2"
+        href={resumeUrl || "/coding"}
+        className="relative z-10 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-500/25 shrink-0"
       >
-        Continue Now
-        <ArrowRight className="w-5 h-5" />
+        <span>Continue</span>
+        <ArrowRight className="w-4 h-4" />
       </Link>
     </div>
   );
