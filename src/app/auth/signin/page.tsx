@@ -3,7 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
 import { useEffect, useState, Suspense } from 'react';
-import { ShieldCheck, Sparkles, Terminal, Trophy, MessageSquare, Award } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ShieldCheck, Sparkles, Terminal } from 'lucide-react';
 
 function readInitialTheme(): boolean {
   if (typeof window === 'undefined') return false;
@@ -39,7 +40,7 @@ function SignInInner() {
           return `${parsed.pathname}${parsed.search}${parsed.hash}`;
         }
       } catch {
-        // Ignore malformed callback values and use dashboard fallback.
+        // Ignore malformed callback values.
       }
     }
 
@@ -52,16 +53,12 @@ function SignInInner() {
     if (!code) return null;
 
     const map: Record<string, string> = {
-      google: 'Google sign-in could not be started. Verify OAuth redirect URI is exactly http://localhost:3000/api/auth/callback/google.',
+      google: 'Google sign-in could not be started. Verify OAuth redirect URI.',
       OAuthSignin: 'Google sign-in could not be started. Please try again.',
       OAuthCallback: 'Google callback failed. Please retry sign-in.',
-      OAuthCreateAccount: 'Could not create your account from Google profile.',
-      EmailCreateAccount: 'Could not create your account.',
+      OAuthCreateAccount: 'Could not create account from Google profile.',
       Callback: 'Sign-in callback failed. Please retry.',
       OAuthAccountNotLinked: 'This email is already linked to another sign-in method.',
-      EmailSignin: 'Email sign-in failed.',
-      CredentialsSignin: 'Sign-in was rejected. Please try again.',
-      SessionRequired: 'Please sign in to continue.',
       AccessDenied: 'Access denied for this account.',
       Configuration: 'Authentication configuration error. Contact support.',
       Default: 'Sign-in failed. Please try again.',
@@ -73,29 +70,8 @@ function SignInInner() {
   const authErrorMessage = getAuthErrorMessage(authErrorCode);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (process.env.NODE_ENV === 'production') return;
-
-    const hostname = window.location.hostname.toLowerCase();
-    const isLoopbackAlias = hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';
-    if (!isLoopbackAlias) return;
-
-    const portPart = window.location.port ? `:${window.location.port}` : '';
-    const target = `${window.location.protocol}//localhost${portPart}${window.location.pathname}${window.location.search}${window.location.hash}`;
-    window.location.replace(target);
-  }, []);
-
-  useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const syncTheme = () => setIsDark(root.getAttribute('data-theme') === 'dark');
-    const observer = new MutationObserver(syncTheme);
-    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -174,155 +150,156 @@ function SignInInner() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background text-foreground premium-glow-bg">
-      {/* Left panel - Branding Showcase */}
-      <section className="hidden lg:flex flex-col justify-between p-12 border-r border-foreground/10 bg-foreground/2 relative overflow-hidden">
-        <div className="space-y-2 relative z-10">
-          <span className="text-xl font-bold tracking-tight">NEXTHIRE AI</span>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-blue">
-            PLACEMENT PERFORMANCE WORKSPACE
+    <main className="relative min-h-screen w-full bg-[#05050c] text-white flex items-center justify-center overflow-hidden p-6 font-sans">
+      
+      {/* ── MAJOR BACKGROUND ANIMATION: Animated Cosmic Nebula & Particle Grid ── */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Pulsing Aurora Sphere 1 */}
+        <motion.div
+          className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] rounded-full opacity-40 blur-[140px]"
+          style={{ background: 'radial-gradient(circle, rgba(0, 242, 254, 0.4) 0%, rgba(138, 43, 226, 0.2) 50%, transparent 70%)' }}
+          animate={{
+            scale: [1, 1.2, 1],
+            x: [0, 60, 0],
+            y: [0, 40, 0],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Pulsing Aurora Sphere 2 */}
+        <motion.div
+          className="absolute -bottom-[20%] -right-[10%] w-[900px] h-[900px] rounded-full opacity-30 blur-[160px]"
+          style={{ background: 'radial-gradient(circle, rgba(138, 43, 226, 0.4) 0%, rgba(0, 242, 254, 0.15) 50%, transparent 70%)' }}
+          animate={{
+            scale: [1.2, 1, 1.2],
+            x: [0, -70, 0],
+            y: [0, -50, 0],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Animated Floating Light Orbs */}
+        {Array.from({ length: 24 }).map((_, idx) => (
+          <motion.div
+            key={idx}
+            className="absolute w-1.5 h-1.5 rounded-full bg-cyan-400/60 shadow-[0_0_10px_#00f2fe]"
+            style={{
+              top: `${(idx * 17) % 100}%`,
+              left: `${(idx * 23) % 100}%`,
+            }}
+            animate={{
+              y: [0, -60, 0],
+              opacity: [0.2, 0.9, 0.2],
+              scale: [0.8, 1.5, 0.8],
+            }}
+            transition={{
+              duration: 4 + (idx % 5),
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: idx * 0.3,
+            }}
+          />
+        ))}
+
+        {/* Dynamic Matrix Grid Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-40" />
+      </div>
+
+      {/* ── CENTERED SIGN-IN CARD ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-md p-8 sm:p-10 rounded-3xl border border-white/15 bg-zinc-950/70 backdrop-blur-3xl shadow-[0_0_80px_rgba(0,0,0,0.8),0_0_30px_rgba(0,242,254,0.15)] flex flex-col items-center text-center space-y-8"
+      >
+        {/* NextHire AI Brand Emblem */}
+        <div className="flex flex-col items-center space-y-2">
+          <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500/20 via-purple-500/20 to-cyan-400/30 border border-cyan-400/40 shadow-[0_0_30px_rgba(0,242,254,0.4)]">
+            <Sparkles className="w-8 h-8 text-cyan-300 animate-pulse" />
+          </div>
+          <span className="text-xs font-black uppercase tracking-[0.25em] text-cyan-400 pt-2">
+            NEXTHIRE AI
+          </span>
+        </div>
+
+        {/* Title & Description */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
+            Welcome Back
+          </h1>
+          <p className="text-xs text-zinc-400 leading-relaxed max-w-xs">
+            Sign in to access your AI resume analyzer, DSA coding arena, and placement dashboard.
           </p>
         </div>
 
-        <div className="space-y-8 relative z-10 max-w-lg">
-          <h2 className="text-4xl font-bold tracking-tight leading-tight gradient-text">
-            Enterprise Training Platform for Serious Career Outcomes
-          </h2>
-          
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-blue-dim border border-brand-blue/30 text-brand-blue shrink-0">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold">AI Resume Analyzer</h4>
-                <p className="text-xs text-foreground/60 leading-relaxed mt-0.5">
-                  Deep ATS metrics validation and section audits aligned with actual recruiter search matrices.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-green-dim border border-brand-green/30 text-brand-green shrink-0">
-                <Terminal className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold">Elite DSA Coding Arena</h4>
-                <p className="text-xs text-foreground/60 leading-relaxed mt-0.5">
-                  Write, run, and auto-evaluate coding submissions inside secure containerized sandboxes.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-purple-dim border border-brand-purple/30 text-brand-purple shrink-0">
-                <Trophy className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold">Mock OA Contests</h4>
-                <p className="text-xs text-foreground/60 leading-relaxed mt-0.5">
-                  Compete under constraints in timed mock tests mimicking real recruiting rounds.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-xs text-foreground/40 relative z-10 flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-brand-green" />
-          <span>OAuth 2.0 Secure Token Verification Gateway</span>
-        </div>
-
-        {/* Glow decoration */}
-        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-brand-blue-dim blur-3xl opacity-20 rounded-full" />
-      </section>
-
-      {/* Right panel - Form Controls */}
-      <section className="flex items-center justify-center p-8 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,242,254,0.05)_0%,transparent_70%)] pointer-events-none" />
-        
-        <div className="relative w-full max-w-md p-10 rounded-3xl border border-foreground/10 bg-background/60 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.2)]">
-          <div className="space-y-8 text-center lg:text-left">
-            <div className="space-y-3">
-              <h1 className="text-4xl font-black tracking-tighter">Welcome Back</h1>
-              <p className="text-sm font-medium text-foreground/50 tracking-wide">
-                Sign in to your NextHire workspace
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <button
-                onClick={handleSignIn}
-                disabled={isLoading || authReady === false}
-                className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-foreground px-6 py-4 text-sm font-bold text-background transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                    <span>Authenticating...</span>
-                  </span>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5 transition-transform group-hover:scale-110">
-                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                      <path fill="none" d="M0 0h48v48H0z" />
-                    </svg>
-                    <span>Continue with Google</span>
-                  </>
-                )}
-              </button>
-              
-              <button
-                onClick={handleDevSignIn}
-                disabled={isLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/10 px-6 py-4 text-sm font-bold text-emerald-400 transition-all hover:bg-emerald-500/20 hover:border-emerald-500/60 active:scale-[0.98] disabled:opacity-50"
-              >
-                <Terminal className="h-5 w-5" />
-                <span>Instant Demo / Guest Access</span>
-              </button>
-            </div>
-
-            {authReady === false && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center">
-                <p className="text-sm font-semibold text-red-500">
-                  Authentication server is currently unreachable.
-                </p>
-              </div>
+        {/* ── PRIMARY ACTION: CONTINUE WITH GOOGLE BUTTON ── */}
+        <div className="w-full space-y-3 pt-2">
+          <button
+            onClick={handleSignIn}
+            disabled={isLoading || authReady === false}
+            className="group relative w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-white text-zinc-950 font-bold text-sm transition-all duration-300 hover:bg-zinc-100 hover:scale-[1.02] hover:shadow-[0_0_35px_rgba(255,255,255,0.4)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-950 border-t-transparent" />
+                <span>Redirecting to Google...</span>
+              </span>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5 shrink-0 transition-transform group-hover:scale-110">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                  <path fill="none" d="M0 0h48v48H0z" />
+                </svg>
+                <span className="tracking-wide">Continue with Google</span>
+              </>
             )}
+          </button>
 
-            {authErrorMessage && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center">
-                <p className="text-sm font-semibold text-red-400">
-                  {authErrorMessage}
-                </p>
-                {authErrorCode && <p className="text-xs text-red-500/70 mt-1">Error Code: {authErrorCode}</p>}
-                
-                {authErrorCode === 'google' && (
-                  <p className="text-xs text-red-400 mt-3 font-medium text-left">
-                    * Make sure you have added your GOOGLE_CLIENT_ID to the .env.local file. If you haven't, use the "Developer Bypass" button instead.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <div className="pt-6 border-t border-foreground/10 text-center">
-              <p className="text-[11px] font-medium leading-relaxed text-foreground/40 uppercase tracking-widest">
-                Secure Sandboxed Environment
-              </p>
-            </div>
-          </div>
+          {/* Secondary Option: Instant Demo / Guest Access */}
+          <button
+            onClick={handleDevSignIn}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold transition-all hover:bg-emerald-500/20 hover:border-emerald-500/50 active:scale-[0.98] disabled:opacity-50"
+          >
+            <Terminal className="w-4 h-4" />
+            <span>Instant Demo / Guest Access</span>
+          </button>
         </div>
-      </section>
-    </div>
+
+        {/* Error Notification Toast */}
+        {authErrorMessage && (
+          <div className="w-full p-3.5 rounded-2xl border border-red-500/30 bg-red-500/10 text-center space-y-1">
+            <p className="text-xs font-bold text-red-400">
+              {authErrorMessage}
+            </p>
+            {authErrorCode && <p className="text-[10px] text-red-500/70">Error Code: {authErrorCode}</p>}
+          </div>
+        )}
+
+        {/* Security Badge Footer */}
+        <div className="pt-2 border-t border-white/10 w-full flex items-center justify-center gap-2 text-[10px] text-zinc-500 font-semibold tracking-wider uppercase">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <span>OAuth 2.0 Encrypted Auth</span>
+        </div>
+      </motion.div>
+    </main>
   );
 }
 
 export default function SignIn() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-primary)]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#05050c]" />}>
       <SignInInner />
     </Suspense>
   );
