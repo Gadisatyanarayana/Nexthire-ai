@@ -275,16 +275,14 @@ function SignInInner() {
                 )}
               </button>
               
-              {process.env.NODE_ENV === 'development' && (
-                <button
-                  onClick={handleDevSignIn}
-                  disabled={isLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-brand-purple/30 bg-brand-purple/10 px-6 py-4 text-sm font-bold text-brand-purple transition-all hover:bg-brand-purple/20 hover:border-brand-purple/50 active:scale-[0.98] disabled:opacity-50"
-                >
-                  <Terminal className="h-5 w-5" />
-                  <span>Developer Bypass (Local Only)</span>
-                </button>
-              )}
+              <button
+                onClick={handleDevSignIn}
+                disabled={isLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/10 px-6 py-4 text-sm font-bold text-emerald-400 transition-all hover:bg-emerald-500/20 hover:border-emerald-500/60 active:scale-[0.98] disabled:opacity-50"
+              >
+                <Terminal className="h-5 w-5" />
+                <span>Instant Demo / Guest Access</span>
+              </button>
             </div>
 
             {authReady === false && (
