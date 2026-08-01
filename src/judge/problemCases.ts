@@ -41,6 +41,9 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
   }
 
   const admin = getAdminClient();
+  if (!admin) {
+    return fetchFromMock(problemId);
+  }
 
   const tryFindProblem = async () => {
     if (isUuid(problemId)) {

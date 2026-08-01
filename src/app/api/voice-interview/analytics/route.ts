@@ -66,6 +66,15 @@ export async function GET() {
     }
 
     const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json({
+        success: true,
+        stats: { totalXP: 0, currentStreak: 0, level: 1, totalInterviews: 0, avgScore: 0 },
+        badges: DEFAULT_BADGES.map(b => ({ ...b, unlockedAt: null })),
+        recentInterviews: [],
+        analytics: { scoreTrend: [], categoryBreakdown: {}, companyBreakdown: {} }
+      });
+    }
     
     // 1. Resolve user record
     const { data: userRow } = await admin

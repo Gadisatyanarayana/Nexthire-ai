@@ -274,6 +274,8 @@ async function persistSession(sess: VoiceInterviewSession) {
       status: String(sess.timeline?.phase || "setup"),
       updated_at: new Date().toISOString(),
     };
+    const admin = getAdminClient();
+    if (!admin) return;
     await admin.from("voice_interview_sessions").upsert(row, { onConflict: "session_id" });
   } catch {
     // Non-blocking fallback to in-memory session map.
@@ -289,6 +291,7 @@ async function loadSession(sessionId: string): Promise<VoiceInterviewSession | n
 
   try {
     const admin = getAdminClient();
+    if (!admin) return null;
     const { data } = await admin
       .from("voice_interview_sessions")
       .select("session_id, email, payload, status, created_at, updated_at")

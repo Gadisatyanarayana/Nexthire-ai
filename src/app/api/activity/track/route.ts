@@ -46,6 +46,10 @@ export async function POST(req: NextRequest) {
     const payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
 
     const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json({ ok: true, skipped: true });
+    }
+
     const user = await upsertUserAdmin({ name: session?.user?.name || null, email });
 
     const { error } = await admin.from('user_activity').insert({
@@ -63,6 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to track activity';
+    console.error('Activity track error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

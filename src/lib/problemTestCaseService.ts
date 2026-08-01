@@ -172,6 +172,7 @@ function uniqueCases(cases: GeneratedCase[]): GeneratedCase[] {
 async function resolveProblemAndQuestion(identifierRaw: string): Promise<{ problem: ProblemRow | null; question: QuestionRow | null }> {
   const identifier = String(identifierRaw || "").trim();
   const admin = getAdminClient();
+  if (!admin) return { problem: null, question: null };
 
   const questionLookup = async (questionId: string): Promise<QuestionRow | null> => {
     const { data } = await admin
@@ -544,6 +545,7 @@ export async function getProblemTestCaseCoverage(identifierRaw: string): Promise
   if (!context.problem) return null;
 
   const admin = getAdminClient();
+  if (!admin) return null;
   const { data: normalizedRows } = await admin
     .from("test_cases")
     .select("is_hidden")

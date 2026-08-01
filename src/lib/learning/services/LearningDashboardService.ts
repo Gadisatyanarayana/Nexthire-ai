@@ -21,22 +21,23 @@ export class LearningDashboardService {
         LearningRecommendationService.getContinueLearning(userId, tenantId).catch(() => []),
         LearningProgressFacade.getDashboardStats(userId).catch(() => null),
         supabase
-          ? supabase
-              .from("learning_events")
-              .select("*")
-              .eq("user_id", userId)
-              .eq("tenant_id", tenantId)
-              .order("created_at", { ascending: false })
-              .limit(5)
-              .catch(() => ({ data: [] }))
-          : { data: [] }
+          ? Promise.resolve(
+              supabase
+                .from("learning_events")
+                .select("*")
+                .eq("user_id", userId)
+                .eq("tenant_id", tenantId)
+                .order("created_at", { ascending: false })
+                .limit(5)
+            ).catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] })
       ]);
 
       const todayProgress = {
         xp: stats?.total_xp || 0,
         dailyGoal: 500,
-        currentStreak: stats?.current_streak || 0,
-        studyTimeMinutes: stats?.time_spent_seconds ? Math.floor(stats.time_spent_seconds / 60) : 0
+        currentStreak: stats?.currentStreak || 0,
+        studyTimeMinutes: stats?.studyTimeMinutes || 0
       };
 
       return {

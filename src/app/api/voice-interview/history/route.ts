@@ -15,6 +15,9 @@ export async function GET() {
     }
 
     const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json({ history: [] });
+    }
     const { data: userRow } = await admin
       .from("users")
       .select("id")
@@ -57,6 +60,9 @@ export async function DELETE(req: Request) {
     }
 
     const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json({ success: true, skipped: true });
+    }
     const { data: userRow } = await admin
       .from("users")
       .select("id")
