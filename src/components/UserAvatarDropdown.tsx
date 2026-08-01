@@ -73,42 +73,30 @@ export function UserAvatarDropdown() {
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [open]);
 
-  // If user is not authenticated, render top right Google User SVG button
+  // Return null when unauthenticated so header renders clean Sign In button
   if (!session || !session.user) {
-    return (
-      <Link
-        href="/auth/signin"
-        className="h-11 w-11 flex items-center justify-center rounded-full border-2 border-white/30 bg-black/60 shadow-lg hover:border-emerald-400 hover:scale-105 transition-all group"
-        title="Sign in with Google"
-        aria-label="User sign in"
-      >
-        <img src="/google-user.svg" alt="Google User" className="h-full w-full object-cover transition group-hover:scale-105" />
-      </Link>
-    );
+    return null;
   }
 
-  const avatarSrc = session.user.image || '/google.svg';
+  const avatarSrc = session.user.image || '/google-user.svg';
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="h-11 w-11 overflow-hidden rounded-full border-2 border-foreground/30 shadow-md transition focus:outline-none hover:border-emerald-400 flex items-center justify-center bg-black/60"
+        className="h-11 w-11 overflow-hidden rounded-full border-2 border-emerald-400/50 shadow-lg transition-all focus:outline-none hover:scale-105 flex items-center justify-center bg-black"
         onClick={() => setOpen((v) => !v)}
         aria-label="User menu"
         type="button"
+        title={session.user.name || 'User Profile'}
       >
-        {session.user.image ? (
-          <Image
-            src={avatarSrc}
-            alt={session.user.name || 'User'}
-            width={44}
-            height={44}
-            unoptimized
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <img src="/google-user.svg" alt="Google User" className="h-full w-full object-cover" />
-        )}
+        <img
+          src={avatarSrc}
+          alt={session.user.name || 'User Profile'}
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/google-user.svg';
+          }}
+        />
       </button>
 
       {open && (
@@ -118,25 +106,21 @@ export function UserAvatarDropdown() {
         >
           <div className="border-b border-foreground/10 px-4 py-4">
             <div className="flex items-center gap-3 min-w-0">
-              {session.user.image ? (
-                <Image
+              <div className="h-11 w-11 shrink-0 rounded-full border border-foreground/20 overflow-hidden bg-black">
+                <img
                   src={avatarSrc}
                   alt={session.user.name || 'User'}
-                  width={40}
-                  height={40}
-                  unoptimized
-                  className="h-10 w-10 shrink-0 rounded-full border border-foreground/15 object-cover"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/google-user.svg';
+                  }}
                 />
-              ) : (
-                <div className="h-10 w-10 shrink-0 rounded-full border border-foreground/15 flex items-center justify-center bg-black">
-                  <img src="/google.svg" alt="Google" className="h-5 w-5" />
-                </div>
-              )}
+              </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="font-semibold text-foreground text-sm truncate">{session.user.name || 'User'}</div>
                   <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${isAdmin ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500' : 'border-foreground/15 bg-foreground/5 text-foreground/70'}`}>
-                    <img src="/google.svg" alt="Google" className="w-3.5 h-3.5 shrink-0" />
+                    <img src="/google-user.svg" alt="Google" className="w-3.5 h-3.5 shrink-0" />
                     {isAdmin ? 'Admin' : 'User'}
                   </span>
                 </div>

@@ -175,16 +175,16 @@ export function AppHeader() {
         </nav>
 
         <div className="flex items-center justify-self-end gap-3 md:gap-4 pr-1">
-          {!isAuthRoute && status !== 'authenticated' && (
+          {!isAuthRoute && status !== 'authenticated' ? (
             <Link
               href="/auth/signin"
-              className="rounded-xl bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:opacity-90 flex items-center gap-2 shadow-md"
+              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2 text-sm font-bold transition-all shadow-lg hover:scale-105"
             >
-              <img src="/google.svg" alt="Google" className="w-4 h-4 shrink-0" />
-              Sign in with Google
+              Sign In
             </Link>
+          ) : (
+            <UserAvatarDropdown />
           )}
-          <UserAvatarDropdown />
         </div>
       </div>
     </header>

@@ -1,5 +1,6 @@
 import type { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import { upsertUserAdmin } from '@/lib/supabaseAdmin';
 
 function isLoopbackHost(hostname: string): boolean {
@@ -16,7 +17,6 @@ function isAllowedRedirectTarget(url: string, baseUrl: string): boolean {
       return true;
     }
 
-    // Allow loopback aliases (localhost / 127.0.0.1 / ::1) on the same protocol and port in dev.
     if (
       isLoopbackHost(target.hostname) &&
       isLoopbackHost(base.hostname) &&
@@ -32,8 +32,6 @@ function isAllowedRedirectTarget(url: string, baseUrl: string): boolean {
   }
 }
 
-import CredentialsProvider from 'next-auth/providers/credentials';
-
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'nexthire-ai-production-secret-key-32-chars-minimum-fallback',
   providers: [
@@ -46,26 +44,43 @@ export const authOptions: NextAuthOptions = {
       name: 'Developer Bypass',
       credentials: {},
       async authorize() {
-        return { id: 'dev-user-1', name: 'Developer Mode', email: 'dev@nexthire.ai' };
+        return { 
+          id: 'dev-user-1', 
+          name: 'Satya Narayana', 
+          email: 'satyanarayanag904@gmail.com',
+          image: '/google-user.svg'
+        };
       }
     })
   ],
   callbacks: {
     async signIn({ user }) {
-      try {
-        if (user.email) {
-          await upsertUserAdmin({
-            name: user.name ?? null,
-            email: user.email,
-          });
-        }
-      } catch (error) {
-        console.error('Error in signIn callback:', error);
+      if (user?.email) {
+        // Non-blocking fire-and-forget DB sync so network delay never blocks OAuthCallback
+        upsertUserAdmin({
+          name: user.name ?? null,
+          email: user.email,
+        }).catch((err) => {
+          console.warn('Non-blocking user upsert log:', err);
+        });
       }
       return true;
     },
-    async session({ session }) {
+    async session({ session, token }) {
+      if (session.user && token) {
+        if (token.email) session.user.email = token.email;
+        if (token.name) session.user.name = token.name;
+        if (token.picture) session.user.image = token.picture as string;
+      }
       return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.email = user.email;
+        token.name = user.name;
+        token.picture = user.image;
+      }
+      return token;
     },
     async redirect({ url, baseUrl }) {
       if (url.startsWith('/')) return `${baseUrl}${url}`;
@@ -80,7 +95,6 @@ export const authOptions: NextAuthOptions = {
   logger: {
     error(code, metadata) {
       if (code === "JWT_SESSION_ERROR") {
-        // Suppress benign JWT decryption errors that happen due to changing secrets in dev
         return;
       }
       console.error(code, metadata);
@@ -88,8 +102,5 @@ export const authOptions: NextAuthOptions = {
     warn(code) {
       console.warn(code);
     },
-    debug(code, metadata) {
-      console.debug(code, metadata);
-    }
-  }
+  },
 };
