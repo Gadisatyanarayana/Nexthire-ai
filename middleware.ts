@@ -3,43 +3,29 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { recordStartupRequest } from "@/lib/startupDiagnostics";
 
-const adminOnlyPaths = ["/admin", "/api/admin"];
-
-function isLoopbackAliasHost(hostname: string): boolean {
-  const value = String(hostname || "").toLowerCase();
-  return value === "127.0.0.1" || value === "::1" || value === "[::1]";
-}
+const adminOnlyPaths = ["/admin", "/api/admin", "/cms/admin"];
 
 function normalizeEmail(value: unknown): string {
   return String(value || "").trim().toLowerCase();
 }
 
 function getAdminAllowlist(): Set<string> {
-  return new Set(
-    String(process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((email) => normalizeEmail(email))
-      .filter(Boolean)
-  );
+  const primaryAdmin = "satyanarayanag904@gmail.com";
+  const rawAllowlist = [process.env.ADMIN_EMAILS, process.env.ADMIN_EMAIL]
+    .filter(Boolean)
+    .join(",");
+
+  const allowlist = String(rawAllowlist || "")
+    .split(/[\n,;]+/)
+    .map((email) => normalizeEmail(email))
+    .filter(Boolean);
+
+  allowlist.push(normalizeEmail(primaryAdmin));
+  return new Set(allowlist);
 }
 
 function isPathMatch(pathname: string, paths: string[]): boolean {
   return paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
-}
-
-function shouldSkipAuthInDev(req: NextRequest, pathname: string): boolean {
-  if (process.env.NODE_ENV === "production") return false;
-  if (req.method !== "GET") return false;
-
-  if (pathname === "/api/questions" || pathname.startsWith("/api/questions/")) {
-    return true;
-  }
-
-  if (/^\/api\/contests\/[^/]+\/chat$/.test(pathname)) {
-    return true;
-  }
-
-  return false;
 }
 
 function withSecurityHeaders(response: NextResponse, pathname: string): NextResponse {
@@ -78,15 +64,21 @@ export async function middleware(req: NextRequest) {
   const startedAt = Date.now();
   const pathname = req.nextUrl.pathname;
 
-  if (process.env.NODE_ENV !== "production" && isLoopbackAliasHost(req.nextUrl.hostname)) {
-    const canonicalUrl = req.nextUrl.clone();
-    canonicalUrl.hostname = "localhost";
-    return finalizeResponse(NextResponse.redirect(canonicalUrl, 307), pathname, startedAt);
+  // 1. Allow static files, assets, and Next.js internal requests
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/static") ||
+    /\.(png|jpg|jpeg|gif|svg|ico|css|js|map|woff|woff2|ttf|eot)$/i.test(pathname)
+  ) {
+    return NextResponse.next();
   }
 
-  const isPublicRoute = pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/api/auth") || pathname.startsWith("/api/health");
-  const isAdminOnly = isPathMatch(pathname, adminOnlyPaths);
-  const isApiRoute = pathname.startsWith("/api/");
+  // 2. Allow public routes (Landing page, sign-in/sign-up pages, NextAuth endpoints, health checks)
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/health");
 
   if (isPublicRoute) {
     return finalizeResponse(NextResponse.next(), pathname, startedAt);
@@ -96,15 +88,18 @@ export async function middleware(req: NextRequest) {
     return finalizeResponse(NextResponse.next(), pathname, startedAt);
   }
 
-  if (shouldSkipAuthInDev(req, pathname)) {
-    return finalizeResponse(NextResponse.next(), pathname, startedAt);
-  }
-
+  // 3. Check for valid user authentication session token
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const isApiRoute = pathname.startsWith("/api/");
 
+  // 4. Require authentication for all protected application and API routes
   if (!token) {
     if (isApiRoute) {
-      return finalizeResponse(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), pathname, startedAt);
+      return finalizeResponse(
+        NextResponse.json({ error: "Unauthorized. Please sign in to access NextHire platform." }, { status: 401 }),
+        pathname,
+        startedAt
+      );
     }
 
     const signInUrl = new URL("/auth/signin", req.url);
@@ -113,6 +108,8 @@ export async function middleware(req: NextRequest) {
     return finalizeResponse(NextResponse.redirect(signInUrl), pathname, startedAt);
   }
 
+  // 5. Enforce role-based admin permission check for administrative routes
+  const isAdminOnly = isPathMatch(pathname, adminOnlyPaths);
   if (isAdminOnly) {
     const allowlist = getAdminAllowlist();
     const requesterEmail = normalizeEmail((token as { email?: string }).email);
@@ -120,7 +117,11 @@ export async function middleware(req: NextRequest) {
 
     if (!isAllowedAdmin) {
       if (isApiRoute) {
-        return finalizeResponse(NextResponse.json({ error: "Forbidden" }, { status: 403 }), pathname, startedAt);
+        return finalizeResponse(
+          NextResponse.json({ error: "Forbidden. Admin permission required." }, { status: 403 }),
+          pathname,
+          startedAt
+        );
       }
 
       const fallback = new URL("/dashboard", req.url);
@@ -128,31 +129,12 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // 6. User is authenticated and authorized to access requested resource
   return finalizeResponse(NextResponse.next(), pathname, startedAt);
 }
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/my-resume/:path*",
-    "/resume-analyzer/:path*",
-    "/resume-builder/:path*",
-    "/placement-hub/:path*",
-    "/question/:path*",
-    "/contests/:path*",
-    "/chatbot/:path*",
-    "/editor/:path*",
-    "/voice-interviewer/:path*",
-    "/admin/:path*",
-    "/api/execute",
-    "/api/contests/:path*",
-    "/api/chatbot",
-    "/api/dashboard/stats",
-    "/api/admin/:path*",
-    "/api/resume-analysis",
-    "/api/resume-builder",
-    "/api/questions/sync",
-    "/api/users/sync",
-    "/api/voice-interview",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|logo.png|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)",
   ],
 };
