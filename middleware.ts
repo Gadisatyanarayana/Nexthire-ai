@@ -3,6 +3,11 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { recordStartupRequest } from "@/lib/startupDiagnostics";
 
+const NEXTAUTH_SECRET =
+  process.env.NEXTAUTH_SECRET ||
+  process.env.AUTH_SECRET ||
+  "nexthire-ai-production-secret-key-32-chars-minimum-fallback";
+
 const adminOnlyPaths = ["/admin", "/api/admin", "/cms/admin"];
 
 function normalizeEmail(value: unknown): string {
@@ -88,11 +93,27 @@ export async function middleware(req: NextRequest) {
     return finalizeResponse(NextResponse.next(), pathname, startedAt);
   }
 
-  // 3. Check for valid user authentication session token
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  // 3. Extract authentication token with fallback secret and secureCookie support for Vercel/HTTPS
+  const isSecure = req.url.startsWith("https://") || process.env.NODE_ENV === "production";
+  
+  let token = await getToken({
+    req,
+    secret: NEXTAUTH_SECRET,
+    secureCookie: isSecure,
+  });
+
+  // Fallback check if secureCookie flag differed on host proxy
+  if (!token && isSecure) {
+    token = await getToken({
+      req,
+      secret: NEXTAUTH_SECRET,
+      secureCookie: false,
+    });
+  }
+
   const isApiRoute = pathname.startsWith("/api/");
 
-  // 4. Require authentication for all protected application and API routes
+  // 4. Require authentication for protected application and API routes
   if (!token) {
     if (isApiRoute) {
       return finalizeResponse(
