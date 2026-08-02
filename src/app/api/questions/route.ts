@@ -1,22 +1,20 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { MOCK_QUESTIONS, type CodingQuestion } from "@/lib/codingQuestions";
+import { type CodingQuestion, STARTER_CODE } from "@/lib/codingQuestions";
 import { enrichQuestionMetadata } from "@/lib/codingMetadataClassifier";
 import type { QuestionRichMetadata } from "@/lib/codingMetadata";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { getAdminClient } from "@/lib/supabaseAdmin";
 import { inferDsaSection, sectionLabel } from "@/lib/dsaSections";
-import { STARTER_CODE } from "@/lib/codingQuestions";
-import { buildMandatoryCaseSet, getDefaultHiddenCaseCount, getDefaultTimeLimitMinutes } from "@/lib/questionPolicy";
 import { readJsonCache, writeJsonCache, getCacheTtlSeconds } from "@/lib/appCache";
 import { CATALOG_6902_LEETCODE_PROBLEMS } from "@/platform/content-pipeline/data/Official4000Catalog";
 
 const CANONICAL_LEETCODE_QUESTIONS: CodingQuestion[] = CATALOG_6902_LEETCODE_PROBLEMS.map((p) => ({
   id: p.id,
   title: p.title,
-  difficulty: p.difficulty,
+  difficulty: (p.difficulty as CodingQuestion["difficulty"]) || "Easy",
   function_name: p.official_function_name,
   topic: p.topic || [],
   company_tags: p.company_tags || [],
@@ -54,7 +52,6 @@ type DraftValidation = {
   aiSummary?: string;
 };
 
-
 const QUESTIONS_DB_ATTEMPTS = 3;
 const QUESTIONS_CACHE_TTL_MS = 2 * 60 * 1000;
 const QUESTIONS_LIST_SELECT = [
@@ -73,6 +70,11 @@ const QUESTIONS_LIST_SELECT = [
   "examples",
   "starter_code",
 ].join(",");
+
+type LoadQuestionsResult = {
+  questions: CodingQuestion[];
+  warning: string | null;
+};
 
 type QuestionsBundle = LoadQuestionsResult & {
   overallCount: number | null;
@@ -358,11 +360,6 @@ function toQuestion(row: Record<string, unknown>): CodingQuestion {
   };
 }
 
-type LoadQuestionsResult = {
-  questions: CodingQuestion[];
-  warning: string | null;
-};
-
 async function loadQuestionsBundle(): Promise<QuestionsBundle> {
   const lastSyncAt = await loadLastSyncAt();
   const cacheKey = buildQuestionsBundleCacheKey(lastSyncAt);
@@ -387,6 +384,15 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
 
   inFlightQuestionsBundle = (async () => {
     const admin = getAdminClient();
+    if (!admin) {
+      return {
+        questions: CANONICAL_LEETCODE_QUESTIONS,
+        warning: "Database unavailable; showing full canonical LeetCode catalog.",
+        overallCount: CANONICAL_LEETCODE_QUESTIONS.length,
+        lastSyncAt: null,
+      };
+    }
+
     const pageSize = 1000;
     let offset = 0;
     const allRows: Array<Record<string, unknown>> = [];
@@ -429,31 +435,31 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
       }
     }
 
-  if (loadError || allRows.length === 0) {
-    if (cachedQuestionsBundle?.cacheKey === cacheKey && cachedQuestionsBundle.value.questions && cachedQuestionsBundle.value.questions.length > 0) {
+    if (loadError || allRows.length === 0) {
+      if (cachedQuestionsBundle?.cacheKey === cacheKey && cachedQuestionsBundle.value.questions && cachedQuestionsBundle.value.questions.length > 0) {
+        return {
+          ...cachedQuestionsBundle.value,
+          warning: "Using cached question bank.",
+        };
+      }
+
       return {
-        ...cachedQuestionsBundle.value,
-        warning: "Using cached question bank.",
+        questions: CANONICAL_LEETCODE_QUESTIONS,
+        warning: "Showing full canonical LeetCode catalog.",
+        overallCount: CANONICAL_LEETCODE_QUESTIONS.length,
+        lastSyncAt: null,
       };
     }
 
+    const dbQuestions = allRows.map((row) => toQuestion(row));
+    const combined = deduplicateQuestions([...dbQuestions, ...CANONICAL_LEETCODE_QUESTIONS]);
+
     return {
-      questions: CANONICAL_LEETCODE_QUESTIONS,
-      warning: "Showing full canonical LeetCode catalog.",
-      overallCount: CANONICAL_LEETCODE_QUESTIONS.length,
-      lastSyncAt: null,
+      questions: combined,
+      warning: null,
+      overallCount: combined.length,
+      lastSyncAt,
     };
-  }
-
-  const dbQuestions = allRows.map((row) => toQuestion(row));
-  const combined = deduplicateQuestions([...dbQuestions, ...CANONICAL_LEETCODE_QUESTIONS]);
-
-  return {
-    questions: combined,
-    warning: null,
-    overallCount: combined.length,
-    lastSyncAt: null,
-  };
   })();
 
   try {
@@ -470,28 +476,11 @@ async function loadQuestionsBundle(): Promise<QuestionsBundle> {
   }
 }
 
-async function loadOverallCount(): Promise<number | null> {
-  try {
-    const admin = getAdminClient();
-    const queryPromise = admin
-      .from("questions")
-      .select("id", { count: "exact", head: true });
-
-    const timeoutPromise = new Promise<{ count: null; error: null }>((resolve) =>
-      setTimeout(() => resolve({ count: null, error: null }), 5000)
-    );
-
-    const res = await Promise.race([queryPromise, timeoutPromise]);
-    if (!res || res.error) return null;
-    return typeof res.count === "number" ? res.count : null;
-  } catch {
-    return null;
-  }
-}
-
 async function loadLastSyncAt(): Promise<string | null> {
   try {
     const admin = getAdminClient();
+    if (!admin) return null;
+
     const queryPromise = admin
       .from("app_meta")
       .select("value")
@@ -538,14 +527,17 @@ export async function GET(req: NextRequest) {
     const subtopic = (searchParams.get("subtopic") || "all").toLowerCase();
     const company = (searchParams.get("company") || "all").toLowerCase();
     const complexity = (searchParams.get("complexity") || "all").toLowerCase();
-    
+
     const rawPage = Number(searchParams.get("page") || 1);
     const rawLimit = Number(searchParams.get("limit") || 50);
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 5000) : 50;
 
-    if (!memoizedEnrichedQuestions) {
-      memoizedEnrichedQuestions = CANONICAL_LEETCODE_QUESTIONS.map((q: CodingQuestion) => enrichQuestionMetadata(q));
+    const bundle = await loadQuestionsBundle();
+    const allQuestions = bundle.questions;
+
+    if (!memoizedEnrichedQuestions || memoizedEnrichedQuestions.length !== allQuestions.length) {
+      memoizedEnrichedQuestions = allQuestions.map((q: CodingQuestion) => enrichQuestionMetadata(q));
 
       memoizedPatternCountsMap = {};
       memoizedTopicCountsMap = {};
@@ -598,7 +590,7 @@ export async function GET(req: NextRequest) {
       filtered = filtered.filter((q: QuestionRichMetadata) => q.difficulty.toLowerCase() === difficulty);
     }
 
-    // 2. Filter by Pattern (Primary or Secondary Pattern ONLY)
+    // 2. Filter by Pattern
     if (pattern !== "all") {
       const cleanTarget = pattern.toLowerCase().replace(/[^a-z0-9]/g, "");
       filtered = filtered.filter((q: QuestionRichMetadata) => {
@@ -617,15 +609,47 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 3. Filter by Company
+    // 3. Filter by Topic
+    if (topic !== "all") {
+      const cleanTopic = topic.toLowerCase().replace(/[^a-z0-9]/g, "");
+      filtered = filtered.filter((q: QuestionRichMetadata) => {
+        const hasTopicInArray = Array.isArray(q.topics) && q.topics.some((t: string) => {
+          const normT = t.toLowerCase().replace(/[^a-z0-9]/g, "");
+          return normT.includes(cleanTopic) || cleanTopic.includes(normT);
+        });
+        const sub = (q.subtopic || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        return hasTopicInArray || sub.includes(cleanTopic) || cleanTopic.includes(sub);
+      });
+    }
+
+    // 4. Filter by Subtopic
+    if (subtopic !== "all") {
+      const cleanSubtopic = subtopic.toLowerCase().replace(/[^a-z0-9]/g, "");
+      filtered = filtered.filter((q: QuestionRichMetadata) => {
+        const normSub = (q.subtopic || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        return normSub.includes(cleanSubtopic) || cleanSubtopic.includes(normSub);
+      });
+    }
+
+    // 5. Filter by Company
     if (company !== "all") {
       const cleanCompany = company.toLowerCase().replace(/[^a-z0-9]/g, "");
       filtered = filtered.filter((q: QuestionRichMetadata) => 
-        q.companies.some((c: { name: string }) => {
+        Array.isArray(q.companies) && q.companies.some((c: { name: string }) => {
           const normC = c.name.toLowerCase().replace(/[^a-z0-9]/g, "");
           return normC.includes(cleanCompany) || cleanCompany.includes(normC);
         })
       );
+    }
+
+    // 6. Filter by Complexity
+    if (complexity !== "all") {
+      const cleanComplexity = complexity.toLowerCase().replace(/[^a-z0-9]/g, "");
+      filtered = filtered.filter((q: QuestionRichMetadata) => {
+        const timeComp = (q.timeComplexity || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const spaceComp = (q.spaceComplexity || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        return timeComp.includes(cleanComplexity) || spaceComp.includes(cleanComplexity);
+      });
     }
 
     // 7. Filter by Search Query
@@ -633,8 +657,8 @@ export async function GET(req: NextRequest) {
       filtered = filtered.filter((q: QuestionRichMetadata) => 
         q.title.toLowerCase().includes(search) || 
         q.primaryPattern.toLowerCase().includes(search) ||
-        q.topics.some((t: string) => t.toLowerCase().includes(search)) ||
-        q.companies.some((c: { name: string }) => c.name.toLowerCase().includes(search)) ||
+        (Array.isArray(q.topics) && q.topics.some((t: string) => t.toLowerCase().includes(search))) ||
+        (Array.isArray(q.companies) && q.companies.some((c: { name: string }) => c.name.toLowerCase().includes(search))) ||
         q.subtopic.toLowerCase().includes(search)
       );
     }
@@ -644,15 +668,15 @@ export async function GET(req: NextRequest) {
     const start = (page - 1) * limit;
     const paged = filtered.slice(start, start + limit);
     const totalPages = Math.max(1, Math.ceil(filteredCount / limit));
-    const lightPaged = paged.map(q => ({
+    const lightPaged = paged.map((q) => ({
       id: q.id,
       title: q.title,
       difficulty: q.difficulty,
-      topic: q.topic || [],
-      company_tags: q.company_tags || [],
-      pattern_tags: q.pattern_tags || [],
-      acceptance_rate: q.acceptance_rate || 50,
-      acceptanceRate: q.acceptanceRate || q.acceptance_rate || 50,
+      topic: q.topics || [],
+      company_tags: Array.isArray(q.companies) ? q.companies.map((c) => c.name) : [],
+      pattern_tags: [q.primaryPattern, ...(q.secondaryPatterns || [])].filter(Boolean),
+      acceptance_rate: q.acceptanceRate || 50,
+      acceptanceRate: q.acceptanceRate || 50,
       primaryPattern: q.primaryPattern || "Two Pointers",
       subtopic: q.subtopic || "Array Manipulation",
       companies: q.companies || [],
@@ -674,8 +698,8 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       totalPages,
-      lastSyncAt: new Date().toISOString(),
-      warning: null,
+      lastSyncAt: bundle.lastSyncAt || new Date().toISOString(),
+      warning: bundle.warning,
     }, {
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
@@ -683,16 +707,16 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("Questions API error:", error);
-    const fallbackList = CANONICAL_LEETCODE_QUESTIONS.map(enrichQuestionMetadata);
-    const paged = fallbackList.slice(0, 50).map(q => ({
+    const fallbackList = CANONICAL_LEETCODE_QUESTIONS.map((q) => enrichQuestionMetadata(q));
+    const paged = fallbackList.slice(0, 50).map((q: QuestionRichMetadata) => ({
       id: q.id,
       title: q.title,
       difficulty: q.difficulty,
-      topic: q.topic || [],
-      company_tags: q.company_tags || [],
-      pattern_tags: q.pattern_tags || [],
-      acceptance_rate: q.acceptance_rate || 50,
-      acceptanceRate: q.acceptanceRate || q.acceptance_rate || 50,
+      topic: q.topics || [],
+      company_tags: Array.isArray(q.companies) ? q.companies.map((c) => c.name) : [],
+      pattern_tags: [q.primaryPattern, ...(q.secondaryPatterns || [])].filter(Boolean),
+      acceptance_rate: q.acceptanceRate || 50,
+      acceptanceRate: q.acceptanceRate || 50,
       primaryPattern: q.primaryPattern || "Two Pointers",
       subtopic: q.subtopic || "Array Manipulation",
       companies: q.companies || [],
@@ -778,6 +802,10 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json({ error: "Database service unavailable" }, { status: 503 });
+    }
+
     const uniqueId = `${slugifyQuestionId(title)}-${randomUUID().slice(0, 8)}`;
     const canonicalProblemId = randomUUID();
     const visibleCases = testcases.slice(0, 2);
@@ -869,6 +897,7 @@ export async function POST(req: NextRequest) {
     }
 
     cachedQuestionsBundle = null;
+    memoizedEnrichedQuestions = null;
 
     return NextResponse.json({
       success: true,
