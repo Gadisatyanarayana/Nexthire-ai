@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 type SyncUserInput = {
   name: string | null;
@@ -25,20 +25,21 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   return allowlist.includes(norm);
 }
 
-export function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const PLACEHOLDER_URL = "https://placeholder.supabase.co";
+const PLACEHOLDER_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder";
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    return null;
-  }
+export function getAdminClient(): SupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || PLACEHOLDER_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || PLACEHOLDER_KEY;
 
   try {
     return createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });
   } catch {
-    return null;
+    return createClient(PLACEHOLDER_URL, PLACEHOLDER_KEY, {
+      auth: { persistSession: false },
+    });
   }
 }
 
@@ -53,7 +54,6 @@ export async function upsertUserAdmin(user: SyncUserInput) {
 
   try {
     const client = getAdminClient();
-    if (!client) return mockUser;
 
     const payload = {
       name: user.name,

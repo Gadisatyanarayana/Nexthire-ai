@@ -105,6 +105,14 @@ export async function GET() {
     }
 
     const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json({
+        overview: { totalUsers: 0, totalSubmissions: 0, activeToday: 0, averageScore: 0 },
+        charts: { dailyActivity: [], languageDistribution: [], difficultyDistribution: [] },
+        recentActivity: [],
+        topUsers: []
+      });
+    }
 
     const [usersRes, submissionsRes, activityRes] = await Promise.all([
       admin.from("users").select("id, name, email, created_at"),

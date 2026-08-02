@@ -52,6 +52,10 @@ export async function POST(req: NextRequest) {
 
     const user = await upsertUserAdmin({ name: session?.user?.name || null, email });
 
+    if (!admin) {
+      return NextResponse.json({ ok: true, skipped: true });
+    }
+
     const { error } = await admin.from('user_activity').insert({
       user_id: user.id,
       activity_type: activityType,

@@ -38,7 +38,10 @@ export async function GET(req: Request) {
         topic: p.topic,
         company_tags: p.company_tags,
         pattern_tags: p.pattern_tags,
-        acceptance_rate: p.acceptance_rate
+        acceptance_rate: p.acceptance_rate,
+        description: p.description || "",
+        examples: p.examples || [],
+        testcases: (p.testcases || []).map((tc) => ({ input: tc.input, expectedOutput: tc.expectedOutput })),
       }));
 
       const signal = RECOGNITION_SIGNALS.find(s => s.pattern.toLowerCase() === matchedPattern.toLowerCase());
@@ -78,7 +81,10 @@ export async function GET(req: Request) {
         topic: p.topic,
         company_tags: p.company_tags,
         pattern_tags: p.pattern_tags,
-        acceptance_rate: p.acceptance_rate
+        acceptance_rate: p.acceptance_rate,
+        description: p.description || "",
+        examples: p.examples || [],
+        testcases: (p.testcases || []).map((tc) => ({ input: tc.input, expectedOutput: tc.expectedOutput })),
       }));
 
       const subtopics = Array.from(new Set(targetList.map(p => p.sub_pattern || "Array Manipulation"))).filter(Boolean);
