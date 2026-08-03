@@ -76,6 +76,12 @@ export async function GET(
     }
 
     const richMetadata = enrichQuestionMetadata(rawQuestion);
+    const cleanDescription = rawQuestion.description || `### ${richMetadata.title}\n\nGiven input parameters for **${richMetadata.subtopic}**, implement an optimal solution using **${richMetadata.primaryPattern}**.\n\n### Constraints\n- \`1 <= input.length <= 10^5\``;
+    const visibleCases = (rawQuestion.examples || richMetadata.sampleTestCases || []).slice(0, 3).map((e: any) => ({
+      input: e.input || "",
+      expectedOutput: e.output || e.expectedOutput || "",
+      isHidden: false
+    }));
 
     return NextResponse.json({
       success: true,
@@ -85,14 +91,18 @@ export async function GET(
         id: richMetadata.id,
         title: richMetadata.title,
         difficulty: richMetadata.difficulty,
-        description: rawQuestion.description || richMetadata.editorial,
+        description: cleanDescription,
         examples: rawQuestion.examples || richMetadata.sampleTestCases,
-        testcases: rawQuestion.testcases || richMetadata.hiddenTestCases,
+        testcases: visibleCases,
         codingDetails: {
           starter_code: rawQuestion.starter_code || richMetadata.starterCode
         }
       },
-      richMetadata
+      richMetadata: {
+        ...richMetadata,
+        solutions: [],
+        editorial: undefined
+      }
     });
   } catch (error: any) {
     console.error("GET problem details error:", error);

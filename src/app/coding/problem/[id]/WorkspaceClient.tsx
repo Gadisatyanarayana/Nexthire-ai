@@ -100,9 +100,12 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           if (data.session && data.session.code_content) {
             setCode(data.session.code_content);
           } else {
-            const starter = probData.codingDetails?.starter_code?.[defaultLang] || 
-                            probData.starter_code?.[defaultLang] || 
-                            `class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your code here\n        return new int[]{};\n    }\n}`;
+            const starterRaw = probData.codingDetails?.starter_code?.[defaultLang] || 
+                               probData.starter_code?.[defaultLang] || 
+                               (typeof probData.starter_code === 'string' ? probData.starter_code : null);
+            const starter = (typeof starterRaw === 'string' && starterRaw.trim().length > 0)
+              ? starterRaw
+              : `class Solution {\n    public int[] solve(int[] nums, int target) {\n        // TODO: Write your solution here\n        return new int[]{};\n    }\n}`;
             setCode(starter);
           }
 
@@ -131,9 +134,15 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value;
     setLanguage(newLang);
-    const starter = problem?.codingDetails?.starter_code?.[newLang] || 
-                    problem?.starter_code?.[newLang] || 
-                    `// ${newLang} Solution`;
+    const starterRaw = problem?.codingDetails?.starter_code?.[newLang] || 
+                       problem?.starter_code?.[newLang] || 
+                       (typeof problem?.starter_code === 'string' ? problem.starter_code : null);
+    const starter = (typeof starterRaw === 'string' && starterRaw.trim().length > 0)
+      ? starterRaw
+      : newLang === 'python' ? `class Solution:\n    def solve(self, nums: List[int]) -> int:\n        pass`
+      : newLang === 'cpp' ? `class Solution {\npublic:\n    vector<int> solve(vector<int>& nums) {\n        return {};\n    }\n};`
+      : newLang === 'javascript' ? `function solve(nums, target) {\n  return [];\n}`
+      : `class Solution {\n    public int[] solve(int[] nums, int target) {\n        return new int[]{};\n    }\n}`;
     setCode(starter);
   };
 

@@ -1,21 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { POST as submitPost } from '@/app/api/submit/route';
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { problemId, language, code } = body;
-    
-    // Simulate grading latency
-    await new Promise(resolve => setTimeout(resolve, 1500));
+  const body = await request.json();
+  const nextReq = new NextRequest(request.url, {
+    method: 'POST',
+    headers: request.headers,
+    body: JSON.stringify({
+      problem_id: body.problemId || body.problem_id,
+      code: body.code,
+      language_id: body.language || body.language_id
+    })
+  });
 
-    // Placeholder submission result matching future standard contract
-    return NextResponse.json({
-      submissionId: crypto.randomUUID(),
-      status: "QUEUED",
-      message: "Execution queued."
-    });
-  } catch (error: any) {
-    console.error("POST submit error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  return submitPost(nextReq);
 }

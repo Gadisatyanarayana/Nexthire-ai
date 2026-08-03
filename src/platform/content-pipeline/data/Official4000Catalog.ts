@@ -25,17 +25,17 @@ const CANONICAL_FAST_SLOW_PROBLEMS = [
 
 function buildFullStarterCodes(fnName: string, pattern: string): LeetCodeStarterCodes {
   return {
-    javascript: `function ${fnName}(nums, target) {\n  // Write your ${pattern} solution here\n  return [0, 1];\n}`,
-    typescript: `function ${fnName}(nums: number[], target: number): number[] {\n  // Write your ${pattern} solution here\n  return [0, 1];\n}`,
-    python: `class Solution:\n    def ${fnName}(self, nums: List[int], target: int) -> List[int]:\n        return [0, 1]\n`,
-    java: `class Solution {\n    public int[] ${fnName}(int[] nums, int target) {\n        return new int[]{0, 1};\n    }\n}`,
-    cpp: `class Solution {\npublic:\n    vector<int> ${fnName}(vector<int>& nums, int target) {\n        return {0, 1};\n    }\n};`,
-    go: `func ${fnName}(nums []int, target int) []int {\n    return []int{0, 1}\n}`,
-    rust: `impl Solution {\n    pub fn ${fnName}(nums: Vec<i32>, target: i32) -> Vec<i32> {\n        vec![0, 1]\n    }\n}`,
-    csharp: `public class Solution {\n    public int[] ${fnName}(int[] nums, int target) {\n        return new int[]{0, 1};\n    }\n}`,
-    php: `class Solution {\n    function ${fnName}($nums, $target) {\n        return [0, 1];\n    }\n}`,
-    kotlin: `class Solution {\n    fun ${fnName}(nums: IntArray, target: Int): IntArray {\n        return intArrayOf(0, 1)\n    }\n}`,
-    swift: `class Solution {\n    func ${fnName}(_ nums: [Int], _ target: Int) -> [Int] {\n        return [0, 1]\n    }\n}`
+    javascript: `function ${fnName}(nums, target) {\n  // Write your ${pattern} solution here\n  return [];\n}`,
+    typescript: `function ${fnName}(nums: number[], target: number): number[] {\n  // Write your ${pattern} solution here\n  return [];\n}`,
+    python: `class Solution:\n    def ${fnName}(self, nums: List[int], target: int) -> List[int]:\n        # Write your ${pattern} solution here\n        pass\n`,
+    java: `class Solution {\n    public int[] ${fnName}(int[] nums, int target) {\n        // Write your ${pattern} solution here\n        return new int[]{};\n    }\n}`,
+    cpp: `class Solution {\npublic:\n    vector<int> ${fnName}(vector<int>& nums, int target) {\n        // Write your ${pattern} solution here\n        return {};\n    }\n};`,
+    go: `func ${fnName}(nums []int, target int) []int {\n    return []int{}\n}`,
+    rust: `impl Solution {\n    pub fn ${fnName}(nums: Vec<i32>, target: i32) -> Vec<i32> {\n        vec![]\n    }\n}`,
+    csharp: `public class Solution {\n    public int[] ${fnName}(int[] nums, int target) {\n        return new int[]{};\n    }\n}`,
+    php: `class Solution {\n    function ${fnName}($nums, $target) {\n        return [];\n    }\n}`,
+    kotlin: `class Solution {\n    fun ${fnName}(nums: IntArray, target: Int): IntArray {\n        return intArrayOf()\n    }\n}`,
+    swift: `class Solution {\n    func ${fnName}(_ nums: [Int], _ target: Int) -> [Int] {\n        return []\n    }\n}`
   };
 }
 
