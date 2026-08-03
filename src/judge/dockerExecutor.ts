@@ -439,7 +439,12 @@ async function runHostCommand(params: {
 
     timeoutTimer = setTimeout(() => {
       timedOut = true;
-      child.kill("SIGKILL");
+      if (process.platform === "win32" && child.pid) {
+        const killCmd = spawn("taskkill", ["/pid", child.pid.toString(), "/T", "/F"], { windowsHide: true });
+        killCmd.on("error", () => child.kill("SIGKILL"));
+      } else {
+        child.kill("SIGKILL");
+      }
       forceTimeoutTimer = setTimeout(() => safeResolve(null), 1000);
     }, params.timeoutMs);
   });
@@ -625,7 +630,7 @@ async function executeOnHost(params: {
       };
     }
 
-    if (compile.code === null && isMissingBinaryError(compile.stderr)) {
+    if (!compile.timedOut && compile.code === null && isMissingBinaryError(compile.stderr)) {
       return {
         stdout: "",
         stderr: "",
@@ -745,6 +750,19 @@ async function executeOnHost(params: {
     };
   }
 
+  if (execution.timedOut) {
+    return {
+      stdout: "",
+      stderr: execution.stderr || "Execution timed out",
+      compileError: "",
+      status: "Time Limit Exceeded",
+      exitCode: execution.code,
+      timedOut: true,
+      timeMs: execution.timeMs,
+      memoryKb: null,
+    };
+  }
+
   if (execution.code === null && isMissingBinaryError(execution.stderr)) {
     return {
       stdout: "",
@@ -760,19 +778,6 @@ async function executeOnHost(params: {
 
   const stdout = normalizeOutput(execution.stdout);
   const stderr = normalizeOutput(execution.stderr);
-
-  if (execution.timedOut) {
-    return {
-      stdout: "",
-      stderr: stderr || "Execution timed out",
-      compileError: "",
-      status: "Time Limit Exceeded",
-      exitCode: execution.code,
-      timedOut: true,
-      timeMs: execution.timeMs,
-      memoryKb: null,
-    };
-  }
 
   if (execution.code === 0) {
     return {

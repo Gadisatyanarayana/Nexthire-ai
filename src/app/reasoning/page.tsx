@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Zap, BookOpen, ArrowRight, Activity, Clock, AlertTriangle } from "lucide-react";
+import { Zap, BookOpen, ArrowRight, Activity, Clock, AlertTriangle, BrainCircuit } from "lucide-react";
 import { getModules, getServerUserId, getUserTopicMastery } from "@/lib/api/reasoningV2";
 import { LessonProgress } from "@/components/reasoning/LessonProgress";
 import { SearchButton } from "@/components/reasoning/SearchButton";
@@ -11,6 +11,7 @@ import { ContinueLearningCard } from "@/components/reasoning/ContinueLearningCar
 import { StudyPlanCard } from "@/components/reasoning/StudyPlanCard";
 import { RecommendedQuizCard } from "@/components/reasoning/RecommendedQuizCard";
 import { LearningService } from "@/lib/learning/services/LearningService";
+import { BackButton } from "@/components/BackButton";
 const { KnowledgeGraphEngine } = LearningService;
 
 export const revalidate = 3600;
@@ -48,14 +49,17 @@ export default async function LogicalReasoningHubPage() {
         
         {/* Header */}
         <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl flex items-center gap-3">
-              <Zap className="h-10 w-10 text-emerald-500" />
-              Logical Reasoning Hub
-            </h1>
-            <p className="mt-3 text-lg text-zinc-400 max-w-2xl">
-              Master syllogisms, blood relations, seating arrangements, and logical deductions through our structured curriculum.
-            </p>
+          <div className="flex items-center gap-4">
+            <BackButton fallback="/" />
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl flex items-center gap-3">
+                <BrainCircuit className="h-10 w-10 text-emerald-500" />
+                Logical Reasoning
+              </h1>
+              <p className="mt-3 text-lg text-zinc-400 max-w-2xl">
+                Master puzzles, seating arrangements, and analytical reasoning through our structured curriculum.
+              </p>
+            </div>
           </div>
           <div className="flex gap-4 items-center">
             <SearchButton />

@@ -7,7 +7,7 @@ import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'reac
 import MonacoEditorWrapper from '@/components/coding/MonacoEditorWrapper';
 import { 
   Sparkles, Code2, Layers, BookOpen, Lightbulb, AlertTriangle, Building2, 
-  HelpCircle, Play, CheckCircle2, ChevronRight, ArrowRight, Wand2, ChevronLeft,
+  HelpCircle, Play, CheckCircle2, ChevronRight, ArrowRight, Wand2, ChevronLeft, ArrowLeft,
   Shuffle, CloudUpload, Clock, User, Award, Check, X, ThumbsUp, ThumbsDown,
   MessageSquare, ExternalLink, RefreshCw, Maximize2, Minimize2, Copy
 } from 'lucide-react';
@@ -105,7 +105,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                                (typeof probData.starter_code === 'string' ? probData.starter_code : null);
             const starter = (typeof starterRaw === 'string' && starterRaw.trim().length > 0)
               ? starterRaw
-              : `class Solution {\n    public int[] solve(int[] nums, int target) {\n        // TODO: Write your solution here\n        return new int[]{};\n    }\n}`;
+              : `class Solution {\n    // TODO: Write your solution here\n}`;
             setCode(starter);
           }
 
@@ -139,10 +139,10 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                        (typeof problem?.starter_code === 'string' ? problem.starter_code : null);
     const starter = (typeof starterRaw === 'string' && starterRaw.trim().length > 0)
       ? starterRaw
-      : newLang === 'python' ? `class Solution:\n    def solve(self, nums: List[int]) -> int:\n        pass`
-      : newLang === 'cpp' ? `class Solution {\npublic:\n    vector<int> solve(vector<int>& nums) {\n        return {};\n    }\n};`
-      : newLang === 'javascript' ? `function solve(nums, target) {\n  return [];\n}`
-      : `class Solution {\n    public int[] solve(int[] nums, int target) {\n        return new int[]{};\n    }\n}`;
+      : newLang === 'python' ? `class Solution:\n    # TODO: Write your solution here\n    pass`
+      : newLang === 'cpp' ? `class Solution {\npublic:\n    // TODO: Write your solution here\n};`
+      : newLang === 'javascript' ? `// TODO: Write your solution here`
+      : `class Solution {\n    // TODO: Write your solution here\n}`;
     setCode(starter);
   };
 
@@ -158,7 +158,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           problemId, 
           language, 
           code, 
-          customInput: testCases[activeCaseIdx]?.input 
+          testcases: [{ input: testCases[activeCaseIdx]?.input || "" }] 
         })
       });
       const data = await res.json();
@@ -243,6 +243,14 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           </Link>
 
           <div className="h-4 w-[1px] bg-[#424242]" />
+
+          <button 
+            onClick={() => router.back()} 
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#383838] hover:bg-[#484848] text-zinc-200 font-medium transition text-[11px]"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Back</span>
+          </button>
 
           <Link 
             href="/coding" 
@@ -613,10 +621,6 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                       <option value="python">Python 3.12</option>
                       <option value="java">Java 21</option>
                     </select>
-
-                    <span className="text-[11px] text-zinc-500 flex items-center gap-1 font-mono">
-                      <Check className="w-3 h-3 text-emerald-400" /> Auto Saved
-                    </span>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -727,7 +731,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                       {isRunning ? (
                         <div className="flex items-center gap-2 text-zinc-400 py-4">
                           <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                          <span>Running code against 100+ sandbox test cases...</span>
+                          <span>Executing code...</span>
                         </div>
                       ) : output ? (
                         output.error ? (
@@ -735,16 +739,22 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                             <div className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" /> Execution / Runtime Error</div>
                             <pre className="text-xs text-red-300 whitespace-pre-wrap font-mono pt-1">{output.error}</pre>
                           </div>
-                        ) : (
+                        ) : output.compile_error ? (
+                          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 space-y-2">
+                            <div className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" /> Compilation Error</div>
+                            <pre className="text-xs text-red-300 whitespace-pre-wrap font-mono pt-1">{output.compile_error}</pre>
+                          </div>
+                        ) : (output.status || output.result) ? (
                           <div className="space-y-4">
-                            <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl">
-                              <span className="text-base font-extrabold text-emerald-400 flex items-center gap-2">
-                                <CheckCircle2 className="w-5 h-5" /> Accepted
+                            <div className={`flex items-center justify-between p-3 rounded-xl border ${(output.status || output.result) === 'Accepted' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                              <span className={`text-base font-extrabold flex items-center gap-2 ${(output.status || output.result) === 'Accepted' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {(output.status || output.result) === 'Accepted' ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />} {(output.status || output.result)}
                               </span>
-                              <div className="flex items-center gap-4 text-xs font-mono text-zinc-300">
-                                <span>Runtime: <strong className="text-white">42 ms</strong></span>
-                                <span>Memory: <strong className="text-white">14.2 MB</strong></span>
-                                <span className="text-emerald-400 font-bold">100+ Test Cases Passed</span>
+                              <div className="flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-4 text-xs font-mono text-zinc-300">
+                                {output.execution_time_ms !== undefined && <span>Runtime: <strong className="text-white">{output.execution_time_ms} ms</strong></span>}
+                                {output.runtime_ms !== undefined && <span>Runtime: <strong className="text-white">{output.runtime_ms} ms</strong></span>}
+                                {output.memory_kb !== undefined && <span>Memory: <strong className="text-white">{(output.memory_kb / 1024).toFixed(1)} MB</strong></span>}
+                                {(output.passed !== undefined && output.total !== undefined && output.total > 0) && <span className={(output.status || output.result) === 'Accepted' ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{output.passed} / {output.total} Test Cases Passed</span>}
                               </div>
                             </div>
 
@@ -752,23 +762,27 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-zinc-400">Input Box:</div>
-                                <div className="text-amber-300 font-mono break-all">{testCases[activeCaseIdx]?.input || "[2,7,11,15]\n9"}</div>
+                                <div className="text-amber-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.input || testCases[activeCaseIdx]?.input || ""}</div>
                               </div>
 
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-zinc-400">Your Output Box:</div>
-                                <div className="text-cyan-300 font-mono break-all">{output.output || output.result || "[0,1]"}</div>
+                                <div className="text-cyan-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.output || output.output || ""}</div>
                               </div>
 
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-emerald-400">Expected Output Box:</div>
-                                <div className="text-emerald-300 font-mono break-all">{testCases[activeCaseIdx]?.expectedOutput || "[0,1]"}</div>
+                                <div className="text-emerald-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.expectedOutput || testCases[activeCaseIdx]?.expectedOutput || ""}</div>
                               </div>
                             </div>
                           </div>
+                        ) : (
+                          <div className="p-4 rounded-xl bg-zinc-800 text-zinc-300 font-mono text-sm whitespace-pre-wrap">
+                            {JSON.stringify(output, null, 2)}
+                          </div>
                         )
                       ) : (
-                        <div className="text-zinc-500 py-4">Click &quot;Run&quot; or &quot;Submit&quot; to execute code against 100+ test cases.</div>
+                        <div className="text-zinc-500 py-4">Click &quot;Run&quot; or &quot;Submit&quot; to execute code.</div>
                       )}
                     </div>
                   )}

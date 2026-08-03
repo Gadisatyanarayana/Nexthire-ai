@@ -1,56 +1,54 @@
 import { LearningService } from "@/lib/learning/services/LearningService";
 import { AptitudeModule, AptitudeLesson, AptitudeFormula, AptitudeQuestion } from "../../models/aptitude";
 
-// Legacy Aptitude API facade migrating to LearningService CQRS Query Engine
-
 export async function getServerUserId(): Promise<string | null> {
-  return LearningService.queries.getServerUserId();
+  try { return await LearningService.queries.getServerUserId(); } catch { return null; }
 }
 
 export async function getModules(): Promise<AptitudeModule[]> {
-  return LearningService.queries.getModules();
+  try { return await LearningService.queries.getModules(); } catch { return []; }
 }
 
 export async function getModule(id: string): Promise<AptitudeModule | null> {
-  return LearningService.queries.getModule(id);
+  try { return await LearningService.queries.getModule(id); } catch { return null; }
 }
 
 export async function getLesson(id: string): Promise<AptitudeLesson | null> {
-  return LearningService.queries.getLesson(id);
+  try { return await LearningService.queries.getLesson(id); } catch { return null; }
 }
 
 export async function getLessonsByModule(moduleId: string): Promise<AptitudeLesson[]> {
-  return LearningService.queries.getLessonsByModule(moduleId);
+  try { return await LearningService.queries.getLessonsByModule(moduleId); } catch { return []; }
 }
 
 export async function getAllLessons(): Promise<AptitudeLesson[]> {
-  return LearningService.queries.getAllLessons();
+  try { return await LearningService.queries.getAllLessons(); } catch { return []; }
 }
 
 export async function getFormula(id: string): Promise<AptitudeFormula | null> {
-  return LearningService.queries.getFormula(id);
+  try { return await LearningService.queries.getFormula(id); } catch { return null; }
 }
 
 export async function getFormulasByLesson(lessonId: string): Promise<AptitudeFormula[]> {
-  return LearningService.queries.getFormulasByLesson(lessonId);
+  try { return await LearningService.queries.getFormulasByLesson(lessonId); } catch { return []; }
 }
 
 export async function getQuestionPreview(lessonId: string, limit: number = 3): Promise<AptitudeQuestion[]> {
-  return LearningService.queries.getQuestionPreview(lessonId, limit);
+  try { return await LearningService.queries.getQuestionPreview(lessonId, limit); } catch { return []; }
 }
 
 export async function getUserTopicMastery(userId: string): Promise<any[]> {
-  return LearningService.queries.getUserTopicMastery(userId);
+  try { return await LearningService.queries.getUserTopicMastery(userId); } catch { return []; }
 }
 
 export async function getUserRevisionQueue(userId: string): Promise<any[]> {
-  return LearningService.queries.getUserRevisionQueue(userId);
+  try { return await LearningService.queries.getUserRevisionQueue(userId); } catch { return []; }
 }
 
 export async function searchAptitudeLessons(query: string): Promise<AptitudeLesson[]> {
-  return LearningService.queries.searchAptitudeLessons(query);
+  try { return await LearningService.queries.searchAptitudeLessons(query); } catch { return []; }
 }
 
 export async function searchAptitudeFormulas(query: string): Promise<AptitudeFormula[]> {
-  return LearningService.queries.searchAptitudeFormulas(query);
+  try { return await LearningService.queries.searchAptitudeFormulas(query); } catch { return []; }
 }

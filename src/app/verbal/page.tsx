@@ -4,6 +4,7 @@ import { Zap, BookOpen, ArrowRight, Activity, Lock, CheckCircle2 } from "lucide-
 import { getModules, getServerUserId, getUserTopicMastery } from "@/lib/api/verbalV2";
 import { LessonProgress } from "@/components/aptitude/LessonProgress";
 import { LearningService } from "@/lib/learning/services/LearningService";
+import { BackButton } from "@/components/BackButton";
 const { KnowledgeGraphEngine } = LearningService;
 
 export const revalidate = 3600;
@@ -34,14 +35,17 @@ export default async function VerbalHubPage() {
         
         {/* Header */}
         <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl flex items-center gap-3">
-              <Zap className="h-10 w-10 text-indigo-500" />
-              Verbal Ability Hub
-            </h1>
-            <p className="mt-3 text-lg text-zinc-400 max-w-2xl">
-              Master grammar rules, vocabulary, reading comprehension, and sentence construction for TCS NQT, Infosys, and MNC placements.
-            </p>
+          <div className="flex items-center gap-4">
+            <BackButton fallback="/" />
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl flex items-center gap-3">
+                <BookOpen className="h-10 w-10 text-emerald-500" />
+                Verbal Ability
+              </h1>
+              <p className="mt-3 text-lg text-zinc-400 max-w-2xl">
+                Master reading comprehension, grammar, and vocabulary through our structured curriculum.
+              </p>
+            </div>
           </div>
           <div className="flex gap-4 items-center">
             <Link

@@ -157,7 +157,6 @@ export function UserAvatarDropdown() {
             <button
               onClick={() => {
                 setOpen(false);
-                trackLogout(pathname);
                 signOut({ callbackUrl: '/' });
               }}
               className="w-full text-left px-3.5 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 transition font-semibold"
