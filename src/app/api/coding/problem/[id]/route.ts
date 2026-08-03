@@ -75,8 +75,9 @@ export async function GET(
       rawQuestion = MOCK_QUESTIONS[0];
     }
 
+    const richMetadata = enrichQuestionMetadata(rawQuestion);
     const cleanDescription = rawQuestion.description || `### ${richMetadata.title}\n\nGiven input parameters for **${richMetadata.subtopic}**, implement an optimal solution using **${richMetadata.primaryPattern}**.\n\n### Constraints\n- \`1 <= input.length <= 10^5\``;
-    const visibleCases = (rawQuestion.examples || richMetadata.sampleTestCases || []).slice(0, 3).map(e => ({
+    const visibleCases = (rawQuestion.examples || richMetadata.sampleTestCases || []).slice(0, 3).map((e: any) => ({
       input: e.input || "",
       expectedOutput: e.output || e.expectedOutput || "",
       isHidden: false
