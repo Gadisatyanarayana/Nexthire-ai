@@ -73,104 +73,10 @@ export function AppHeader() {
           <Link href={`${homePrefix}#features`} className="transition hover:text-foreground">Features</Link>
           <Link href={`${homePrefix}#how-it-works`} className="transition hover:text-foreground">How It Works</Link>
 
-          <div className="relative" ref={toolsRef}>
-            <button
-              type="button"
-              onClick={() => setToolsOpen((prev) => !prev)}
-              className="transition hover:text-foreground"
-            >
-              Apps
-            </button>
-            {toolsOpen && (
-              <div
-                className="absolute left-1/2 top-full z-[140] mt-3 w-80 -translate-x-1/2 rounded-2xl border border-foreground/10 p-2 shadow-2xl lift-in"
-                style={{ background: 'var(--bg-secondary)' }}
-              >
-                <Link
-                  href="/placement-hub"
-                  onClick={() => setToolsOpen(false)}
-                  className="flex gap-3 rounded-xl p-3 transition hover:bg-foreground/5"
-                >
-                  <Sparkles className="mt-0.5 h-5 w-5 text-foreground/80" />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">Placement Hub</span>
-                    <span className="block text-xs text-foreground/70">All student features in one guided page</span>
-                  </span>
-                </Link>
-                <Link
-                  href="/resume-analyzer"
-                  onClick={() => setToolsOpen(false)}
-                  className="flex gap-3 rounded-xl p-3 transition hover:bg-foreground/5"
-                >
-                  <Sparkles className="mt-0.5 h-5 w-5 text-foreground/80" />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">Resume Analyzer</span>
-                    <span className="block text-xs text-foreground/70">ATS scoring, strengths, and optimization guidance</span>
-                  </span>
-                </Link>
-                <Link
-                  href="/resume-builder"
-                  onClick={() => setToolsOpen(false)}
-                  className="flex gap-3 rounded-xl p-3 transition hover:bg-foreground/5"
-                >
-                  <FileText className="mt-0.5 h-5 w-5 text-foreground/80" />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">AI Resume Builder</span>
-                    <span className="block text-xs text-foreground/70">Build polished resumes with section-by-section guidance</span>
-                  </span>
-                </Link>
-                <Link
-                  href="/my-resume"
-                  onClick={() => setToolsOpen(false)}
-                  className="flex gap-3 rounded-xl p-3 transition hover:bg-foreground/5"
-                >
-                  <Briefcase className="mt-0.5 h-5 w-5 text-foreground/80" />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">My Resume Workspace</span>
-                    <span className="block text-xs text-foreground/70">Analyze resume-job match and improve role alignment</span>
-                  </span>
-                </Link>
-                <Link
-                  href="/coding"
-                  onClick={() => setToolsOpen(false)}
-                  className="flex gap-3 rounded-xl p-3 transition hover:bg-foreground/5"
-                >
-                  <FileText className="mt-0.5 h-5 w-5 text-foreground/80" />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">Coding Platform</span>
-                    <span className="block text-xs text-foreground/70">Practice questions with editor, run, and submit</span>
-                  </span>
-                </Link>
-                <Link
-                  href="/contests"
-                  onClick={() => setToolsOpen(false)}
-                  className="flex gap-3 rounded-xl p-3 transition hover:bg-foreground/5"
-                >
-                  <Sparkles className="mt-0.5 h-5 w-5 text-foreground/80" />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">Contest Center</span>
-                    <span className="block text-xs text-foreground/70">Public and private coding contests with join keys</span>
-                  </span>
-                </Link>
-                <Link
-                  href="/voice-interviewer"
-                  onClick={() => setToolsOpen(false)}
-                  className="flex gap-3 rounded-xl p-3 transition hover:bg-foreground/5"
-                >
-                  <Sparkles className="mt-0.5 h-5 w-5 text-foreground/80" />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">Live Voice AI Assistant</span>
-                    <span className="block text-xs text-foreground/70">Real-time ask-anything voice assistant with natural responses</span>
-                  </span>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <Link href={`${homePrefix}#about`} className="transition hover:text-foreground">About</Link>
-          <Link href="/placement-hub" className="transition hover:text-foreground">Placement Hub</Link>
+          <Link href="/placement-hub" className="transition hover:text-foreground text-emerald-400">Placement Hub</Link>
           <Link href="/voice-interviewer" className="transition hover:text-foreground">Live Voice AI</Link>
-          <Link href="/my-resume" className="transition hover:text-foreground">My Resume</Link>
+          <Link href="/coding" className="transition hover:text-foreground">Coding</Link>
+          <Link href={`${homePrefix}#about`} className="transition hover:text-foreground">About</Link>
         </nav>
 
         <div className="flex items-center justify-self-end gap-3 md:gap-4 pr-1">

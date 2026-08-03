@@ -49,15 +49,26 @@ export function ProgressTracker({ lessonId, isCompleted }: { lessonId: string, i
   const handleMarkComplete = async () => {
     if (completed) return;
     setMarkingComplete(true);
+    
+    // Optimistic UI Update
+    setCompleted(true);
+    
     const timeInc = activeTime - lastSaveTime.current;
     lastSaveTime.current = activeTime;
     
-    const res = await markLessonCompleteAction(lessonId, timeInc);
-    if (res.success) {
-      setCompleted(true);
-      router.refresh(); // Refresh RSC to show updated stats
+    try {
+      const res = await markLessonCompleteAction(lessonId, timeInc);
+      if (res.success) {
+        router.refresh(); // Refresh RSC to show updated stats
+      } else {
+        setCompleted(false); // Revert on failure
+      }
+    } catch (e) {
+      console.error(e);
+      setCompleted(false); // Revert on error
+    } finally {
+      setMarkingComplete(false);
     }
-    setMarkingComplete(false);
   };
 
   if (completed) {

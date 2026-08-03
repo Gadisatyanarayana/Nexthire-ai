@@ -10,7 +10,8 @@ export async function POST(request: Request) {
       problem_id: body.problemId || body.problem_id,
       code: body.code,
       language: body.language,
-      stdin: body.customInput || body.stdin
+      stdin: body.customInput || body.stdin,
+      testcases: body.testcases
     })
   });
 

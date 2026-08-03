@@ -226,10 +226,10 @@ export function enrichQuestionMetadata(q: CodingQuestion & { sub_pattern?: strin
     sampleTestCases: q.examples ? q.examples.map(e => ({ input: e.input || "", output: e.output || "" })) : [{ input: "nums = [2,7,11,15], target = 9", output: "[0,1]" }],
     hiddenTestCases: q.testcases ? q.testcases.map(t => ({ input: t.input || "", output: t.expectedOutput || "" })) : [{ input: "nums = [3,2,4], target = 6", output: "[0,1]" }],
     starterCode: q.starter_code || {
-      python: `class Solution:\n    def solve(self, nums: List[int]) -> int:\n        pass`,
-      cpp: `class Solution {\npublic:\n    int solve(vector<int>& nums) {\n        return 0;\n    }\n};`,
-      java: `class Solution {\n    public int solve(int[] nums) {\n        return 0;\n    }\n}`,
-      javascript: `class Solution {\n  solve(nums) {\n    return 0;\n  }\n}`
+      python: `class Solution:\n    def ${q.function_name || 'solve'}(self, *args, **kwargs):\n        pass`,
+      cpp: `class Solution {\npublic:\n    template <typename... Args>\n    auto ${q.function_name || 'solve'}(Args&&... args) {\n        return 0;\n    }\n};`,
+      java: `class Solution {\n    public Object ${q.function_name || 'solve'}(Object... args) {\n        return null;\n    }\n}`,
+      javascript: `class Solution {\n  ${q.function_name || 'solve'}(...args) {\n    return null;\n  }\n}`
     }
   };
 }
