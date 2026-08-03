@@ -58,6 +58,9 @@ export async function POST(req: NextRequest) {
     const validateWithSandbox = body.validateWithSandbox !== false;
 
     const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json({ error: "Database client unavailable" }, { status: 500 });
+    }
 
     const { data: problemRows } = await admin
       .from("problems")
