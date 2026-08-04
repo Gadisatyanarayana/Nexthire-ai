@@ -3,8 +3,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import MonacoEditorWrapper from '@/components/coding/MonacoEditorWrapper';
+
+const MonacoEditorWrapper = dynamic(() => import('@/components/coding/MonacoEditorWrapper'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center bg-[#181818] text-zinc-400 font-mono text-xs gap-3">
+      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <span>Loading Editor Engine...</span>
+    </div>
+  ),
+});
 import { 
   Sparkles, Code2, Layers, BookOpen, Lightbulb, AlertTriangle, Building2, 
   HelpCircle, Play, CheckCircle2, ChevronRight, ArrowRight, Wand2, ChevronLeft, ArrowLeft,
@@ -313,6 +323,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
 
           <button 
             onClick={() => router.back()} 
+            aria-label="Back to Previous Page"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#383838] hover:bg-[#484848] text-zinc-200 font-medium transition text-[11px]"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-zinc-400" />
@@ -321,6 +332,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
 
           <Link 
             href="/coding" 
+            aria-label="Problem List"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#383838] hover:bg-[#484848] text-zinc-200 font-medium transition text-[11px]"
           >
             <Layers className="w-3.5 h-3.5 text-zinc-400" />
@@ -328,13 +340,13 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           </Link>
 
           <div className="flex items-center gap-0.5">
-            <button onClick={handlePrevProblem} className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition" title="Previous Question">
+            <button onClick={handlePrevProblem} aria-label="Previous Question" className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition" title="Previous Question">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={handleNextProblem} className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition" title="Next Question">
+            <button onClick={handleNextProblem} aria-label="Next Question" className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition" title="Next Question">
               <ChevronRight className="w-4 h-4" />
             </button>
-            <button onClick={handleShuffle} className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition ml-1" title="Shuffle / Pick Random Question">
+            <button onClick={handleShuffle} aria-label="Shuffle Question" className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition ml-1" title="Shuffle / Pick Random Question">
               <Shuffle className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -345,6 +357,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           <button 
             onClick={handleRun}
             disabled={isRunning}
+            aria-label="Run Code"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#383838] hover:bg-[#484848] text-zinc-200 font-semibold transition active:scale-95 disabled:opacity-50 text-xs"
           >
             <Play className="w-3.5 h-3.5 text-zinc-300 fill-zinc-300" />
@@ -354,6 +367,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           <button 
             onClick={handleSubmit}
             disabled={isRunning}
+            aria-label="Submit Code"
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition active:scale-95 disabled:opacity-50 text-xs shadow-md"
           >
             <CloudUpload className="w-3.5 h-3.5" />
@@ -362,6 +376,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
 
           <button 
             onClick={() => setActiveTab('solutions')}
+            aria-label="AI Editorial & Solutions"
             className="p-1.5 rounded hover:bg-[#383838] text-amber-400 transition ml-1"
             title="AI Editorial & Solutions"
           >
@@ -374,6 +389,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           <div className="flex items-center gap-2 text-zinc-300 bg-[#1e1e1e] px-3 py-1 rounded border border-[#333]">
             <button
               onClick={() => setTimerRunning(!timerRunning)}
+              aria-label={timerRunning ? "Pause Timer" : "Play Timer"}
               className="hover:text-emerald-400 transition cursor-pointer flex items-center justify-center"
               title={timerRunning ? "Pause Timer" : "Play Timer"}
             >
@@ -566,7 +582,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                       className="w-full flex items-center justify-between font-bold text-xs text-zinc-300 hover:text-white"
                     >
                       <span className="flex items-center gap-2"><BookOpen className="w-3.5 h-3.5 text-blue-400" /> Similar Questions</span>
-                      <span className="text-zinc-500">{showSimilar ? '▲' : '▼'}</span>
+                      <span className="text-zinc-400">{showSimilar ? '▲' : '▼'}</span>
                     </button>
 
                     {showSimilar && (
@@ -596,7 +612,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                       className="w-full flex items-center justify-between font-bold text-xs text-zinc-300 hover:text-white"
                     >
                       <span className="flex items-center gap-2"><MessageSquare className="w-3.5 h-3.5 text-purple-400" /> Discussion (1.1K)</span>
-                      <span className="text-zinc-500">{showDiscussion ? '▲' : '▼'}</span>
+                      <span className="text-zinc-400">{showDiscussion ? '▲' : '▼'}</span>
                     </button>
 
                     {showDiscussion && (
@@ -654,7 +670,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                     <span className="text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Accepted</span>
                     <span className="font-mono text-zinc-400">42 ms</span>
                     <span className="font-mono text-zinc-400">14.2 MB</span>
-                    <span className="text-zinc-500">Just now</span>
+                    <span className="text-zinc-400">Just now</span>
                   </div>
                 </div>
               )}
@@ -682,6 +698,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                     <select
                       value={language}
                       onChange={handleLanguageChange}
+                      aria-label="Select Programming Language"
                       className="bg-[#1e1e1e] text-zinc-200 border border-[#383838] rounded px-2.5 py-0.5 text-xs font-bold outline-none focus:border-blue-500 cursor-pointer"
                     >
                       <option value="cpp">C++ (GCC 13)</option>
@@ -693,6 +710,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setCode(problem?.codingDetails?.starter_code?.[language] || "")}
+                      aria-label="Reset Code to Default"
                       className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition"
                       title="Reset Code to Default"
                     >
@@ -750,29 +768,30 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                               key={idx}
                               onClick={() => setActiveCaseIdx(idx)}
                               className={`px-3 py-1 rounded text-xs font-bold transition cursor-pointer ${
-                                activeCaseIdx === idx ? 'bg-[#383838] text-white border border-[#555]' : 'text-zinc-500 hover:text-zinc-300'
-                              }`}
-                            >
-                              Case {idx + 1}
-                            </button>
-                          ))}
-                        </div>
-                        <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-                          100+ Verified Test Cases Available
-                        </span>
+                              activeCaseIdx === idx ? 'bg-[#383838] text-white border border-[#555]' : 'text-zinc-400 hover:text-zinc-300'
+                            }`}
+                          >
+                            Case {idx + 1}
+                          </button>
+                        ))}
                       </div>
+                      <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                        100+ Verified Test Cases Available
+                      </span>
+                    </div>
 
-                      {/* Separate Input Box & Separate Expected Output Box */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* SEPARATE INPUT BOX */}
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] text-cyan-300 font-bold flex items-center justify-between">
-                            <span>Input:</span>
-                            <span className="text-[10px] text-zinc-500 font-normal">Editable Parameters</span>
-                          </label>
-                          <textarea
-                            rows={4}
-                            value={testCases[activeCaseIdx]?.input || ""}
+                    {/* Separate Input Box & Separate Expected Output Box */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* SEPARATE INPUT BOX */}
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] text-cyan-300 font-bold flex items-center justify-between">
+                          <span>Input:</span>
+                          <span className="text-[10px] text-zinc-400 font-normal">Editable Parameters</span>
+                        </label>
+                        <textarea
+                          rows={4}
+                          aria-label="Test Case Input Parameters"
+                          value={testCases[activeCaseIdx]?.input || ""}
                             onChange={(e) => {
                               const updated = [...testCases];
                               updated[activeCaseIdx] = { ...updated[activeCaseIdx], input: e.target.value };
@@ -875,7 +894,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                           </div>
                         )
                       ) : (
-                        <div className="text-zinc-500 py-4">Click &quot;Run&quot; or &quot;Submit&quot; to execute code.</div>
+                        <div className="text-zinc-400 py-4">Click &quot;Run&quot; or &quot;Submit&quot; to execute code.</div>
                       )}
                     </div>
                   )}
