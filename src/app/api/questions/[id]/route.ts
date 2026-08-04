@@ -386,11 +386,28 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
           ? fallbackExampleCases
           : enriched.testcases || [];
       const hasNormalizedSplit = normalizedVisibleCases.length > 0 || normalizedHiddenCount > 0;
-      const sampleCasesForClient = hasNormalizedSplit
+      let sampleCasesForClient = hasNormalizedSplit && normalizedVisibleCases.length > 0
         ? normalizedVisibleCases
         : dbSampleCases.length > 0
           ? dbSampleCases
           : effectiveTestcases.slice(0, 2);
+
+      if (sampleCasesForClient.length < 2 && fallbackExampleCases.length > 0) {
+        for (const ex of fallbackExampleCases) {
+          if (!sampleCasesForClient.some((c: { input: string }) => c.input === ex.input)) {
+            sampleCasesForClient.push(ex);
+          }
+          if (sampleCasesForClient.length >= 2) break;
+        }
+      }
+      if (sampleCasesForClient.length < 2 && effectiveTestcases.length > 0) {
+        for (const tc of effectiveTestcases) {
+          if (!sampleCasesForClient.some((c: { input: string }) => c.input === tc.input)) {
+            sampleCasesForClient.push(tc);
+          }
+          if (sampleCasesForClient.length >= 2) break;
+        }
+      }
       const rawHiddenCount = hasNormalizedSplit
         ? normalizedHiddenCount
         : dbHiddenCases.length > 0

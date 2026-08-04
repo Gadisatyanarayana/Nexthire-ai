@@ -556,6 +556,26 @@ function QuestionDetailPageInner() {
     return () => controller.abort();
   }, []);
 
+function buildInitialEditableCases(q: CodingQuestion) {
+  const cases: Array<{ input: string; expectedOutput: string }> = [];
+  if (Array.isArray(q.testcases)) {
+    for (const tc of q.testcases) {
+      if (tc && (tc.input || tc.expectedOutput)) {
+        cases.push({ input: String(tc.input || ""), expectedOutput: String(tc.expectedOutput || "") });
+      }
+    }
+  }
+  if (cases.length < 2 && Array.isArray(q.examples)) {
+    for (const ex of q.examples) {
+      if (ex && (ex.input || ex.output) && !cases.some((c) => c.input === ex.input)) {
+        cases.push({ input: String(ex.input || ""), expectedOutput: String(ex.output || "") });
+      }
+      if (cases.length >= 2) break;
+    }
+  }
+  return cases.length > 0 ? cases.slice(0, 5) : [{ input: "", expectedOutput: "" }];
+}
+
   // Load question data
   useEffect(() => {
     if (!params.id) return;
@@ -566,9 +586,7 @@ function QuestionDetailPageInner() {
     const localQ = getQuestionById(qId);
     if (localQ) {
       setQuestion(localQ);
-      setEditableCases(
-        (localQ.testcases || []).slice(0, 3).map((tc) => ({ input: tc.input, expectedOutput: tc.expectedOutput }))
-      );
+      setEditableCases(buildInitialEditableCases(localQ));
       setLoadingQuestion(false);
     } else {
       setLoadingQuestion(true);
@@ -581,9 +599,7 @@ function QuestionDetailPageInner() {
         const data = (await res.json().catch(() => ({}))) as { question?: CodingQuestion; error?: string };
         if (res.ok && data.question) {
           setQuestion(data.question);
-          setEditableCases(
-            (data.question.testcases || []).slice(0, 3).map((tc) => ({ input: tc.input, expectedOutput: tc.expectedOutput }))
-          );
+          setEditableCases(buildInitialEditableCases(data.question));
         } else if (!localQ) {
           throw new Error(data.error || "Question not found");
         }
