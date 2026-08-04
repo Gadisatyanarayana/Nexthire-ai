@@ -159,6 +159,9 @@ export class LearningQueryService {
         } as AptitudeModule;
       }
     }
+    const allMods = await this.getModules(subject);
+    const foundMod = allMods.find(m => m.id === id);
+    if (foundMod) return foundMod;
     return null;
   }
 
@@ -188,7 +191,26 @@ export class LearningQueryService {
       // Safe fallback if Supabase is unreachable
     }
 
-    return null;
+    const allModulesList = [
+      "quant-arithmetic", "quant-numbers", "quant-algebra", "quant-geometry", "quant-modern-math", "quant-data-interpretation",
+      "reasoning-puzzles", "reasoning-analytical", "reasoning-non-verbal",
+      "va-grammar", "va-vocabulary", "va-comprehension", "va-reasoning", "va-business-english"
+    ];
+    for (const modId of allModulesList) {
+      const lessonsInMod = await this.getLessonsByModule(modId, subject);
+      const found = lessonsInMod.find(l => l.id === id);
+      if (found) return found;
+    }
+
+    const fallbackModuleId = id.includes("-lesson-") ? id.split("-lesson-")[0] : "quant-arithmetic";
+    return {
+      id,
+      module_id: fallbackModuleId,
+      title: id.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+      description: "Comprehensive placement preparation lesson covering theory, key formulas, and practice problems.",
+      difficulty: "intermediate",
+      reading_time: "15 mins"
+    } as AptitudeLesson;
   }
 
   public static async getLessonsByModule(moduleId: string, subject: string = "aptitude"): Promise<AptitudeLesson[]> {
@@ -348,6 +370,24 @@ export class LearningQueryService {
         legReas.forEach(l => {
           if (!existingIds.has(l.id)) lessons.push(l as AptitudeLesson);
         });
+      }
+    }
+
+    const targetModules =
+      domainId === "quantitative-aptitude"
+        ? ["quant-arithmetic", "quant-numbers", "quant-algebra", "quant-geometry", "quant-modern-math", "quant-data-interpretation"]
+        : domainId === "logical-reasoning"
+          ? ["reasoning-puzzles", "reasoning-analytical", "reasoning-non-verbal"]
+          : ["va-grammar", "va-vocabulary", "va-comprehension", "va-reasoning", "va-business-english"];
+
+    const existingIds = new Set(lessons.map(l => l.id));
+    for (const modId of targetModules) {
+      const modLessons = await this.getLessonsByModule(modId, subject);
+      for (const ml of modLessons) {
+        if (!existingIds.has(ml.id)) {
+          lessons.push(ml);
+          existingIds.add(ml.id);
+        }
       }
     }
 
