@@ -1122,27 +1122,53 @@ async function executeInSandboxInternal(params: {
 
     const dockerAvailable = await isDockerAvailable();
     if (!dockerAvailable) {
-      if (!JUDGE_LOCAL_EXECUTION_FALLBACK) {
-        return {
-          stdout: "",
-          stderr: "Judge runtime unavailable: Docker not reachable. Option 1: Start Docker (docker compose -f docker-compose.judge.yml up). Option 2: Set JUDGE_LOCAL_EXECUTION_FALLBACK=true in .env.local to use host runtimes.",
-          compileError: "",
-          status: "Runtime Error",
-          exitCode: null,
-          timedOut: false,
-          timeMs: 0,
-          memoryKb: null,
-        };
+      if (
+        process.env.VERCEL === "1" ||
+        process.env.VERCEL === "true" ||
+        process.env.VERCEL_ENV ||
+        process.env.USE_CLOUD_JUDGE === "true" ||
+        !JUDGE_LOCAL_EXECUTION_FALLBACK
+      ) {
+        return await executeOnPaizaCloud({
+          language: params.language,
+          code: params.code,
+          stdin,
+          timeoutMs: runtimeTimeoutMs,
+        });
       }
 
       const hostTimeoutMs = runtimeTimeoutMs;
-      return await executeOnHost({
+      const hostResult = await executeOnHost({
         language: params.language,
         sourceFilePath,
         cwd: tempDir,
         stdin,
         timeoutMs: hostTimeoutMs,
       });
+
+      const isMissingCompiler =
+        hostResult.compileError.includes("available on host") ||
+        hostResult.compileError.includes("runtime available") ||
+        hostResult.compileError.includes("not recognized") ||
+        hostResult.compileError.includes("not found") ||
+        hostResult.compileError.includes("No Java compiler") ||
+        hostResult.compileError.includes("No C++ compiler") ||
+        hostResult.compileError.includes("No Python runtime") ||
+        (hostResult.status === "Compile Error" && (
+          hostResult.compileError.toLowerCase().includes("enoent") ||
+          hostResult.compileError.toLowerCase().includes("cannot find")
+        ));
+
+      if (isMissingCompiler) {
+        return await executeOnPaizaCloud({
+          language: params.language,
+          code: params.code,
+          stdin,
+          timeoutMs: hostTimeoutMs,
+        });
+      }
+
+      return hostResult;
     }
 
     await acquireContainerSlot();
@@ -1356,4 +1382,132 @@ function estimateLanguageMemoryKb(language: SupportedLanguage, timeMs: number): 
   }
   return 24576 + (seed * 60) + Math.round(timeMs * 0.4);
 }
+
+/**
+ * Executes code via Paiza.IO Cloud API when local compilers (javac, g++, python)
+ * or Docker containers are unavailable (e.g., when deployed on Vercel Serverless Functions).
+ */
+async function executeOnPaizaCloud(params: {
+  language: SupportedLanguage;
+  code: string;
+  stdin?: string;
+  timeoutMs?: number;
+}): Promise<SandboxExecutionResult> {
+  const langMap: Record<SupportedLanguage, string> = {
+    python: "python3",
+    java: "java",
+    cpp: "cpp",
+    javascript: "javascript",
+  };
+
+  const paizaLang = langMap[params.language] || "python3";
+  const startTime = Date.now();
+
+  try {
+    const createRes = await fetch("https://api.paiza.io/runners/create.json", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_code: params.code,
+        language: paizaLang,
+        input: params.stdin || "",
+        api_key: "guest",
+      }),
+    });
+
+    const session = (await createRes.json()) as { id?: string; error?: string };
+    if (!session || !session.id) {
+      return {
+        stdout: "",
+        stderr: "Cloud execution service temporarily unavailable.",
+        compileError: "Failed to initialize cloud sandbox.",
+        status: "Runtime Error",
+        exitCode: null,
+        timedOut: false,
+        timeMs: 0,
+        memoryKb: null,
+      };
+    }
+
+    let details: any = { status: "running" };
+    const maxAttempts = 15;
+    let attempts = 0;
+
+    while (details.status !== "completed" && attempts < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 400));
+      const res = await fetch(`https://api.paiza.io/runners/get_details.json?id=${session.id}&api_key=guest`);
+      details = await res.json();
+      attempts++;
+    }
+
+    const elapsedMs = Date.now() - startTime;
+
+    if (details.status !== "completed") {
+      return {
+        stdout: "",
+        stderr: "Execution timed out in cloud sandbox.",
+        compileError: "",
+        status: "Time Limit Exceeded",
+        exitCode: null,
+        timedOut: true,
+        timeMs: elapsedMs,
+        memoryKb: null,
+      };
+    }
+
+    // Check for compilation errors (e.g. C++ or Java syntax errors)
+    if (details.build_result === "failure" || (details.build_stderr && String(details.build_stderr).trim().length > 0)) {
+      return {
+        stdout: "",
+        stderr: "",
+        compileError: String(details.build_stderr || details.build_stdout || "Compilation Error"),
+        status: "Compile Error",
+        exitCode: Number(details.build_exit_code || 1),
+        timedOut: false,
+        timeMs: elapsedMs,
+        memoryKb: null,
+      };
+    }
+
+    // Check for runtime errors or non-zero exit code
+    const stderrStr = String(details.stderr || "");
+    const exitCodeNum = Number(details.exit_code || 0);
+
+    if (details.result === "failure" || exitCodeNum !== 0 || stderrStr.length > 0) {
+      return {
+        stdout: String(details.stdout || ""),
+        stderr: stderrStr || "Runtime Error",
+        compileError: "",
+        status: "Runtime Error",
+        exitCode: exitCodeNum,
+        timedOut: false,
+        timeMs: elapsedMs,
+        memoryKb: details.memory ? Math.round(Number(details.memory) / 1024) : null,
+      };
+    }
+
+    return {
+      stdout: String(details.stdout || ""),
+      stderr: "",
+      compileError: "",
+      status: "Accepted",
+      exitCode: 0,
+      timedOut: false,
+      timeMs: elapsedMs,
+      memoryKb: details.memory ? Math.round(Number(details.memory) / 1024) : null,
+    };
+  } catch (err) {
+    return {
+      stdout: "",
+      stderr: err instanceof Error ? err.message : "Cloud judge execution error",
+      compileError: "",
+      status: "Runtime Error",
+      exitCode: null,
+      timedOut: false,
+      timeMs: Date.now() - startTime,
+      memoryKb: null,
+    };
+  }
+}
+
 
