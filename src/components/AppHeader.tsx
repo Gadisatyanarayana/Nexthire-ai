@@ -18,9 +18,14 @@ export function AppHeader() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const isWorkspaceRoute = !pathname || pathname.startsWith('/question') || pathname.startsWith('/coding');
-
+  const isWorkspaceRoute = 
+    !pathname || 
+    pathname.startsWith('/question') || 
+    pathname.startsWith('/coding') ||
+    pathname.startsWith('/aptitude') ||
+    pathname.startsWith('/reasoning') ||
+    pathname.startsWith('/verbal') ||
+    pathname.startsWith('/system-design');
   if (isWorkspaceRoute) {
     return null;
   }
