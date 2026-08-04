@@ -63,6 +63,14 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
     { input: "[3,3]\n6" }
   ]);
 
+  // Submission Animation State
+  const [submissionPhase, setSubmissionPhase] = useState<'idle' | 'pending' | 'judging' | 'animating' | 'done'>('idle');
+  const [animatedPassedCount, setAnimatedPassedCount] = useState(0);
+  const [targetPassedCount, setTargetPassedCount] = useState(0);
+  const [totalCasesCount, setTotalCasesCount] = useState(0);
+  const [failedCaseIndex, setFailedCaseIndex] = useState(-1);
+
+
   // Stopwatch timer hook with play/pause support
   useEffect(() => {
     if (!timerRunning) return;
@@ -130,6 +138,24 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
     loadWorkspace();
   }, [problemId]);
 
+  // Animation Engine Hook
+  useEffect(() => {
+    if (submissionPhase === 'animating') {
+      const interval = setInterval(() => {
+        setAnimatedPassedCount(prev => {
+          if (prev < targetPassedCount) {
+            return prev + 1;
+          }
+          clearInterval(interval);
+          setSubmissionPhase('done');
+          return prev;
+        });
+      }, 30); // 30ms per case for a fast, snappy sweep
+      return () => clearInterval(interval);
+    }
+  }, [submissionPhase, targetPassedCount]);
+
+
   // Handle language switch
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value;
@@ -157,8 +183,12 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
         body: JSON.stringify({ 
           problemId, 
           language, 
-          code, 
-          testcases: [{ input: testCases[activeCaseIdx]?.input || "" }] 
+          code,
+          testcases: [{ 
+            input: testCases[activeCaseIdx]?.input || "",
+            expectedOutput: testCases[activeCaseIdx]?.expectedOutput || "",
+            isHidden: false 
+          }] 
         })
       });
       const data = await res.json();
@@ -174,6 +204,14 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
     setIsRunning(true);
     setConsoleTab('result');
     setOutput(null);
+    setSubmissionPhase('pending');
+    setAnimatedPassedCount(0);
+    setFailedCaseIndex(-1);
+
+    // Simulate "Pending" delay for realism
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setSubmissionPhase('judging');
+
     try {
       const res = await fetch('/api/coding/submit', {
         method: 'POST',
@@ -181,9 +219,38 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
         body: JSON.stringify({ problemId, language, code })
       });
       const data = await res.json();
-      setOutput(data.error ? { error: typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error) } : data);
+      
+      const parsedOutput = data.error 
+        ? { error: typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error) } 
+        : data;
+      
+      setOutput(parsedOutput);
+
+      if (!parsedOutput.error && !parsedOutput.compile_error && parsedOutput.cases) {
+        const totalCases = parsedOutput.cases.length;
+        // Count how many consecutive passed cases there are before a failure
+        let consecutivePasses = 0;
+        let failIdx = -1;
+        for (let i = 0; i < totalCases; i++) {
+          if (parsedOutput.cases[i].passed) {
+            consecutivePasses++;
+          } else {
+            failIdx = i;
+            break;
+          }
+        }
+        
+        setTotalCasesCount(totalCases);
+        setTargetPassedCount(consecutivePasses);
+        setFailedCaseIndex(failIdx);
+        setSubmissionPhase('animating');
+      } else {
+        setSubmissionPhase('done');
+      }
+
     } catch (err: any) {
       setOutput({ error: err.message || "Submission error" });
+      setSubmissionPhase('done');
     } finally {
       setIsRunning(false);
     }
@@ -728,10 +795,30 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
 
                   {consoleTab === 'result' && (
                     <div className="space-y-3">
-                      {isRunning ? (
-                        <div className="flex items-center gap-2 text-zinc-400 py-4">
-                          <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                          <span>Executing code...</span>
+                      {submissionPhase === 'pending' || submissionPhase === 'judging' ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                           <span className="text-zinc-400 font-bold text-sm tracking-wide">
+                              {submissionPhase === 'pending' ? 'Pending...' : 'Judging...'}
+                           </span>
+                        </div>
+                      ) : submissionPhase === 'animating' ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-6">
+                           <span className="text-blue-400 font-bold text-lg tracking-wide">Judging...</span>
+                           <div className="w-full max-w-md bg-[#252525] rounded-full h-3 border border-[#333] overflow-hidden relative">
+                              <div 
+                                 className="h-full bg-blue-500 transition-all duration-75 ease-linear"
+                                 style={{ width: `${Math.max(5, (animatedPassedCount / Math.max(1, totalCasesCount)) * 100)}%` }}
+                              />
+                           </div>
+                           <div className="font-mono text-zinc-300 font-bold">
+                              {animatedPassedCount} / {totalCasesCount} Test Cases Passed
+                           </div>
+                        </div>
+                      ) : isRunning ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                           <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                           <span className="text-zinc-400 font-bold">Executing code...</span>
                         </div>
                       ) : output ? (
                         output.error ? (
@@ -758,21 +845,27 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                               </div>
                             </div>
 
-                            {/* SEPARATE BOXES FOR RESULT */}
+                            {/* SEPARATE BOXES FOR RESULT (SHOW FAILED CASE IF SUBMITTED OR FIRST CASE IF RUN) */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-zinc-400">Input Box:</div>
-                                <div className="text-amber-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.input || testCases[activeCaseIdx]?.input || ""}</div>
+                                <div className="text-amber-300 font-mono whitespace-pre-wrap break-all">
+                                   {failedCaseIndex >= 0 ? output.cases?.[failedCaseIndex]?.input : (output.cases?.[0]?.input || testCases[activeCaseIdx]?.input || "")}
+                                </div>
                               </div>
 
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-zinc-400">Your Output Box:</div>
-                                <div className="text-cyan-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.output || output.output || ""}</div>
+                                <div className="text-cyan-300 font-mono whitespace-pre-wrap break-all">
+                                   {failedCaseIndex >= 0 ? output.cases?.[failedCaseIndex]?.output : (output.cases?.[0]?.output || output.output || "")}
+                                </div>
                               </div>
 
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-emerald-400">Expected Output Box:</div>
-                                <div className="text-emerald-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.expectedOutput || testCases[activeCaseIdx]?.expectedOutput || ""}</div>
+                                <div className="text-emerald-300 font-mono whitespace-pre-wrap break-all">
+                                   {failedCaseIndex >= 0 ? output.cases?.[failedCaseIndex]?.expectedOutput : (output.cases?.[0]?.expectedOutput || testCases[activeCaseIdx]?.expectedOutput || "")}
+                                </div>
                               </div>
                             </div>
                           </div>

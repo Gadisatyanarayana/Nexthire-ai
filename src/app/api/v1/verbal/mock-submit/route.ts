@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Fetch existing session to get paper_ids
     const { data: mockSession } = await supabase
-      .from("apt_mock_sessions")
+      .from("verbal_mock_sessions")
       .select("*")
       .eq("id", session_id)
       .maybeSingle();
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     let qMap = new Map();
     if (paperIds.length > 0) {
       const { data: questions } = await supabase
-        .from("apt_questions")
+        .from("verbal_questions")
         .select("id, correct_index, difficulty, lesson_id")
         .in("id", paperIds);
       if (questions) {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       };
 
       await supabase
-        .from("apt_mock_sessions")
+        .from("verbal_mock_sessions")
         .update({
           end_time: new Date().toISOString(),
           score: realScorePercentage,

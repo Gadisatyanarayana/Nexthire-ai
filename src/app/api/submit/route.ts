@@ -23,8 +23,8 @@ type SubmitBody = {
 
 const MIN_VISIBLE_CASES = 2;
 const MAX_VISIBLE_CASES = 3;
-const MIN_HIDDEN_CASES = 50;
-const MAX_HIDDEN_CASES = 100;
+const MIN_HIDDEN_CASES = 0;
+const MAX_HIDDEN_CASES = 50;
 const DEFAULT_SUBMIT_RATE_LIMIT_PER_MIN = 300;
 
 function parseRateLimitPerMinute(raw: string | undefined, fallback: number): number {

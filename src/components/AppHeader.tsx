@@ -2,42 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Briefcase, FileText, Sparkles } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/UserAvatarDropdown';
 
 export function AppHeader() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const hideHeader = pathname !== '/';
-  const [toolsOpen, setToolsOpen] = useState(false);
-  const toolsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!toolsOpen) return;
-
-    const closeOnOutside = (event: MouseEvent) => {
-      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
-        setToolsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', closeOnOutside);
-    return () => document.removeEventListener('mousedown', closeOnOutside);
-  }, [toolsOpen]);
-
-  useEffect(() => {
-    if (!toolsOpen) return;
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setToolsOpen(false);
-    };
-
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [toolsOpen]);
-
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -48,12 +19,14 @@ export function AppHeader() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const homePrefix = pathname === '/' ? '' : '/';
-  const isAuthRoute = pathname.startsWith('/auth');
+  const isWorkspaceRoute = !pathname || pathname.startsWith('/question') || pathname.startsWith('/coding');
 
-  if (hideHeader) {
+  if (isWorkspaceRoute) {
     return null;
   }
+
+  const homePrefix = pathname === '/' ? '' : '/';
+  const isAuthRoute = pathname ? pathname.startsWith('/auth') : false;
 
   return (
     <header

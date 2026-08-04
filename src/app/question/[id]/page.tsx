@@ -14,7 +14,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import { CodeEditor } from "@/components/coding/CodeEditor";
 import { OutputConsole } from "@/components/coding/OutputConsole";
 import { QuestionPanel } from "@/components/coding/QuestionPanel";
-import { getStarterCodeForQuestion, LANGUAGE_TO_RUNTIME_ID, type CodingQuestion } from "@/lib/codingQuestions";
+import { getQuestionById, getStarterCodeForQuestion, LANGUAGE_TO_RUNTIME_ID, type CodingQuestion } from "@/lib/codingQuestions";
 import { buildSubmissionSkillReport, type SubmissionSkillReport } from "@/lib/submissionSkillReport";
 function generateDistributionData(userVal: number, mean: number, stdDev: number, isMemory: boolean) {
   const points = 12;
@@ -224,6 +224,16 @@ async function waitForQueuedResult(submissionId: string, timeoutMs = RESULT_POLL
   }
   throw new Error("Execution timed out. Please run again or switch to a smaller test case.");
 }
+function formatErrorMessage(e: unknown): string {
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object") {
+    if ("message" in e && typeof (e as any).message === "string") return (e as any).message;
+    if ("error" in e && typeof (e as any).error === "string") return (e as any).error;
+    try { return JSON.stringify(e); } catch { return String(e); }
+  }
+  return String(e || "Execution failed");
+}
+
 async function fetchWithTimeout(input: string, signal: AbortSignal, timeoutMs = AUX_FETCH_TIMEOUT_MS) {
   const tc = new AbortController();
   const timer = setTimeout(() => tc.abort(), timeoutMs);
@@ -534,7 +544,7 @@ function QuestionDetailPageInner() {
   // Load question nav order
   useEffect(() => {
     const controller = new AbortController();
-    void fetch(`/api/questions?limit=300`, { signal: controller.signal, cache: "no-store" })
+    void fetch(`/api/questions?limit=50`, { signal: controller.signal, cache: "force-cache" })
       .then(async (res) => {
         const data = (await res.json().catch(() => ({}))) as { questions?: Array<{ id: string }> };
         if (res.ok && Array.isArray(data.questions)) {
@@ -550,18 +560,33 @@ function QuestionDetailPageInner() {
   useEffect(() => {
     if (!params.id) return;
     const controller = new AbortController();
+    const qId = String(params.id);
+
+    // Instant Local Load (0ms)
+    const localQ = getQuestionById(qId);
+    if (localQ) {
+      setQuestion(localQ);
+      setEditableCases(
+        (localQ.testcases || []).slice(0, 3).map((tc) => ({ input: tc.input, expectedOutput: tc.expectedOutput }))
+      );
+      setLoadingQuestion(false);
+    } else {
+      setLoadingQuestion(true);
+    }
 
     async function loadQuestion() {
       try {
-        setLoadingQuestion(true);
         setQuestionError(null);
-        const res = await fetch(`/api/questions/${params.id}`, { signal: controller.signal });
-        const data = (await res.json()) as { question?: CodingQuestion; error?: string };
-        if (!res.ok || !data.question) throw new Error(data.error || "Question not found");
-        setQuestion(data.question);
-        setEditableCases(
-          (data.question.testcases || []).slice(0, 3).map((tc) => ({ input: tc.input, expectedOutput: tc.expectedOutput }))
-        );
+        const res = await fetch(`/api/questions/${qId}`, { signal: controller.signal });
+        const data = (await res.json().catch(() => ({}))) as { question?: CodingQuestion; error?: string };
+        if (res.ok && data.question) {
+          setQuestion(data.question);
+          setEditableCases(
+            (data.question.testcases || []).slice(0, 3).map((tc) => ({ input: tc.input, expectedOutput: tc.expectedOutput }))
+          );
+        } else if (!localQ) {
+          throw new Error(data.error || "Question not found");
+        }
         setLoadingQuestion(false);
 
         const [progressResult, similarResult] = await Promise.allSettled([
@@ -756,7 +781,7 @@ function QuestionDetailPageInner() {
       else if (cases.length > 0) setSelectedCaseIndex(0);
       void trackActivity('question_run', { questionId: question.id, language, cases: cases.length, passedCases: cases.filter((c) => c.passed).length });
     } catch (e) {
-      setExecutionError(e instanceof Error ? e.message : "Execution failed");
+      setExecutionError(formatErrorMessage(e));
     } finally { setExecuting(false); setExecutionMode(null); }
   }
 
@@ -805,7 +830,7 @@ function QuestionDetailPageInner() {
       void loadUserStats();
     } catch (e) {
       setBottomPanelTab("result");
-      setExecutionError(e instanceof Error ? e.message : "Submission failed");
+      setExecutionError(formatErrorMessage(e));
     } finally { setExecuting(false); setExecutionMode(null); }
   }
 
@@ -837,129 +862,25 @@ function QuestionDetailPageInner() {
       className="flex flex-col overflow-hidden"
       style={{ height: "100vh", background: "var(--bg-primary)" }}
     >
-      {/* ── TOP NAV BAR ── */}
-      <div
-        className="flex items-center justify-between gap-2 px-3 flex-shrink-0"
-        style={{ height: "48px", borderBottom: "1px solid var(--border-primary)", background: "var(--bg-secondary)" }}
+      {/* ── TOP NAV BAR (ONLY BACK BUTTON) ── */}
+      <header
+        role="banner"
+        aria-label="Coding Workspace Navigation"
+        className="flex items-center justify-between gap-2 px-4 flex-shrink-0"
+        style={{ height: "42px", borderBottom: "1px solid var(--border-primary)", background: "var(--bg-secondary)" }}
       >
-        {/* Left */}
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2">
           <Link
             href={backHref}
-            className="btn btn-ghost"
-            style={{ padding: "5px 10px", fontSize: "12px", flexShrink: 0 }}
+            aria-label={contestId ? "Back to Contest" : "Back to Problems"}
+            className="btn btn-ghost flex items-center gap-1.5 font-semibold transition hover:opacity-80"
+            style={{ padding: "4px 10px", fontSize: "13px", color: "var(--text-primary)" }}
           >
-            <ChevronLeft style={{ width: 14, height: 14 }} />
-            {contestId ? "Contest" : "Problems"}
+            <ChevronLeft style={{ width: 16, height: 16 }} />
+            <span>{contestId ? "Back to Contest" : "Back to Problems"}</span>
           </Link>
-
-          <div
-            style={{ width: 1, height: 20, background: "var(--border-primary)", flexShrink: 0 }}
-          />
-
-          <button
-            type="button"
-            onClick={() => navigateQuestion(-1)}
-            disabled={!hasPrevQuestion}
-            className="btn btn-ghost"
-            style={{ padding: "4px 6px" }}
-            title="Previous Problem"
-          >
-            <ChevronLeft style={{ width: 14, height: 14 }} />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigateQuestion(1)}
-            disabled={!hasNextQuestion}
-            className="btn btn-ghost"
-            style={{ padding: "4px 6px" }}
-            title="Next Problem"
-          >
-            <ChevronRight style={{ width: 14, height: 14 }} />
-          </button>
-
-          {question && (
-            <span
-              className="text-sm font-semibold truncate"
-              style={{ color: "var(--text-primary)", maxWidth: "240px" }}
-            >
-              {question.title}
-            </span>
-          )}
-          {question && (
-            <span
-              className="text-xs font-semibold rounded-full px-2 py-0.5 shrink-0"
-              style={{
-                color: question.difficulty === "Easy" ? "var(--color-easy)" : question.difficulty === "Medium" ? "var(--color-medium)" : "var(--color-hard)",
-                background: question.difficulty === "Easy" ? "rgba(0,184,163,0.12)" : question.difficulty === "Medium" ? "rgba(255,161,22,0.12)" : "rgba(239,71,67,0.12)",
-              }}
-            >
-              {question.difficulty}
-            </span>
-          )}
-            {solvedBefore && (
-              <CheckCircle2 style={{ width: 15, height: 15, color: "var(--color-easy)", flexShrink: 0 }} />
-            )}
-
         </div>
-
-        {/* Right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Link to full progress page */}
-          <a
-            href="/coding/profile"
-            className="btn btn-ghost flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold select-none transition hover:opacity-80"
-            style={{
-              color: userStats?.currentStreak > 0 ? "var(--color-wrong)" : "var(--text-secondary)",
-              border: "1px solid var(--border-primary)",
-              background: "var(--bg-tertiary)",
-              textDecoration: "none"
-            }}
-            title="View My Progress"
-          >
-            <Flame className="h-4 w-4" style={{ fill: userStats?.currentStreak > 0 ? "var(--color-wrong)" : "none" }} />
-            <span>{userStats?.currentStreak || 0}d</span>
-          </a>
-
-          {contestRemainingMs !== null && (
-            <span
-              className="text-xs font-semibold px-2.5 py-1 rounded-md"
-              style={{
-                background: contestRemainingMs <= 300000 ? "rgba(239,71,67,0.15)" : "rgba(0,184,163,0.1)",
-                color: contestRemainingMs <= 300000 ? "var(--color-wrong)" : "var(--color-easy)",
-                border: `1px solid ${contestRemainingMs <= 300000 ? "rgba(239,71,67,0.25)" : "rgba(0,184,163,0.2)"}`,
-              }}
-            >
-              ⏱ {formatCountdown(contestRemainingMs)}
-            </span>
-          )}
-
-          {/* Language selector */}
-          <div
-            className="flex items-center rounded-md p-0.5"
-            style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border-primary)" }}
-          >
-            {(["cpp", "java", "python"] as const).map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => setLanguage(lang)}
-                className="px-3 py-1 text-xs font-semibold rounded transition-all"
-                style={{
-                  background: language === lang ? "var(--bg-secondary)" : "transparent",
-                  color: language === lang ? "var(--text-primary)" : "var(--text-muted)",
-                  border: language === lang ? "1px solid var(--border-secondary)" : "1px solid transparent",
-                  boxShadow: language === lang ? "var(--shadow-sm)" : "none",
-                }}
-              >
-                {lang === "cpp" ? "C++" : lang === "java" ? "Java" : "Python"}
-              </button>
-            ))}
-          </div>
-
-
-        </div>
-      </div>
+      </header>
 
       {/* ── LOADING / ERROR ── */}
       {loadingQuestion && (
@@ -1343,6 +1264,7 @@ function QuestionDetailPageInner() {
                               onToggleMaximize={() => setEditorMaximized((v) => !v)}
                               onRun={() => void runCode()}
                               onSubmit={() => void submitCode()}
+                              onLanguageChange={(lang) => setLanguage(lang as "cpp" | "java" | "python")}
                               executing={executing}
                               executionMode={executionMode}
                               diagnostics={output?.diagnostics || []}

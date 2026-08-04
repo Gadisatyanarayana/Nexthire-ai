@@ -25,6 +25,8 @@ export type CodingQuestion = {
   testcases: QuestionTestCase[];
   starter_code?: Partial<Record<"cpp" | "java" | "python", string>>;
   hints?: string[];
+  expected_time_complexity?: string;
+  expected_space_complexity?: string;
 };
 
 export const LANGUAGE_TO_RUNTIME_ID: Record<string, number> = {
@@ -1263,8 +1265,14 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
     pattern_tags: ["prefix-sum", "hashing"],
     acceptance_rate: 44,
     description: "Given an array of integers nums and an integer k, return the total number of subarrays whose sum equals to k.",
-    examples: [{ input: "nums = [1,1,1], k = 2", output: "2" }],
-    testcases: [{ input: "[1,1,1]\n2", expectedOutput: "2" }],
+    examples: [
+      { input: "nums = [1,1,1], k = 2", output: "2" },
+      { input: "nums = [1,2,3], k = 3", output: "2" }
+    ],
+    testcases: [
+      { input: "[1,1,1]\n2", expectedOutput: "2" },
+      { input: "[1,2,3]\n3", expectedOutput: "2" }
+    ],
     starter_code: {
       cpp: `class Solution {\npublic:\n    int subarraySum(vector<int>& nums, int k) {\n        unordered_map<int, int> mp = {{0, 1}};\n        int sum = 0, count = 0;\n        for (int n : nums) {\n            sum += n;\n            if (mp.count(sum - k)) count += mp[sum - k];\n            mp[sum]++;\n        }\n        return count;\n    }\n};`,
       java: `class Solution {\n    public int subarraySum(int[] nums, int k) {\n        Map<Integer, Integer> map = new HashMap<>();\n        map.put(0, 1);\n        int sum = 0, count = 0;\n        for (int n : nums) {\n            sum += n;\n            if (map.containsKey(sum - k)) count += map.get(sum - k);\n            map.put(sum, map.getOrDefault(sum, 0) + 1);\n        }\n        return count;\n    }\n}`,
@@ -1281,8 +1289,14 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
     pattern_tags: ["binary-search"],
     acceptance_rate: 39,
     description: "Given the array nums after the possible rotation and an integer target, return the index of target if it is in nums, or -1 if it is not in nums.",
-    examples: [{ input: "nums = [4,5,6,7,0,1,2], target = 0", output: "4" }],
-    testcases: [{ input: "[4,5,6,7,0,1,2]\n0", expectedOutput: "4" }],
+    examples: [
+      { input: "nums = [4,5,6,7,0,1,2], target = 0", output: "4" },
+      { input: "nums = [4,5,6,7,0,1,2], target = 3", output: "-1" }
+    ],
+    testcases: [
+      { input: "[4,5,6,7,0,1,2]\n0", expectedOutput: "4" },
+      { input: "[4,5,6,7,0,1,2]\n3", expectedOutput: "-1" }
+    ],
     starter_code: {
       cpp: `class Solution {\npublic:\n    int search(vector<int>& nums, int target) {\n        int l = 0, r = nums.size() - 1;\n        while (l <= r) {\n            int m = l + (r - l) / 2;\n            if (nums[m] == target) return m;\n            if (nums[l] <= nums[m]) {\n                if (nums[l] <= target && target < nums[m]) r = m - 1;\n                else l = m + 1;\n            } else {\n                if (nums[m] < target && target <= nums[r]) l = m + 1;\n                else r = m - 1;\n            }\n        }\n        return -1;\n    }\n};`,
       java: `class Solution {\n    public int search(int[] nums, int target) {\n        int l = 0, r = nums.length - 1;\n        while (l <= r) {\n            int m = l + (r - l) / 2;\n            if (nums[m] == target) return m;\n            if (nums[l] <= nums[m]) {\n                if (nums[l] <= target && target < nums[m]) r = m - 1;\n                else l = m + 1;\n            } else {\n                if (nums[m] < target && target <= nums[r]) l = m + 1;\n                else r = m - 1;\n            }\n        }\n        return -1;\n    }\n}`,
@@ -1299,8 +1313,14 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
     pattern_tags: ["merge-intervals", "sorting"],
     acceptance_rate: 46,
     description: "Given an array of intervals where intervals[i] = [starti, endi], merge all overlapping intervals, and return an array of the non-overlapping intervals.",
-    examples: [{ input: "intervals = [[1,3],[2,6],[8,10],[15,18]]", output: "[[1,6],[8,10],[15,18]]" }],
-    testcases: [{ input: "[[1,3],[2,6],[8,10],[15,18]]", expectedOutput: "[[1,6],[8,10],[15,18]]" }],
+    examples: [
+      { input: "intervals = [[1,3],[2,6],[8,10],[15,18]]", output: "[[1,6],[8,10],[15,18]]" },
+      { input: "intervals = [[1,4],[4,5]]", output: "[[1,5]]" }
+    ],
+    testcases: [
+      { input: "[[1,3],[2,6],[8,10],[15,18]]", expectedOutput: "[[1,6],[8,10],[15,18]]" },
+      { input: "[[1,4],[4,5]]", expectedOutput: "[[1,5]]" }
+    ],
     starter_code: {
       cpp: `class Solution {\npublic:\n    vector<vector<int>> merge(vector<vector<int>>& intervals) {\n        sort(intervals.begin(), intervals.end());\n        vector<vector<int>> res;\n        for (auto& interval : intervals) {\n            if (res.empty() || res.back()[1] < interval[0]) res.push_back(interval);\n            else res.back()[1] = max(res.back()[1], interval[1]);\n        }\n        return res;\n    }\n};`,
       java: `class Solution {\n    public int[][] merge(int[][] intervals) {\n        Arrays.sort(intervals, (a,b)->Integer.compare(a[0], b[0]));\n        List<int[]> res = new ArrayList<>();\n        for (int[] interval : intervals) {\n            if (res.isEmpty() || res.get(res.size() - 1)[1] < interval[0]) res.add(interval);\n            else res.get(res.size() - 1)[1] = Math.max(res.get(res.size() - 1)[1], interval[1]);\n        }\n        return res.toArray(new int[0][]);\n    }\n}`,
@@ -1317,8 +1337,14 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
     pattern_tags: ["bit-manipulation"],
     acceptance_rate: 71,
     description: "Given a non-empty array of integers nums, every element appears twice except for one. Find that single one.",
-    examples: [{ input: "nums = [4,1,2,1,2]", output: "4" }],
-    testcases: [{ input: "[4,1,2,1,2]", expectedOutput: "4" }],
+    examples: [
+      { input: "nums = [4,1,2,1,2]", output: "4" },
+      { input: "nums = [2,2,1]", output: "1" }
+    ],
+    testcases: [
+      { input: "[4,1,2,1,2]", expectedOutput: "4" },
+      { input: "[2,2,1]", expectedOutput: "1" }
+    ],
     starter_code: {
       cpp: `class Solution {\npublic:\n    int singleNumber(vector<int>& nums) {\n        int res = 0;\n        for (int n : nums) res ^= n;\n        return res;\n    }\n};`,
       java: `class Solution {\n    public int singleNumber(int[] nums) {\n        int res = 0;\n        for (int n : nums) res ^= n;\n        return res;\n    }\n}`,
@@ -1335,8 +1361,14 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
     pattern_tags: ["topological-sort", "graph"],
     acceptance_rate: 49,
     description: "There are a total of numCourses courses you have to take, labeled from 0 to numCourses - 1. Return the ordering of courses you should take to finish all courses.",
-    examples: [{ input: "numCourses = 4, prerequisites = [[1,0],[2,0],[3,1],[3,2]]", output: "[0,2,1,3]" }],
-    testcases: [{ input: "4\n[[1,0],[2,0],[3,1],[3,2]]", expectedOutput: "[0,2,1,3]" }],
+    examples: [
+      { input: "numCourses = 4, prerequisites = [[1,0],[2,0],[3,1],[3,2]]", output: "[0,2,1,3]" },
+      { input: "numCourses = 2, prerequisites = [[1,0]]", output: "[0,1]" }
+    ],
+    testcases: [
+      { input: "4\n[[1,0],[2,0],[3,1],[3,2]]", expectedOutput: "[0,2,1,3]" },
+      { input: "2\n[[1,0]]", expectedOutput: "[0,1]" }
+    ],
     starter_code: {
       cpp: `class Solution {\npublic:\n    vector<int> findOrder(int numCourses, vector<vector<int>>& prerequisites) {\n        vector<int> inDegree(numCourses, 0);\n        vector<vector<int>> adj(numCourses);\n        for (auto& p : prerequisites) { adj[p[1]].push_back(p[0]); inDegree[p[0]]++; }\n        queue<int> q;\n        for (int i = 0; i < numCourses; i++) if (inDegree[i] == 0) q.push(i);\n        vector<int> res;\n        while (!q.empty()) {\n            int curr = q.front(); q.pop(); res.push_back(curr);\n            for (int next : adj[curr]) if (--inDegree[next] == 0) q.push(next);\n        }\n        return res.size() == numCourses ? res : vector<int>();\n    }\n};`,
       java: `class Solution {\n    public int[] findOrder(int numCourses, int[][] prerequisites) {\n        int[] inDegree = new int[numCourses];\n        List<List<Integer>> adj = new ArrayList<>();\n        for (int i = 0; i < numCourses; i++) adj.add(new ArrayList<>());\n        for (int[] p : prerequisites) { adj.get(p[1]).add(p[0]); inDegree[p[0]]++; }\n        Queue<Integer> q = new LinkedList<>();\n        for (int i = 0; i < numCourses; i++) if (inDegree[i] == 0) q.add(i);\n        int[] res = new int[numCourses]; int idx = 0;\n        while (!q.isEmpty()) {\n            int curr = q.poll(); res[idx++] = curr;\n            for (int next : adj.get(curr)) if (--inDegree[next] == 0) q.add(next);\n        }\n        return idx == numCourses ? res : new int[0];\n    }\n}`,
@@ -1353,8 +1385,14 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
     pattern_tags: ["shortest-path", "dijkstra"],
     acceptance_rate: 52,
     description: "You are given a network of n nodes, labeled from 1 to n. Return the minimum time it takes for all the n nodes to receive the signal.",
-    examples: [{ input: "times = [[2,1,1],[2,3,1],[3,4,1]], n = 4, k = 2", output: "2" }],
-    testcases: [{ input: "[[2,1,1],[2,3,1],[3,4,1]]\n4\n2", expectedOutput: "2" }],
+    examples: [
+      { input: "times = [[2,1,1],[2,3,1],[3,4,1]], n = 4, k = 2", output: "2" },
+      { input: "times = [[1,2,1]], n = 2, k = 1", output: "1" }
+    ],
+    testcases: [
+      { input: "[[2,1,1],[2,3,1],[3,4,1]]\n4\n2", expectedOutput: "2" },
+      { input: "[[1,2,1]]\n2\n1", expectedOutput: "1" }
+    ],
     starter_code: {
       cpp: `class Solution {\npublic:\n    int networkDelayTime(vector<vector<int>>& times, int n, int k) {\n        vector<vector<pair<int,int>>> adj(n + 1);\n        for (auto& t : times) adj[t[0]].push_back({t[1], t[2]});\n        priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> pq;\n        vector<int> dist(n + 1, 1e9);\n        dist[k] = 0; pq.push({0, k});\n        while (!pq.empty()) {\n            auto [d, u] = pq.top(); pq.pop();\n            if (d > dist[u]) continue;\n            for (auto& [v, w] : adj[u]) {\n                if (dist[u] + w < dist[v]) {\n                    dist[v] = dist[u] + w;\n                    pq.push({dist[v], v});\n                }\n            }\n        }\n        int maxD = 0;\n        for (int i = 1; i <= n; i++) {\n            if (dist[i] == 1e9) return -1;\n            maxD = max(maxD, dist[i]);\n        }\n        return maxD;\n    }\n};`,
       java: `class Solution {\n    public int networkDelayTime(int[][] times, int n, int k) {\n        List<List<int[]>> adj = new ArrayList<>();\n        for (int i = 0; i <= n; i++) adj.add(new ArrayList<>());\n        for (int[] t : times) adj.get(t[0]).add(new int[]{t[1], t[2]});\n        PriorityQueue<int[]> pq = new PriorityQueue<>((a,b)->a[0]-b[0]);\n        int[] dist = new int[n + 1]; Arrays.fill(dist, (int)1e9);\n        dist[k] = 0; pq.add(new int[]{0, k});\n        while (!pq.isEmpty()) {\n            int[] curr = pq.poll(); int d = curr[0], u = curr[1];\n            if (d > dist[u]) continue;\n            for (int[] nxt : adj.get(u)) {\n                int v = nxt[0], w = nxt[1];\n                if (dist[u] + w < dist[v]) {\n                    dist[v] = dist[u] + w;\n                    pq.add(new int[]{dist[v], v});\n                }\n            }\n        }\n        int maxD = 0;\n        for (int i = 1; i <= n; i++) {\n            if (dist[i] == (int)1e9) return -1;\n            maxD = Math.max(maxD, dist[i]);\n        }\n        return maxD;\n    }\n}`,
@@ -1364,3 +1402,8 @@ export const MOCK_QUESTIONS: CodingQuestion[] = [
 ];
 
 export const codingQuestions = MOCK_QUESTIONS;
+
+export function getQuestionById(id: string): CodingQuestion | undefined {
+  if (!id) return undefined;
+  return MOCK_QUESTIONS.find((q) => q.id === id || String(q.id).toLowerCase() === String(id).toLowerCase());
+}

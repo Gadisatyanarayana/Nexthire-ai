@@ -45,36 +45,41 @@ export default async function DomainCurriculumPage({ params }: { params: Promise
           </p>
         </header>
 
-        {/* Modules Timeline */}
-        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-zinc-800 before:to-transparent">
+        {/* Modules List Grid */}
+        <div className="grid gap-6">
           {modules.map((mod, idx) => (
-            <div key={mod.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-              {/* Timeline dot */}
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-black bg-zinc-800 text-zinc-400 group-hover:bg-emerald-500 group-hover:text-black shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow transition-colors z-10">
-                <span className="font-bold text-sm">{mod.level_order}</span>
-              </div>
-              
-              {/* Card */}
-              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500">
-                    Module {mod.level_order}
-                  </span>
+            <div
+              key={mod.id}
+              className="group p-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 text-emerald-400 font-bold text-sm shrink-0 group-hover:bg-emerald-500 group-hover:text-black transition-colors">
+                  {mod.level_order || idx + 1}
                 </div>
-                
-                <h3 className="text-xl font-bold text-white mb-2">{mod.title}</h3>
-                <p className="text-sm text-zinc-400 mb-6">{mod.description}</p>
-                
-                <Link 
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500">
+                      Module {mod.level_order || idx + 1}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">
+                    {mod.title}
+                  </h3>
+                  <p className="text-sm text-zinc-400 max-w-2xl">{mod.description}</p>
+                </div>
+              </div>
+
+              <div className="shrink-0">
+                <Link
                   href={`/learn/${domainId}/${mod.id}`}
-                  className="inline-flex items-center justify-center w-full rounded-xl bg-zinc-800 hover:bg-emerald-500 hover:text-black text-white px-4 py-2.5 text-sm font-semibold transition"
+                  className="inline-flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-emerald-500 hover:text-black text-white px-6 py-2.5 text-sm font-semibold transition whitespace-nowrap"
                 >
-                  View Lessons
+                  View Lessons &rarr;
                 </Link>
               </div>
             </div>
           ))}
-          
+
           {modules.length === 0 && (
             <div className="text-center py-12 text-zinc-500 border border-dashed border-zinc-800 rounded-2xl">
               No modules found for this domain yet.

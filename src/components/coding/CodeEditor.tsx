@@ -13,6 +13,7 @@ type Props = {
   onToggleMaximize?: () => void;
   onRun?: () => void;
   onSubmit?: () => void;
+  onLanguageChange?: (lang: any) => void;
   executing?: boolean;
   executionMode?: "run" | "submit" | null;
   diagnostics?: Array<{
@@ -83,6 +84,7 @@ export function CodeEditor({
   onToggleMaximize,
   onRun,
   onSubmit,
+  onLanguageChange,
   executing = false,
   executionMode,
   diagnostics = [],
@@ -151,18 +153,37 @@ export function CodeEditor({
           height: "42px",
         }}
       >
-        {/* Left: lang badge */}
+        {/* Left: Language Selector */}
         <div className="flex items-center gap-2">
-          <span
-            className="text-xs font-semibold px-2 py-0.5 rounded"
-            style={{
-              background: "rgba(88,166,255,0.12)",
-              color: "var(--brand-blue)",
-              border: "1px solid rgba(88,166,255,0.2)",
-            }}
-          >
-            {LANG_LABELS[language] ?? language.toUpperCase()}
-          </span>
+          {onLanguageChange ? (
+            <select
+              value={language}
+              aria-label="Select Programming Language"
+              onChange={(e) => onLanguageChange(e.target.value)}
+              className="text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors cursor-pointer outline-none"
+              style={{
+                background: "var(--bg-secondary)",
+                color: "var(--brand-blue, #58a6ff)",
+                border: "1px solid rgba(88,166,255,0.3)",
+              }}
+            >
+              <option value="cpp">C++</option>
+              <option value="java">Java</option>
+              <option value="python">Python 3</option>
+              <option value="javascript">JavaScript</option>
+            </select>
+          ) : (
+            <span
+              className="text-xs font-semibold px-2 py-0.5 rounded"
+              style={{
+                background: "rgba(88,166,255,0.12)",
+                color: "var(--brand-blue)",
+                border: "1px solid rgba(88,166,255,0.2)",
+              }}
+            >
+              {LANG_LABELS[language] ?? language.toUpperCase()}
+            </span>
+          )}
           <span
             className="text-xs hidden sm:inline"
             style={{ color: "var(--text-muted)" }}
@@ -178,6 +199,7 @@ export function CodeEditor({
               type="button"
               onClick={onResetCode}
               disabled={executing}
+              aria-label="Reset to starter code"
               title="Reset to starter code"
               className="btn btn-ghost"
               style={{ padding: "4px 8px", fontSize: "11px", gap: "4px" }}
@@ -190,6 +212,7 @@ export function CodeEditor({
           <button
             type="button"
             onClick={() => void copyCode()}
+            aria-label={copied ? "Copied code" : "Copy code"}
             title={copied ? "Copied!" : "Copy code"}
             className="btn btn-ghost"
             style={{ padding: "4px 8px", fontSize: "11px", gap: "4px" }}
@@ -206,6 +229,7 @@ export function CodeEditor({
             <button
               type="button"
               onClick={onToggleMaximize}
+              aria-label={isMaximized ? "Restore split view" : "Maximize editor"}
               title={isMaximized ? "Restore split view" : "Maximize editor"}
               className="btn btn-ghost"
               style={{ padding: "4px 8px" }}
@@ -224,6 +248,7 @@ export function CodeEditor({
               type="button"
               onClick={onRun}
               disabled={executing}
+              aria-label="Run Code"
               className="btn btn-run"
               style={{ padding: "5px 14px", fontSize: "12px" }}
             >
@@ -242,6 +267,7 @@ export function CodeEditor({
               type="button"
               onClick={onSubmit}
               disabled={executing}
+              aria-label="Submit Code"
               className="btn btn-submit"
               style={{ padding: "5px 14px", fontSize: "12px" }}
             >

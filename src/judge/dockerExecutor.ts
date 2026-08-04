@@ -210,19 +210,14 @@ async function isDockerAvailable(): Promise<boolean> {
     return false;
   }
   const now = Date.now();
-  if (dockerAvailabilityCache && now - dockerAvailabilityCache.at < JUDGE_DOCKER_PROBE_TTL_MS) {
+  const ttl = (dockerAvailabilityCache && !dockerAvailabilityCache.available) ? 86_400_000 : JUDGE_DOCKER_PROBE_TTL_MS;
+  if (dockerAvailabilityCache && now - dockerAvailabilityCache.at < ttl) {
     return dockerAvailabilityCache.available;
-  }
-
-  if (process.platform === "win32") {
-    // On Windows, probing the named pipe directly can produce false negatives in some shells/permissions.
-    // Trust the docker CLI probe below as the source of truth.
-    await fs.access(DOCKER_WINDOWS_PIPE).catch(() => undefined);
   }
 
   const infoCheck = await runDockerUtilityCommand(
     ["info", "--format", "{{.ServerVersion}}"],
-    JUDGE_DOCKER_INFO_PROBE_TIMEOUT_MS
+    1000
   );
   const available = infoCheck.code === 0 && !infoCheck.timedOut;
   dockerAvailabilityCache = { at: now, available };
@@ -316,8 +311,8 @@ function getHostJavaCommands(): { javac: HostCommandSpec[]; java: HostCommandSpe
     pushPair(path.join(programFiles, "Eclipse Adoptium", "jdk-17.0.13.11-hotspot"));
     pushPair(path.join(localAppData, "Programs", "Eclipse Adoptium", "jdk-17.0.13.11-hotspot"));
 
-    javacCandidates.push({ command: "javac", args: [] });
-    javaCandidates.push({ command: "java", args: [] });
+    javacCandidates.push({ command: "javac.exe", args: [] });
+    javaCandidates.push({ command: "java.exe", args: [] });
 
     return { javac: javacCandidates, java: javaCandidates };
   }
@@ -401,7 +396,7 @@ async function runHostCommand(params: {
     cwd: params.cwd,
     stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
-      shell: false,
+    shell: process.platform === "win32",
   });
 
   child.stdout.on("data", (chunk: Buffer) => {
@@ -483,7 +478,13 @@ async function runFirstAvailableHostCommand(params: {
     execution = current;
     const missingRuntime = current.code !== 0 && isMissingBinaryError(current.stderr);
     const shouldTryNext = missingRuntime && i < params.candidates.length - 1;
-    if (!shouldTryNext) break;
+    if (!shouldTryNext) {
+      if (i > 0) {
+        const [working] = params.candidates.splice(i, 1);
+        params.candidates.unshift(working);
+      }
+      break;
+    }
   }
 
   return execution;

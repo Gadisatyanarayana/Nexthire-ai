@@ -10,19 +10,11 @@ export default async function CodingWorkspacePage({ params }: { params: Promise<
   
   return (
     <div className="h-screen w-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="h-14 border-b border-slate-700 bg-slate-800 flex items-center px-4 justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <a href="/coding" className="text-slate-400 hover:text-white transition-colors">
-            &larr; Back
-          </a>
-          <h1 className="font-semibold text-lg">Coding Workspace</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="px-3 py-1 bg-slate-700 rounded text-sm text-slate-300">
-            Auto-saving...
-          </div>
-        </div>
+      {/* Minimal Top Bar (ONLY Back button) */}
+      <header className="h-10 border-b border-slate-700 bg-slate-800 flex items-center px-4 shrink-0">
+        <a href="/coding" className="text-slate-300 hover:text-white font-semibold text-xs flex items-center gap-1.5 transition-colors">
+          &larr; Back to Problems
+        </a>
       </header>
 
       {/* Main Workspace Area */}
