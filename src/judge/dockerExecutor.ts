@@ -2,8 +2,8 @@ import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
 import * as os from "os";
 import * as path from "path";
-import { spawn } from "child_process";
-import { existsSync } from "fs";
+import { spawn, spawnSync } from "child_process";
+import { existsSync, readdirSync, statSync } from "fs";
 
 import {
   EXECUTION_CPU_LIMIT,
@@ -224,54 +224,160 @@ async function isDockerAvailable(): Promise<boolean> {
   return available;
 }
 
-function getHostRuntimeCommands(language: SupportedLanguage, sourceFilePath: string): HostCommandSpec[] {
-  if (language === "python") {
-    if (process.platform === "win32") {
-      const localAppData = String(process.env.LOCALAPPDATA || "").trim();
-      const userProfile = String(process.env.USERPROFILE || "").trim();
+const resolvedPathCache = new Map<string, string | null>();
 
-      const commands: HostCommandSpec[] = [];
-      const pushIfExists = (candidatePath: string) => {
-        if (!candidatePath) return;
-        if (!existsSync(candidatePath)) return;
-        commands.push({ command: candidatePath, args: [sourceFilePath] });
-      };
+function resolveExecutablePath(binaryName: string, envVarNames: string[] = []): string | null {
+  const cacheKey = `${binaryName}:${envVarNames.join(",")}`;
+  if (resolvedPathCache.has(cacheKey)) {
+    return resolvedPathCache.get(cacheKey) || null;
+  }
 
-      const directPythonPath = String(process.env.JUDGE_PYTHON_PATH || "").trim();
-      pushIfExists(directPythonPath);
+  for (const envVar of envVarNames) {
+    const val = String(process.env[envVar] || "").trim();
+    if (val && existsSync(val)) {
+      try {
+        const st = statSync(val);
+        if (st.isFile() && st.size > 0) {
+          resolvedPathCache.set(cacheKey, val);
+          return val;
+        }
+      } catch {}
+    }
+  }
 
-      const windowsCandidates: HostCommandSpec[] = [
-        { command: path.join(localAppData, "Programs", "Python", "Python313", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(localAppData, "Programs", "Python", "Python312", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(localAppData, "Programs", "Python", "Python311", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(localAppData, "Programs", "Python", "Python310", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "anaconda3", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "AppData", "Local", "Programs", "Python", "Python313", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "AppData", "Local", "Programs", "Python", "Python312", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "AppData", "Local", "Programs", "Python", "Python311", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "AppData", "Local", "Programs", "Python", "Python310", "python.exe"), args: [sourceFilePath] },
-      ];
+  const isWin = process.platform === "win32";
 
-      for (const candidate of windowsCandidates) {
-        if (!candidate.command) continue;
-        if (!candidate.command.includes(":") && !candidate.command.startsWith("\\")) continue;
-        pushIfExists(candidate.command);
+  const isValidExe = (p: string): boolean => {
+    if (!p || !existsSync(p)) return false;
+    try {
+      const st = statSync(p);
+      if (!st.isFile() || st.size === 0) return false;
+      if (isWin && p.toLowerCase().includes("windowsapps")) {
+        return false;
       }
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      commands.push({ command: "py", args: ["-3", sourceFilePath] });
-      commands.push({ command: "python", args: [sourceFilePath] });
+  const lookupCmd = isWin ? "where.exe" : "which";
+  try {
+    const res = spawnSync(lookupCmd, [binaryName], { encoding: "utf8", windowsHide: true, timeout: 3000 });
+    if (res.status === 0 && res.stdout) {
+      const lines = res.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      for (const line of lines) {
+        if (isValidExe(line)) {
+          resolvedPathCache.set(cacheKey, line);
+          return line;
+        }
+      }
+    }
+  } catch {}
 
-      return commands;
+  if (isWin) {
+    const localAppData = String(process.env.LOCALAPPDATA || "").trim();
+    const userProfile = String(process.env.USERPROFILE || "").trim();
+    const programFiles = String(process.env.ProgramFiles || "C:\\Program Files").trim();
+    const candidates: string[] = [];
+
+    if (binaryName.startsWith("java")) {
+      const drives = ["C:", "D:", "E:", "F:"];
+      const folderBases = [
+        "Program Files\\Java",
+        "Programfiles\\java",
+        "Program Files (x86)\\Java",
+        "Program Files\\Eclipse Adoptium",
+      ];
+      for (const drive of drives) {
+        for (const base of folderBases) {
+          const targetDir = `${drive}\\${base}`;
+          if (existsSync(targetDir)) {
+            try {
+              const entries = readdirSync(targetDir);
+              for (const entry of entries) {
+                candidates.push(path.join(targetDir, entry, "bin", `${binaryName}.exe`));
+                candidates.push(path.join(targetDir, entry, "bin", binaryName));
+              }
+            } catch {}
+          }
+        }
+      }
     }
 
-    return [
-      { command: "python3", args: [sourceFilePath] },
-      { command: "python", args: [sourceFilePath] },
-      { command: "py", args: ["-3", sourceFilePath] },
-    ];
+    if (binaryName.startsWith("g++") || binaryName.startsWith("gcc") || binaryName.startsWith("clang++")) {
+      const wingetPkgDir = path.join(localAppData, "Microsoft", "WinGet", "Packages");
+      if (existsSync(wingetPkgDir)) {
+        try {
+          const pkgs = readdirSync(wingetPkgDir);
+          for (const pkg of pkgs) {
+            if (pkg.toLowerCase().includes("winlibs") || pkg.toLowerCase().includes("mingw") || pkg.toLowerCase().includes("gcc")) {
+              const pkgPath = path.join(wingetPkgDir, pkg);
+              candidates.push(path.join(pkgPath, "mingw64", "bin", `${binaryName}.exe`));
+              candidates.push(path.join(pkgPath, "bin", `${binaryName}.exe`));
+            }
+          }
+        } catch {}
+      }
+      candidates.push(path.join(programFiles, "LLVM", "bin", "clang++.exe"));
+      candidates.push("C:\\msys64\\ucrt64\\bin\\g++.exe");
+      candidates.push("C:\\msys64\\mingw64\\bin\\g++.exe");
+      candidates.push("C:\\mingw64\\bin\\g++.exe");
+    }
+
+    if (binaryName.startsWith("python")) {
+      candidates.push(path.join(localAppData, "Programs", "Python", "Python313", "python.exe"));
+      candidates.push(path.join(localAppData, "Programs", "Python", "Python312", "python.exe"));
+      candidates.push(path.join(localAppData, "Programs", "Python", "Python311", "python.exe"));
+      candidates.push(path.join(localAppData, "Programs", "Python", "Python310", "python.exe"));
+      candidates.push(path.join(userProfile, "anaconda3", "python.exe"));
+      candidates.push(path.join(userProfile, "miniconda3", "python.exe"));
+    }
+
+    for (const cand of candidates) {
+      if (isValidExe(cand)) {
+        resolvedPathCache.set(cacheKey, cand);
+        return cand;
+      }
+    }
+  }
+
+  resolvedPathCache.set(cacheKey, null);
+  return null;
+}
+
+function getHostRuntimeCommands(language: SupportedLanguage, sourceFilePath: string): HostCommandSpec[] {
+  if (language === "python") {
+    const commands: HostCommandSpec[] = [];
+
+    const resolvedPython = resolveExecutablePath("python3", ["JUDGE_PYTHON_PATH"])
+      || resolveExecutablePath("python", ["JUDGE_PYTHON_PATH"]);
+
+    if (resolvedPython) {
+      commands.push({ command: resolvedPython, args: [sourceFilePath] });
+    }
+
+    const resolvedPy = resolveExecutablePath("py");
+    if (resolvedPy) {
+      commands.push({ command: resolvedPy, args: ["-3", sourceFilePath] });
+    }
+
+    if (process.platform === "win32") {
+      commands.push({ command: "py", args: ["-3", sourceFilePath] });
+      commands.push({ command: "python", args: [sourceFilePath] });
+    } else {
+      commands.push({ command: "python3", args: [sourceFilePath] });
+      commands.push({ command: "python", args: [sourceFilePath] });
+    }
+
+    return commands;
   }
 
   if (language === "javascript") {
+    const resolvedNode = resolveExecutablePath("node", ["JUDGE_NODE_PATH"]);
+    if (resolvedNode) {
+      return [{ command: resolvedNode, args: [sourceFilePath] }];
+    }
     return [{ command: "node", args: [sourceFilePath] }];
   }
 
@@ -279,13 +385,20 @@ function getHostRuntimeCommands(language: SupportedLanguage, sourceFilePath: str
 }
 
 function getHostJavaCommands(): { javac: HostCommandSpec[]; java: HostCommandSpec[] } {
+  const javacCandidates: HostCommandSpec[] = [];
+  const javaCandidates: HostCommandSpec[] = [];
+
+  const resolvedJavac = resolveExecutablePath("javac", ["JUDGE_JAVAC_PATH", "JAVA_HOME"]);
+  const resolvedJava = resolveExecutablePath("java", ["JUDGE_JAVA_PATH", "JAVA_HOME"]);
+
+  if (resolvedJavac && resolvedJava) {
+    javacCandidates.push({ command: resolvedJavac, args: [] });
+    javaCandidates.push({ command: resolvedJava, args: [] });
+  }
+
   if (process.platform === "win32") {
     const javaHome = String(process.env.JAVA_HOME || "").trim();
     const programFiles = String(process.env.ProgramFiles || "C:\\Program Files").trim();
-    const localAppData = String(process.env.LOCALAPPDATA || "").trim();
-
-    const javacCandidates: HostCommandSpec[] = [];
-    const javaCandidates: HostCommandSpec[] = [];
 
     const pushPair = (basePath: string) => {
       if (!basePath) return;
@@ -297,65 +410,40 @@ function getHostJavaCommands(): { javac: HostCommandSpec[]; java: HostCommandSpe
       }
     };
 
-    const explicitJavac = String(process.env.JUDGE_JAVAC_PATH || "").trim();
-    const explicitJava = String(process.env.JUDGE_JAVA_PATH || "").trim();
-    if (explicitJavac && explicitJava && existsSync(explicitJavac) && existsSync(explicitJava)) {
-      javacCandidates.push({ command: explicitJavac, args: [] });
-      javaCandidates.push({ command: explicitJava, args: [] });
-    }
-
     pushPair(javaHome);
     pushPair(path.join(programFiles, "Java", "jdk-21"));
     pushPair(path.join(programFiles, "Java", "jdk-17"));
-    pushPair(path.join(programFiles, "Eclipse Adoptium", "jdk-21.0.5.11-hotspot"));
-    pushPair(path.join(programFiles, "Eclipse Adoptium", "jdk-17.0.13.11-hotspot"));
-    pushPair(path.join(localAppData, "Programs", "Eclipse Adoptium", "jdk-17.0.13.11-hotspot"));
 
     javacCandidates.push({ command: "javac.exe", args: [] });
     javaCandidates.push({ command: "java.exe", args: [] });
-
-    return { javac: javacCandidates, java: javaCandidates };
+  } else {
+    javacCandidates.push({ command: "javac", args: [] });
+    javaCandidates.push({ command: "java", args: [] });
   }
 
-  return {
-    javac: [{ command: "javac", args: [] }],
-    java: [{ command: "java", args: [] }],
-  };
+  return { javac: javacCandidates, java: javaCandidates };
 }
 
 function getHostCppCommands(): { gpp: HostCommandSpec[] } {
-  if (process.platform === "win32") {
-    const programFiles = String(process.env.ProgramFiles || "C:\\Program Files").trim();
-    const msysRoot = String(process.env.MSYS2_ROOT || "C:\\msys64").trim();
-    const candidates: HostCommandSpec[] = [];
+  const candidates: HostCommandSpec[] = [];
 
-    const push = (commandPath: string) => {
-      if (!commandPath) return;
-      if (existsSync(commandPath)) candidates.push({ command: commandPath, args: [] });
-    };
-
-    const explicit = String(process.env.JUDGE_GPP_PATH || "").trim();
-    if (explicit && existsSync(explicit)) {
-      candidates.push({ command: explicit, args: [] });
-    }
-
-    push(path.join(msysRoot, "ucrt64", "bin", "g++.exe"));
-    push(path.join(msysRoot, "mingw64", "bin", "g++.exe"));
-    push("C:\\mingw64\\bin\\g++.exe");
-    push(path.join(programFiles, "LLVM", "bin", "clang++.exe"));
-
-    candidates.push({ command: "g++", args: [] });
-    candidates.push({ command: "clang++", args: [] });
-
-    return { gpp: candidates };
+  const resolvedGpp = resolveExecutablePath("g++", ["JUDGE_GPP_PATH"]);
+  if (resolvedGpp) {
+    candidates.push({ command: resolvedGpp, args: [] });
+  }
+  const resolvedClang = resolveExecutablePath("clang++", ["JUDGE_CLANG_PATH"]);
+  if (resolvedClang) {
+    candidates.push({ command: resolvedClang, args: [] });
+  }
+  const resolvedGcc = resolveExecutablePath("gcc", ["JUDGE_GCC_PATH"]);
+  if (resolvedGcc) {
+    candidates.push({ command: resolvedGcc, args: [] });
   }
 
-  return {
-    gpp: [
-      { command: "g++", args: [] },
-      { command: "clang++", args: [] },
-    ],
-  };
+  candidates.push({ command: "g++", args: [] });
+  candidates.push({ command: "clang++", args: [] });
+
+  return { gpp: candidates };
 }
 
 function isMissingBinaryError(stderr: string): boolean {
@@ -530,6 +618,19 @@ async function executeOnHost(params: {
         status: "Compile Error",
         exitCode: compile.code,
         timedOut: true,
+        timeMs: compile.timeMs,
+        memoryKb: null,
+      };
+    }
+
+    if (!compile.timedOut && (compile.code === null || compile.code !== 0) && isMissingBinaryError(compile.stderr)) {
+      return {
+        stdout: "",
+        stderr: "",
+        compileError: "No Java compiler (javac) runtime available on host. Install Java JDK or configure JAVA_HOME / JUDGE_JAVAC_PATH.",
+        status: "Compile Error",
+        exitCode: null,
+        timedOut: false,
         timeMs: compile.timeMs,
         memoryKb: null,
       };
