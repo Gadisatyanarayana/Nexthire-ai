@@ -49,45 +49,90 @@ export default function ResumeDashboard() {
     
     if (status !== "authenticated" || !session?.user?.email) return;
 
-    const fetchResumes = async () => {
-      setLoading(true);
-      const { data: userRow } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", session.user.email)
-        .maybeSingle();
-
-      if (userRow?.id) {
-        // Fetch saved resumes. For now, we still query 'submissions' with 'resume-builder'
-        const { data } = await supabase
-          .from("submissions")
-          .select("id, created_at, code, language")
-          .eq("user_id", userRow.id)
-          .eq("language", "resume-builder")
-          .order("created_at", { ascending: false });
-        
-        if (data) {
-          setResumes(data);
-        }
-      }
-      setLoading(false);
-    };
-
     fetchResumes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, status, router]);
+
+  const fetchResumes = async () => {
+    if (!session?.user?.email) return;
+    setLoading(true);
+    
+    const { data: userProgress } = await supabase
+      .from("user_progress")
+      .select("resume_data")
+      .eq("email", session.user.email)
+      .maybeSingle();
+      
+    if (userProgress?.resume_data) {
+      const rootData = userProgress.resume_data as any;
+      const resumesList = [];
+      
+      if (rootData.resumes) {
+        // Map the resumes dictionary into an array
+        for (const [id, resume] of Object.entries(rootData.resumes)) {
+          resumesList.push(resume);
+        }
+      } else if (rootData.experiences) {
+        // Legacy flat resume
+        resumesList.push({ ...rootData, id: "legacy-1" });
+      }
+      
+      // Sort by newest first (descending id)
+      resumesList.sort((a, b) => Number(b.id) - Number(a.id));
+      setResumes(resumesList);
+    }
+    
+    setLoading(false);
+  };
 
   const createNewResume = () => {
     const id = Date.now().toString();
     router.push(`/resume-builder/${id}`);
   };
+  
+  const duplicateResume = async (resume: any) => {
+    if (!session?.user?.email) return;
+    const newId = Date.now().toString();
+    const newResume = { ...resume, id: newId, targetRole: (resume.targetRole ? `${resume.targetRole} (Copy)` : 'Copy') };
+    
+    const { data: existing } = await supabase
+      .from("user_progress")
+      .select("resume_data")
+      .eq("email", session.user.email)
+      .single();
+
+    const existingData = existing?.resume_data || {};
+    const newRootData = {
+      ...existingData,
+      resumes: {
+        ...(existingData.resumes || {}),
+        [newId]: newResume
+      }
+    };
+    
+    await supabase.from("user_progress").upsert({ email: session.user.email, resume_data: newRootData }, { onConflict: "email" });
+    fetchResumes();
+  };
+
+  const deleteResume = async (resumeId: string) => {
+    if (!session?.user?.email) return;
+    
+    const { data: existing } = await supabase
+      .from("user_progress")
+      .select("resume_data")
+      .eq("email", session.user.email)
+      .single();
+
+    const existingData = existing?.resume_data || {};
+    if (existingData.resumes && existingData.resumes[resumeId]) {
+      delete existingData.resumes[resumeId];
+      await supabase.from("user_progress").upsert({ email: session.user.email, resume_data: existingData }, { onConflict: "email" });
+      fetchResumes();
+    }
+  };
 
   const getResumeName = (resume: any) => {
-    try {
-      const parsed = JSON.parse(String(resume.code));
-      return parsed.targetRole ? `${parsed.targetRole} Resume` : "Untitled Resume";
-    } catch {
-      return "Untitled Resume";
-    }
+    return resume.targetRole ? `${resume.targetRole} Resume` : "Untitled Resume";
   };
 
   if (loading) {
@@ -123,33 +168,37 @@ export default function ResumeDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {resumes.map((resume) => (
-            <Glass key={resume.id} isDark={isDark} className="group p-6 flex flex-col h-full" onClick={() => router.push(`/resume-builder/${resume.id}`)}>
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-xl ${isDark ? "bg-white/10 text-white" : "bg-brand-blue/10 text-brand-blue"}`}>
-                  <FileText className="h-6 w-6" />
-                </div>
-                <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-800 ${isDark ? "text-gray-400" : "text-gray-600"}`} onClick={(e) => { e.stopPropagation(); /* TODO: duplicate */ }}>
+            <Glass key={resume.id} isDark={isDark} className="group p-0 flex flex-col h-full" onClick={() => router.push(`/resume-builder/${resume.id}`)}>
+              <div className="relative">
+                <div className="absolute right-4 top-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); duplicateResume(resume); }} 
+                    className={`p-2 rounded-full backdrop-blur-md transition-colors ${
+                      isDark ? "bg-black/50 text-white hover:bg-black/70" : "bg-white/80 text-black hover:bg-white"
+                    }`}
+                  >
                     <Copy className="h-4 w-4" />
                   </button>
-                  <button className={`p-1.5 rounded hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-400 ${isDark ? "text-gray-400" : "text-gray-600"}`} onClick={(e) => { e.stopPropagation(); /* TODO: delete */ }}>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); deleteResume(resume.id); }} 
+                    className="p-2 rounded-full backdrop-blur-md bg-red-500/80 text-white hover:bg-red-600 transition-colors"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              </div>
-              
-              <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-black"}`}>
-                {getResumeName(resume)}
-              </h3>
-              
-              <div className="mt-auto space-y-3 pt-4 border-t border-gray-200/10">
-                <div className={`flex items-center text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                  <Clock className="h-3.5 w-3.5 mr-1.5" />
-                  Updated {new Date(resume.created_at).toLocaleDateString()}
+                
+                <div className="flex h-32 w-full items-center justify-center border-b border-dashed border-gray-500/30">
+                  <LayoutTemplate className={`h-12 w-12 ${isDark ? "text-gray-600" : "text-gray-400"}`} />
                 </div>
-                <div className={`flex items-center text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                  <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
-                  Jake's Resume (ATS)
+                
+                <div className="p-4">
+                  <h3 className={`font-semibold line-clamp-1 ${isDark ? "text-white" : "text-black"}`}>
+                    {getResumeName(resume)}
+                  </h3>
+                  <p className={`mt-1 text-xs flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    <Clock className="h-3 w-3" />
+                    Updated {new Date(resume.created_at || Date.now()).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
             </Glass>

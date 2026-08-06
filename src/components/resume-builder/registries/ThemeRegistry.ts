@@ -7,6 +7,12 @@ export interface ThemeConfig {
     accent: string;  // Subtle dividers, dates
     background: string; // Paper background
   };
+  style?: {
+    headerStyle?: "minimal" | "block" | "underline";
+    dividerStyle?: "none" | "thin" | "thick" | "dashed";
+    bulletStyle?: "disc" | "circle" | "square" | "none";
+    borderRadius?: string;
+  };
 }
 
 export const ThemeRegistry: Record<string, ThemeConfig> = {

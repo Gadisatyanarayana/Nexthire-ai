@@ -8,9 +8,10 @@ import { ResumeTemplateConfig } from '../templates/JakesResume';
 
 interface PreviewProps {
   form: ResumeData;
+  zoom?: number;
 }
 
-export default function ResumePreview({ form }: PreviewProps) {
+export default function ResumePreview({ form, zoom = 0.85 }: PreviewProps) {
   const templateConfig = getTemplateConfig(form.templateId);
   const themeConfig = getThemeConfig(form.themeId);
   
@@ -31,13 +32,13 @@ export default function ResumePreview({ form }: PreviewProps) {
     <aside className="flex-1 bg-[#0c0c0c] border-l border-white/10 p-8 overflow-y-auto print:block print:w-full print:p-0 print:border-none print:bg-white flex justify-center items-start">
       <div className="sticky top-4 flex flex-col items-center">
         <div 
-          className="bg-white shadow-2xl print:shadow-none transition-all duration-300 ease-in-out"
+          className="bg-white shadow-2xl print:shadow-none transition-all duration-300 ease-in-out relative"
           style={{
             width: '8.5in',
             minHeight: '11in',
-            transform: 'scale(0.85)',
+            transform: `scale(${zoom})`,
             transformOrigin: 'top center',
-            marginBottom: '-1.5in', // offset for scale
+            marginBottom: `calc(11in * ${zoom - 1})`, // Dynamic offset for scale
             backgroundColor: themeConfig.colors.background // Apply paper background from theme
           }}
         >

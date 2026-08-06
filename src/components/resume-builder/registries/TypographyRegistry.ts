@@ -2,6 +2,15 @@ export interface TypographyConfig {
   id: string;
   name: string;
   fontFamily: string;
+  overrides?: {
+    headingSize?: string;
+    bodySize?: string;
+    lineHeight?: string;
+    letterSpacing?: string;
+    paragraphSpacing?: string;
+    sectionSpacing?: string;
+    pageMargin?: string;
+  };
 }
 
 export const TypographyRegistry: Record<string, TypographyConfig> = {

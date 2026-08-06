@@ -11,6 +11,7 @@ import { ResumeData, defaultResumeData } from "@/components/resume-builder/types
 import ResumeSidebar from "@/components/resume-builder/sidebar/ResumeSidebar";
 import ResumeEditor from "@/components/resume-builder/editor/ResumeEditor";
 import ResumePreview from "@/components/resume-builder/preview/ResumePreview";
+import Toolbar from "@/components/resume-builder/shared/Toolbar";
 
 export default function ResumeOSStudio({ params }: { params: { id: string } }) {
   const { data: session } = useSession();
@@ -23,6 +24,9 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState("");
+  
+  // View State
+  const [zoom, setZoom] = useState(0.85);
 
   useEffect(() => {
     if (params.id !== "new") {
@@ -45,10 +49,23 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
       if (error && error.code !== "PGRST116") throw error;
       
       if (data?.resume_data) {
-        setForm({
-          ...defaultResumeData,
-          ...(data.resume_data as any),
-        });
+        const rootData = data.resume_data as any;
+        
+        // Backward compatibility: If it's a flat resume, upgrade it
+        let targetResume = null;
+        if (rootData.experiences && !rootData.resumes) {
+          targetResume = rootData; 
+        } else if (rootData.resumes && rootData.resumes[params.id]) {
+          targetResume = rootData.resumes[params.id];
+        }
+
+        if (targetResume) {
+          setForm({
+            ...defaultResumeData,
+            ...targetResume,
+            id: params.id // enforce id
+          });
+        }
       }
     } catch (err: any) {
       setError(err.message || "Failed to load resume");
@@ -62,11 +79,32 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
     setSaving(true);
     setError("");
     try {
+      // Fetch existing first to not overwrite other resumes
+      const { data: existing } = await supabase
+        .from("user_progress")
+        .select("resume_data")
+        .eq("email", session.user.email)
+        .single();
+
+      const existingData = existing?.resume_data || {};
+      const newRootData = {
+        ...existingData,
+        resumes: {
+          ...(existingData.resumes || {}),
+          [params.id]: { ...dataToSave, id: params.id }
+        }
+      };
+
+      // If they had legacy data, clear it from root so it's clean
+      if (newRootData.experiences && !newRootData.resumes?.["legacy"]) {
+        delete newRootData.experiences; // cleaning up legacy root keys if needed, but safer to leave alone
+      }
+
       const { error } = await supabase
         .from("user_progress")
         .upsert({ 
           email: session.user.email, 
-          resume_data: dataToSave 
+          resume_data: newRootData 
         }, { onConflict: "email" });
 
       if (error) throw error;
@@ -105,42 +143,24 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col font-sans">
-      {/* Studio Topbar */}
-      <header className="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-black z-50 print:hidden">
-        <div className="flex items-center gap-4">
-          <Link href="/resume-builder" className="text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <h1 className="font-semibold tracking-wide text-sm">NextHire Resume OS</h1>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="text-xs text-gray-500 flex items-center gap-2">
-            {error ? (
-              <span className="text-red-400">{error}</span>
-            ) : saving ? (
-              <span className="flex items-center gap-1 text-gray-400"><Loader2 className="h-3 w-3 animate-spin"/> Saving...</span>
-            ) : lastSaved ? (
-              <span className="text-gray-500">Saved at {lastSaved.toLocaleTimeString()}</span>
-            ) : null}
-          </div>
-          
-          <button onClick={() => saveDraft()} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all">
-            <Save className="h-4 w-4" /> Save Now
-          </button>
-          
-          <button onClick={handlePrint} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-md bg-white text-black hover:bg-gray-200 transition-all">
-            <Download className="h-4 w-4" /> Export PDF
-          </button>
-        </div>
-      </header>
+    <div className="h-screen bg-[#0a0a0a] text-white flex flex-col font-sans overflow-hidden">
+      
+      {/* Universal Enterprise Toolbar */}
+      <Toolbar 
+        saving={saving} 
+        lastSaved={lastSaved} 
+        error={error} 
+        onSave={() => saveDraft()} 
+        onPrint={handlePrint}
+        onZoomIn={() => setZoom(z => Math.min(z + 0.1, 2.0))}
+        onZoomOut={() => setZoom(z => Math.max(z - 0.1, 0.5))}
+      />
 
       {/* Three Column Modular Workspace */}
       <main className="flex-1 flex overflow-hidden">
         <ResumeSidebar form={form} updateField={updateField} />
         <ResumeEditor form={form} updateField={updateField} />
-        <ResumePreview form={form} />
+        <ResumePreview form={form} zoom={zoom} />
       </main>
     </div>
   );
