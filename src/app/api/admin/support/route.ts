@@ -18,22 +18,22 @@ export async function GET() {
 
     const admin = getAdminClient();
     const { data, error } = await admin
-      .from("user_activity")
-      .select("id, user_id, payload, created_at")
-      .eq("activity_type", "support_message")
+      .from("contact_messages")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
-      throw error;
+      console.warn("Failed to fetch contact_messages table", error);
+      return NextResponse.json({ messages: [] });
     }
 
     const messages = (data || []).map((row) => ({
       id: row.id,
-      userId: row.user_id,
-      name: row.payload?.name || "Anonymous",
-      email: row.payload?.email || "",
-      category: row.payload?.category || "general",
-      message: row.payload?.message || "",
+      userId: row.email,
+      name: row.name || "Anonymous",
+      email: row.email || "",
+      category: row.subject || "general",
+      message: row.message || "",
       createdAt: row.created_at,
     }));
 
@@ -60,10 +60,9 @@ export async function DELETE(req: Request) {
 
     const admin = getAdminClient();
     const { error } = await admin
-      .from("user_activity")
+      .from("contact_messages")
       .delete()
-      .eq("id", id)
-      .eq("activity_type", "support_message");
+      .eq("id", id);
 
     if (error) {
       throw error;

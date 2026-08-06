@@ -21,7 +21,11 @@ export const WaveformVisualizer = React.memo(function WaveformVisualizer({ strea
     }
 
     try {
-       
+      if (stream.getAudioTracks().length === 0) {
+        console.warn("[WaveformVisualizer] MediaStream has no audio track.");
+        return;
+      }
+      
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioCtx();
       const source = ctx.createMediaStreamSource(stream);

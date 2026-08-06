@@ -63,11 +63,50 @@ export async function upsertUserAdmin(user: SyncUserInput) {
     };
 
     const doUpsert = async () => {
+      // Check if user exists to trigger welcome email
+      const { data: existingUser } = await client.from("users").select("id").eq("email", user.email).maybeSingle();
+      const isNewUser = !existingUser;
+
       const { data } = await client
         .from("users")
         .upsert(payload, { onConflict: "email" })
         .select("id, name, email")
         .single();
+        
+      if (isNewUser && process.env.RESEND_API_KEY && data?.email) {
+        try {
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.RESEND_API_KEY}`
+            },
+            body: JSON.stringify({
+              from: "NextHire AI <onboarding@resend.dev>",
+              to: [data.email],
+              subject: "Welcome to NextHire AI! 🚀",
+              html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2>Welcome to NextHire AI, ${data.name || 'Explorer'}!</h2>
+                  <p>Thank you for joining NextHire AI. Our platform is designed to give you enterprise-grade mock interviews to help you ace your placements.</p>
+                  <h3>What's next?</h3>
+                  <ul>
+                    <li>Upload your resume to get personalized interview questions.</li>
+                    <li>Try a Mock Interview with one of our strict HR personas (like Google or Amazon).</li>
+                    <li>Check your Analytics dashboard to see where you can improve!</li>
+                  </ul>
+                  <p>Happy interviewing!</p>
+                  <p>— The NextHire AI Team</p>
+                </div>
+              `
+            })
+          });
+          console.log("[LOG] Welcome email sent to", data.email);
+        } catch (err) {
+          console.error("Failed to send welcome email:", err);
+        }
+      }
+      
       return data;
     };
 

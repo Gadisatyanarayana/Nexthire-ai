@@ -34,14 +34,8 @@ export function AppHeader() {
   const isAuthRoute = pathname ? pathname.startsWith('/auth') : false;
 
   return (
-    <header
-      className={`fixed top-0 z-[120] w-full border-b transition-all duration-300 ${
-        scrolled 
-          ? 'border-white/10 bg-[#030308]/95 shadow-xl' 
-          : 'border-transparent bg-transparent'
-      }`}
-    >
-      <div className="w-full grid h-20 grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8 lg:px-12">
+    <header className="sticky top-0 z-[120] w-full border-b transition-all duration-300 bg-[#0B0B0B] border-white/10 shadow-sm">
+      <div className="w-full grid h-[64px] grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8 lg:px-12">
         <Link href="/" className="justify-self-start text-2xl font-bold tracking-tight text-foreground md:text-3xl">
           NEXTHIRE
         </Link>

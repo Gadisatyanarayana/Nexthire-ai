@@ -115,8 +115,8 @@ export function SolarSystem() {
 
   return (
     <div 
-      className="relative w-full h-full flex items-center justify-center mx-auto opacity-100 transition-opacity duration-1000 overflow-hidden bg-transparent"
-      style={{ perspective: "1200px" }}
+      className="relative w-full h-full flex items-center justify-center mx-auto opacity-100 transition-opacity duration-1000 overflow-visible bg-transparent"
+      style={{ perspective: "1000px" }}
     >
       {/* Deep Space Starfield & Background Nebula */}
       <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center">
@@ -138,14 +138,14 @@ export function SolarSystem() {
       </div>
 
       <div 
-        className="relative w-full h-full flex items-center justify-center z-10 scale-90 md:scale-105"
-        style={{ transform: "rotateX(66deg)", transformStyle: "preserve-3d" }}
+        className="relative w-full h-full flex items-center justify-center z-10 scale-75 md:scale-90"
+        style={{ transform: "rotateX(60deg)", transformStyle: "preserve-3d" }}
       >
         {/* Central Sun Core: NEXTHIRE AI STAR */}
         <div 
           className="absolute flex flex-col items-center justify-center w-40 h-40 md:w-52 md:h-52 rounded-full z-20"
           style={{ 
-            transform: "rotateX(-66deg)",
+            transform: "rotateX(-60deg)",
             transformStyle: "preserve-3d"
           }}
         >
@@ -239,7 +239,7 @@ export function SolarSystem() {
                   onMouseLeave={() => setHoveredPlanet(null)}
                   className="group flex items-center justify-center w-full h-full rounded-full relative cursor-pointer transition-all duration-300 hover:scale-125"
                   style={{ 
-                    transform: "rotateX(-66deg)",
+                    transform: "rotateX(-60deg)",
                     background: `radial-gradient(circle at 30% 30%, ${planet.color} 0%, #030308 85%)`,
                     border: `1px solid ${planet.color}80`,
                     boxShadow: `

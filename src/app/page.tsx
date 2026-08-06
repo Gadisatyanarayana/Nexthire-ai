@@ -2,6 +2,7 @@
 
 import { SolarSystem } from "@/components/landing/SolarSystem";
 import { LandingFooter } from "@/components/landing/Footer";
+import { ContactSection } from "@/components/landing/ContactSection";
 import { ChevronDown } from "lucide-react";
 
 export default function Home() {
@@ -9,13 +10,13 @@ export default function Home() {
     <main className="min-h-screen w-full bg-[#030308] text-foreground relative flex flex-col overflow-x-hidden">
       
       {/* ── 1. FULL SCREEN 3D SOLAR SYSTEM ── */}
-      <section className="relative w-full min-h-screen flex flex-col justify-between overflow-hidden">
+      <section className="relative w-full min-h-[1200px] flex flex-col justify-between">
         
         {/* Background Radial Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[1100px] bg-gradient-to-tr from-cyan-500/15 via-purple-500/15 to-transparent blur-[140px] opacity-40 pointer-events-none -z-10 rounded-full" />
 
         {/* 3D Solar System Universe */}
-        <div className="absolute inset-0 z-0 flex items-center justify-center">
+        <div className="absolute top-[64px] w-full h-[calc(100vh-64px)] z-0 flex items-center justify-center -translate-y-8 md:-translate-y-12">
           <SolarSystem />
         </div>
 
@@ -39,7 +40,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── 2. LANDING FOOTER (UNDER THE SOLAR SYSTEM ON SCROLL) ── */}
+      {/* ── 2. CONTACT SECTION ── */}
+      <section className="relative z-10 w-full min-h-screen bg-[#030308] flex items-center justify-center">
+        <ContactSection />
+      </section>
+
+      {/* ── 3. LANDING FOOTER (UNDER THE SOLAR SYSTEM ON SCROLL) ── */}
       <div id="footer">
         <LandingFooter />
       </div>

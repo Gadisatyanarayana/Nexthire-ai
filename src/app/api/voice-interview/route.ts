@@ -6,6 +6,9 @@ import { getAdminClient, upsertUserAdmin } from "@/lib/supabaseAdmin";
 import { getMasterSystemPrompt } from "@/lib/aiMasterPrompt";
 import type { InterviewAnalysis, InterviewDifficulty, InterviewLanguage, VoiceInterviewSession, VoiceDsaQuestion, InterviewPhase } from "@/lib/interviewSession";
 import { getPhaseTimings, generateSessionId } from "@/lib/interviewSession";
+import { orchestrateTurn } from "./engines/orchestrator";
+import { extractResumeProfile } from "./engines/resume-engine";
+import { createEmptyKnowledgeGraph } from "./engines/knowledge-graph";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
@@ -149,7 +152,7 @@ function generateInitialGreeting(name: string, companyMode: string, persona: str
   return `${personaIntro} Before we jump into the technical discussion on ${topicLabel}, could you briefly introduce yourself and share what inspired your recent work?`;
 }
 
-function buildMasterInterviewerPrompt(sess: VoiceInterviewSession, resumeText: string = ""): string {
+function buildMasterInterviewerPrompt(sess: VoiceInterviewSession): string {
   const candidate = resolveCandidateName(sess);
   const phase = resolvePromptPhase(sess);
   const corePrompt = getMasterSystemPrompt("interviewer");
@@ -165,12 +168,18 @@ function buildMasterInterviewerPrompt(sess: VoiceInterviewSession, resumeText: s
     companyBias = "Target Company: Amazon. Inject questions mapping to Amazon Leadership Principles (Customer Obsession, Ownership, Bias for Action). Challenge coding optimization and scalability.";
   } else if (company === "microsoft") {
     companyBias = "Target Company: Microsoft. Encourage clean, modular design patterns, growth mindset, accessibility, and clear structural explanation.";
-  } else if (company === "tcs" || company === "infosys" || company === "accenture") {
-    companyBias = `Target Company: ${company.toUpperCase()}. Focus on core technical fundamentals, clean documentation, robust software lifecycle checks, basic data structures, and aptitude.`;
   } else if (company === "meta") {
     companyBias = "Target Company: Meta. Focus on speed of execution, rapid reasoning, optimal time complexity, and direct logical implementation.";
   } else if (company === "apple") {
     companyBias = "Target Company: Apple. Strict focus on accuracy, details, privacy, memory efficiency, and robust resource usage.";
+  } else if (company === "flipkart") {
+    companyBias = "Target Company: Flipkart. Focus on high-scale e-commerce system design, inventory management logic, and rapid execution.";
+  } else if (["tcs", "infosys", "wipro", "accenture"].includes(company)) {
+    companyBias = `Target Company: ${company.toUpperCase()}. Focus on core technical fundamentals, clean documentation, robust software lifecycle checks, basic data structures, and aptitude.`;
+  } else if (company === "deloitte") {
+    companyBias = "Target Company: Deloitte. Focus on enterprise architecture, client-facing communication skills, agile methodologies, and tech consulting mindset.";
+  } else if (["jpmorgan", "jp morgan", "goldman sachs"].includes(company)) {
+    companyBias = `Target Company: ${company.toUpperCase()}. Focus on low-latency systems, strong algorithmic foundations, risk management logic, and financial data structures.`;
   }
 
   let personaInstructions = "Persona: Professional Interviewer. Professional, objective, balanced, and structured.";
@@ -185,7 +194,7 @@ function buildMasterInterviewerPrompt(sess: VoiceInterviewSession, resumeText: s
   }
 
   const jdText = jobDescription ? `Target Job Description Context: ${jobDescription}\n` : "";
-  const resumeContext = resumeText ? `Candidate Resume Context: ${resumeText.substring(0, 1500)}...\nUse this resume to ask personalized, intelligent follow-up questions.` : "";
+  const resumeContext = sess.knowledgeGraph ? `Candidate Profile Context (JSON): ${JSON.stringify(sess.knowledgeGraph)}\nUse this structured profile to ask personalized, intelligent follow-up questions.` : "";
 
   return `${corePrompt}
 
@@ -1080,16 +1089,36 @@ async function extractResumeText(email: string): Promise<string> {
 
     if (!userRow?.resume_path) return "";
 
+    console.log("[LOG] Resume Uploaded found at:", userRow.resume_path);
+
     const { data: fileData, error } = await admin.storage.from("resumes").download(userRow.resume_path);
     if (error || !fileData) return "";
 
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    const pdfParseLib = (await import("pdf-parse")) as any;
-    const pdfParse = pdfParseLib.default || pdfParseLib;
-    const result = await pdfParse(buffer);
-    return result.text || "";
+    const pdfParse = require("pdf-parse");
+    let parseFunction = null;
+    if (typeof pdfParse === "function") parseFunction = pdfParse;
+    else if (pdfParse && typeof pdfParse.default === "function") parseFunction = pdfParse.default;
+    else if (pdfParse && pdfParse.default && typeof pdfParse.default.default === "function") parseFunction = pdfParse.default.default;
+    else if (pdfParse && typeof pdfParse.pdfParse === "function") parseFunction = pdfParse.pdfParse;
+    else {
+      console.error("[VOICE] pdfParse export is missing, keys:", Object.keys(pdfParse || {}));
+      throw new Error("parseFunction is not a function");
+    }
+    
+    // Add a strict timeout to prevent infinite hanging in edge/nodejs runtime
+    const parsePromise = parseFunction(buffer);
+    const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("pdf-parse timeout")), 5000));
+    
+    const result = await Promise.race([parsePromise, timeoutPromise]) as any;
+    const text = result.text || "";
+    
+    console.log("[LOG] Resume Parsed successfully");
+    console.log("[LOG] Resume Text Length:", text.length);
+    
+    return text;
   } catch (e) {
     console.error("Failed to parse resume", e);
     return "";
@@ -1119,17 +1148,21 @@ async function generateInterviewerReply(sess: VoiceInterviewSession, transcript:
   }
 
   try {
-    const systemPrompt = buildMasterInterviewerPrompt(sess, resumeText);
+    const systemPrompt = buildMasterInterviewerPrompt(sess);
     const hesitationNote = hasHesitationIndicators(transcript)
       ? "Candidate shows hesitation. First reassure briefly, then continue with one concise question."
       : "No hesitation detected. Continue normal interviewer flow.";
 
     const userPrompt = `Conversation so far:\n${compactHistory}\n\nLatest candidate response:\n${transcript}\n\nRemaining time: about ${remainingMinutes} minute(s).\nCurrent objective: ${phaseObjective(promptPhase)}\n${hesitationNote}\n\nRules: ask only one question in this turn, keep response under 45 words, and stay natural/human.`;
 
+    console.log("[LOG] Prompt Generated. System Prompt Length:", systemPrompt.length, "User Prompt Length:", userPrompt.length);
+
     const rawReply = await callGroqAPI([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ]);
+
+    console.log("[LOG] LLM Response Received. Length:", String(rawReply).length);
 
     let cleaned = String(rawReply || "").replace(/\s+/g, " ").trim();
     let nextPhase: PromptPhase | undefined = undefined;
@@ -1307,7 +1340,34 @@ export async function POST(req: Request) {
       const timings = getPhaseTimings(body.difficulty || "medium");
       const now = Date.now();
 
-      const resumeText = await extractResumeText(session.user.email);
+      let knowledgeGraph = createEmptyKnowledgeGraph();
+      const admin = getAdminClient();
+      
+      const { data: userRow } = await admin
+         .from("users")
+         .select("resume_profile_json")
+         .eq("email", normalizeEmail(session.user.email))
+         .maybeSingle();
+
+      if (userRow?.resume_profile_json) {
+         console.log("[LOG] Using cached resume JSON from Supabase");
+         knowledgeGraph = userRow.resume_profile_json;
+      } else {
+         const resumeText = await extractResumeText(session.user.email);
+         if (resumeText.trim()) {
+           knowledgeGraph = await extractResumeProfile(resumeText, {
+             generate: async (msgs: any[]) => await callGroqAPI(msgs)
+           });
+           
+           try {
+             await admin.from("users")
+               .update({ resume_profile_json: knowledgeGraph })
+               .eq("email", normalizeEmail(session.user.email));
+           } catch (e) {
+             console.warn("Failed to save resume JSON to users table", e);
+           }
+         }
+      }
 
       const newSession: VoiceInterviewSession = {
         id: sessionId,
@@ -1324,8 +1384,9 @@ export async function POST(req: Request) {
           jobDescription: body.jobDescription || "",
           askedQuestionIds: [],
           interviewType: body.interviewType || "Technical",
-          resumeText,
+          resumeText: "",
         },
+        knowledgeGraph,
         timeline: {
           phase: "intro",
           phaseStartedAt: now,
@@ -1363,6 +1424,8 @@ export async function POST(req: Request) {
       } catch {
         // Analytics non-blocking
       }
+
+      console.log(`[LOG] Interview Session Created: ${sessionId}`);
 
       return NextResponse.json({
         session: newSession,
@@ -1444,8 +1507,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Session not found" }, { status: 404 });
       }
 
+      const turnId = (body as any).turnId || Date.now();
+      if (process.env.NODE_ENV === 'development') console.log(`[VOICE][9] Backend Received Transcript (Turn ${turnId})`);
+
       const transcript = String(body.transcript || "").trim();
       if (!transcript) {
+        if (process.env.NODE_ENV === 'development') console.warn(`[VOICE][Error] Empty transcript received`);
         const quietReply = "I'm here, continue when you're ready.";
         sess.aiResponses.push({ role: "ai", content: quietReply, timestamp: Date.now() });
         await persistSession(sess);
@@ -1455,17 +1522,51 @@ export async function POST(req: Request) {
       const hesitationDetected = hasHesitationIndicators(transcript);
 
       sess.introTranscript = [String(sess.introTranscript || ""), transcript].filter(Boolean).join(" ").trim().slice(0, 4000);
+      
+      const turnStartTimestamp = Date.now();
       sess.aiResponses.push({
         role: "user",
         content: transcript.slice(0, 1000),
-        timestamp: Date.now(),
+        timestamp: turnStartTimestamp,
       });
 
-      const { reply, nextPhase } = await generateInterviewerReply(sess, transcript, sess.config.resumeText);
-      let coaching = reply;
+      const elapsedMs = Date.now() - sess.timeline.totalStartedAt;
+      const totalMs = (sess.config.totalDurationMinutes || 20) * 60_000;
+      
+      if (process.env.NODE_ENV === 'development') console.log(`[VOICE][10] Prompt Generated (Turn ${turnId})`);
+
+      let orchestrationResult;
+      try {
+        if (process.env.NODE_ENV === 'development') console.log(`[VOICE][11] Groq Request Started (Turn ${turnId})`);
+        
+        // Custom wrapper to enforce 15s Groq timeout via Promise.race
+        const groqCall = orchestrateTurn({
+          graph: sess.knowledgeGraph || createEmptyKnowledgeGraph(),
+          currentRound: (sess.timeline.phase as any) || "Intro",
+          elapsedTimeMs: elapsedMs,
+          totalDurationMs: totalMs,
+          companyMode: sess.config.companyMode || "general",
+          persona: sess.config.persona || "professional",
+          candidateAnswer: transcript,
+          llmProvider: { generate: async (msgs: any[]) => await callGroqAPI(msgs) }
+        });
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Groq API Timeout (15s exceeded)")), 15000)
+        );
+        
+        orchestrationResult = await Promise.race([groqCall, timeoutPromise]) as any;
+      } catch (err: any) {
+        if (process.env.NODE_ENV === 'development') console.error(`[VOICE][Error] Backend Orchestration failed:`, err);
+        return NextResponse.json({ error: "Backend timeout or failure. Triggering recovery." }, { status: 504 });
+      }
+
+      sess.knowledgeGraph = orchestrationResult.graph;
+      let coaching = orchestrationResult.aiReplyText;
+      const nextPhase = orchestrationResult.nextRound.toLowerCase() as InterviewPhase;
 
       if (hesitationDetected && !/take your time|no pressure|doing fine/i.test(coaching)) {
-        coaching = `${supportiveLine()} ${coaching}`;
+        coaching = `Take your time. ${coaching}`;
       }
 
       if (nextPhase && nextPhase !== sess.timeline.phase) {
@@ -1474,18 +1575,27 @@ export async function POST(req: Request) {
 
         if (nextPhase === "coding" && !sess.dsaQuestion) {
            const excludeList = sess.config.askedQuestionIds || [];
-           // Assuming getRandomDsaQuestion is imported and available
            sess.dsaQuestion = getRandomDsaQuestion(sess.config.difficulty, sess.config.dsaTopic, excludeList);
            if (!sess.config.askedQuestionIds) sess.config.askedQuestionIds = [];
            sess.config.askedQuestionIds.push(sess.dsaQuestion.id);
         }
       }
 
+      const turnEndTimestamp = Date.now();
+      
+      // Keep interview memory structured
       sess.aiResponses.push({
         role: "ai",
         content: coaching,
-        timestamp: Date.now(),
-      });
+        timestamp: turnEndTimestamp,
+        metadata: {
+          turnId,
+          round: (sess.timeline.phase as any) || "Intro",
+          latencyMs: turnEndTimestamp - turnStartTimestamp,
+          technicalScore: Math.floor(Math.random() * 10) + 90, // Placeholder
+          communicationScore: Math.floor(Math.random() * 10) + 90, // Placeholder
+        }
+      } as any);
 
       await persistSession(sess);
 

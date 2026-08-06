@@ -20,6 +20,7 @@ interface PreInterviewWizardProps {
 
 export function PreInterviewWizard({ onComplete }: PreInterviewWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
+  const [uploading, setUploading] = useState(false);
   
   const [resumeFile, setResumeFile] = useState<string | null>(null);
   const [targetRole, setTargetRole] = useState("Software Development Engineer (SDE-1)");
@@ -82,24 +83,72 @@ export function PreInterviewWizard({ onComplete }: PreInterviewWizardProps) {
               <p className="text-xs text-zinc-400">Allows the interviewer to ask targeted questions about your projects and stack.</p>
             </div>
           </div>
-          <div 
-            onClick={() => setResumeFile("sample_resume_john_doe.pdf")}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
+          <label 
+            className={`block border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
               resumeFile ? "border-emerald-500 bg-emerald-500/10" : "border-zinc-700 bg-zinc-950 hover:border-zinc-500"
-            }`}
+            } ${uploading ? "pointer-events-none opacity-50" : ""}`}
           >
-            <Upload className="w-10 h-10 text-zinc-400 mx-auto mb-3" />
-            {resumeFile ? (
-              <div className="text-emerald-400 font-bold text-sm flex items-center justify-center gap-2">
-                <CheckCircle className="w-5 h-5" /> {resumeFile} (Attached)
+            <input 
+              type="file" 
+              accept=".pdf,.docx" 
+              className="hidden" 
+              onChange={async (e) => {
+                if (e.target.files && e.target.files[0]) {
+                  const file = e.target.files[0];
+                  setUploading(true);
+                  try {
+                    const base64 = await new Promise<string>((resolve, reject) => {
+                      const reader = new FileReader();
+                      reader.readAsDataURL(file);
+                      reader.onload = () => resolve(reader.result as string);
+                      reader.onerror = (err) => reject(err);
+                    });
+                    const res = await fetch("/api/voice-interview", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "upload-resume",
+                        file: base64,
+                        filename: file.name,
+                        size: file.size,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                      setResumeFile(file.name);
+                    } else {
+                      alert(data.error || "Failed to upload resume.");
+                    }
+                  } catch (err) {
+                    console.error("Upload error", err);
+                    alert("Upload error.");
+                  } finally {
+                    setUploading(false);
+                  }
+                }
+              }} 
+            />
+            {uploading ? (
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mb-3" />
+                <p className="text-sm font-bold text-emerald-400">Uploading...</p>
               </div>
             ) : (
-              <div>
-                <p className="text-sm font-bold text-white">Click to Upload PDF or DOCX Resume</p>
-                <p className="text-xs text-zinc-500 mt-1">Or click to select sample candidate profile</p>
-              </div>
+              <>
+                <Upload className="w-10 h-10 text-zinc-400 mx-auto mb-3" />
+                {resumeFile ? (
+                  <div className="text-emerald-400 font-bold text-sm flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5" /> {resumeFile} (Attached)
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-bold text-white">Click to Upload PDF or DOCX Resume</p>
+                    <p className="text-xs text-zinc-500 mt-1">Required to tailor interview questions</p>
+                  </div>
+                )}
+              </>
             )}
-          </div>
+          </label>
         </div>
       )}
 
@@ -323,7 +372,8 @@ export function PreInterviewWizard({ onComplete }: PreInterviewWizardProps) {
 
         <button
           onClick={handleNext}
-          className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer"
+          disabled={currentStep === 1 && !resumeFile}
+          className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-extrabold text-xs rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer"
         >
           {currentStep < totalSteps ? "Next Step →" : "Lock Setup & Start Interview 🚀"}
         </button>

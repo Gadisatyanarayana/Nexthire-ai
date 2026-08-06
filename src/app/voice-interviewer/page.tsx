@@ -69,6 +69,9 @@ type SpeechRecognitionLike = {
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: ((event: { error?: string }) => void) | null;
   onend: (() => void) | null;
+  onaudiostart?: (() => void) | null;
+  onspeechstart?: (() => void) | null;
+  onspeechend?: (() => void) | null;
 };
 
 const RESPONSE_TIMEOUT_MS = 25000;
@@ -248,48 +251,7 @@ function VoiceInterviewerWorkspace() {
     };
   }, []);
 
-  // Preferred Voice select
-  useEffect(() => {
-    if (!("speechSynthesis" in window)) return;
-    const pickVoice = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (!voices.length) return;
-      // User preferences from localStorage
-      const savedLang = window.localStorage.getItem("nh-language")?.replace(/"/g, "") || "en-US";
-      const savedVoiceURI = window.localStorage.getItem("nh-voice")?.replace(/"/g, "");
-      
-      const targetLangVoices = voices.filter(v => v.lang.startsWith(savedLang));
-      const fallbackEnglish = voices.filter(v => /^en(-|_)?/i.test(v.lang));
-      
-      const english = targetLangVoices.length > 0 ? targetLangVoices : fallbackEnglish;
-
-      // Select voice by persona matching key traits
-      let selected: SpeechSynthesisVoice | null = null;
-      if (savedVoiceURI) {
-        selected = voices.find(v => v.voiceURI === savedVoiceURI) || null;
-      }
-      
-      if (!selected) {
-        if (persona === "friendly") {
-          selected = english.find((voice) => /zira|samantha|female|girl/i.test(voice.name)) || null;
-        } else if (persona === "tough") {
-          selected = english.find((voice) => /david|mark|male|guy/i.test(voice.name)) || null;
-        }
-      }
-      
-      preferredVoiceRef.current =
-        selected ||
-        english.find((voice) => /google|neural|aria/i.test(voice.name)) ||
-        english[0] ||
-        voices[0] ||
-        null;
-    };
-    pickVoice();
-    window.speechSynthesis.onvoiceschanged = pickVoice;
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }, [persona]);
+  // Removed buggy preferredVoiceRef logic that crashes on corrupted Windows voices
 
   // Web Speech synthesis utilities
   const splitSpeechChunks = (text: string) => {
@@ -314,6 +276,17 @@ function VoiceInterviewerWorkspace() {
     setIsListening(false);
   };
 
+  const logVoiceEvent = (stepName: string, detail: string = "") => {
+    const timestamp = new Date().toISOString().split('T')[1];
+    const msg = `[VOICE][${timestamp}] [${stepName}] ${detail}`;
+    console.log(msg);
+    fetch('/api/voice-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ msg })
+    }).catch(() => null);
+  };
+
   const startListening = async (): Promise<boolean> => {
     if (!speechSupported || !recognitionFactoryRef.current) {
       setVoiceIssue("Speech recognition not supported in this browser.");
@@ -321,30 +294,91 @@ function VoiceInterviewerWorkspace() {
     }
     if (isMuted || isPaused || isListeningRef.current || isSpeakingRef.current || isThinkingRef.current) return false;
 
+    logVoiceEvent("Recognition Started");
+
     try {
       const recognition = recognitionFactoryRef.current();
-      recognition.lang = "en-US";
-      recognition.continuous = true;
+      // DO NOT set recognition.lang = 'en-US' as it crashes non-US locales
+      recognition.continuous = false; // MUST be false on Windows to prevent dropping out
       recognition.interimResults = true;
 
+      // Web Audio API VAD for strict hardware silence detection
+      let audioCtx: AudioContext | null = null;
+      let stream: MediaStream | null = null;
+      let analyser: AnalyserNode | null = null;
+      let vadInterval: number | null = null;
+      let lastAudioTime = Date.now();
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        vadInterval = window.setInterval(() => {
+          if (!analyser) return;
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const average = sum / dataArray.length;
+
+          if (average > 5) {
+            lastAudioTime = Date.now();
+          }
+        }, 100);
+      } catch (e) {
+        console.warn("VAD Initialization failed, falling back to basic recognition:", e);
+      }
+
+      const cleanupVAD = () => {
+        if (vadInterval) clearInterval(vadInterval);
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        if (audioCtx && audioCtx.state !== 'closed') void audioCtx.close();
+      };
+
+      recognition.onaudiostart = () => logVoiceEvent("Audio Detected", "onaudiostart");
+      recognition.onspeechstart = () => logVoiceEvent("Speech Started", "onspeechstart");
+      recognition.onspeechend = () => logVoiceEvent("Speech Ended", "onspeechend");
+
       recognition.onresult = (event) => {
-        const latestResult = event.results[event.results.length - 1];
-        const transcript = String(latestResult?.[0]?.transcript || "").trim();
+        let finalTranscript = "";
+        let interimTranscript = "";
+
+        for (let i = 0; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + " ";
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        const transcript = (finalTranscript + interimTranscript).trim();
         if (!transcript) return;
 
         pendingTranscriptRef.current = transcript;
         setVoiceDraft(transcript);
         setVoiceIssue(null);
+        lastAudioTime = Date.now(); // Reset VAD on successful text
+
+        if (finalTranscript) {
+           logVoiceEvent("Final Transcript Ready", `Length: ${finalTranscript.length}`);
+        }
 
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = window.setTimeout(() => {
-          void submitSpeechTurn(pendingTranscriptRef.current);
-        }, latestResult?.isFinal ? FINAL_SILENCE_MS : INTERIM_SILENCE_MS);
+          logVoiceEvent("Silence Timer Expired", "Submitting speech");
+          if (recognitionRef.current) recognitionRef.current.stop();
+        }, finalTranscript ? FINAL_SILENCE_MS : INTERIM_SILENCE_MS);
       };
 
       recognition.onerror = (event) => {
         const error = String(event.error || "").toLowerCase();
-        if (error === "no-speech" || error === "aborted") return;
+        logVoiceEvent("Recognition Error", error);
+        cleanupVAD();
+        if (error === "no-speech" || error === "aborted" || error === "network") return;
         if (error === "not-allowed" || error === "service-not-allowed") {
           setVoiceIssue("Microphone permission was denied.");
           stopListening();
@@ -354,14 +388,26 @@ function VoiceInterviewerWorkspace() {
       };
 
       recognition.onend = () => {
+        logVoiceEvent("Recognition End");
+        cleanupVAD();
         recognitionRef.current = null;
         isListeningRef.current = false;
         setIsListening(false);
 
+        // CRITICAL ROOT CAUSE FIX: 
+        // If onend fires naturally (because user stopped speaking and Chrome closed the mic),
+        // we MUST submit the pending transcript! Otherwise it gets thrown away and gets stuck in an infinite listening loop.
+        if (pendingTranscriptRef.current && !isThinkingRef.current) {
+          logVoiceEvent("Submitting Transcript on End");
+          void submitSpeechTurn(pendingTranscriptRef.current);
+          return;
+        }
+
         if (unmountedRef.current || blockAutoRestartRef.current || isSpeakingRef.current || isThinkingRef.current) return;
+        logVoiceEvent("Listening Restarted", "Empty transcript or interrupted");
         window.setTimeout(() => {
           void startListening();
-        }, 300);
+        }, 500); 
       };
 
       recognitionRef.current = recognition;
@@ -370,7 +416,8 @@ function VoiceInterviewerWorkspace() {
       setIsListening(true);
       setVoiceIssue(null);
       return true;
-    } catch {
+    } catch (e) {
+      logVoiceEvent("Failed to open microphone", String(e));
       recognitionRef.current = null;
       isListeningRef.current = false;
       setIsListening(false);
@@ -380,10 +427,10 @@ function VoiceInterviewerWorkspace() {
   };
 
   const speakReply = async (text: string) => {
-    if (!("speechSynthesis" in window) || !ttsSupported) {
+    if (!("speechSynthesis" in window)) {
       window.setTimeout(() => {
         void startListening();
-      }, 300);
+      }, 500);
       return;
     }
 
@@ -391,34 +438,71 @@ function VoiceInterviewerWorkspace() {
     if (chunks.length === 0) {
       window.setTimeout(() => {
         void startListening();
-      }, 300);
+      }, 500);
       return;
     }
 
     stopListening();
     blockAutoRestartRef.current = true;
     window.speechSynthesis.cancel();
+    
     setIsSpeaking(true);
     isSpeakingRef.current = true;
 
     try {
+      // Small delay after cancel to prevent Chrome IPC dropping the next utterance
+      await new Promise(r => setTimeout(r, 100));
+
       for (const chunk of chunks) {
         if (unmountedRef.current) break;
         await new Promise<void>((resolve) => {
-          const utterance = new SpeechSynthesisUtterance(chunk);
+          let utterance = new SpeechSynthesisUtterance(chunk);
           const pConfig = PERSONAS[persona];
           utterance.rate = pConfig ? pConfig.voiceRate : 1.05;
           utterance.pitch = pConfig ? pConfig.voicePitch : 1.0;
           utterance.volume = 1;
+          
           if (preferredVoiceRef.current) {
             utterance.voice = preferredVoiceRef.current;
-            utterance.lang = preferredVoiceRef.current.lang;
           } else {
-            utterance.lang = "en-US";
+            const voices = window.speechSynthesis.getVoices();
+            const engVoice = voices.find(v => v.lang.startsWith('en-US') && !v.localService) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+            if (engVoice) {
+              preferredVoiceRef.current = engVoice;
+              utterance.voice = engVoice;
+            }
           }
-          utterance.onend = () => resolve();
-          utterance.onerror = () => resolve();
+          
+          // DO NOT set utterance.lang = 'en-US', as it instantly crashes the TTS engine if the user's Windows region is different!
+
+          let startTime = Date.now();
+          let timeoutId = window.setTimeout(resolve, 5000 + (chunk.length * 50));
+          
+          const playGoogleTTSFallback = () => {
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk.substring(0, 200))}&tl=en&client=tw-ob`;
+            const audio = new Audio(url);
+            audio.onended = () => resolve();
+            audio.onerror = () => resolve();
+            audio.play().catch(() => resolve());
+          };
+
+          utterance.onend = () => { 
+            clearTimeout(timeoutId); 
+            // If it finished suspiciously fast (under 200ms for a chunk), Chrome TTS is broken/silent.
+            if (Date.now() - startTime < 200 && chunk.length > 5) {
+              console.warn("TTS finished suspiciously fast. Using Google TTS fallback.");
+              playGoogleTTSFallback();
+            } else {
+              resolve();
+            }
+          };
+          utterance.onerror = (e) => { 
+            clearTimeout(timeoutId); 
+            console.warn("TTS Error, using Google TTS fallback:", e);
+            playGoogleTTSFallback();
+          };
           window.speechSynthesis.speak(utterance);
+          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
         });
       }
     } finally {
@@ -427,7 +511,7 @@ function VoiceInterviewerWorkspace() {
       blockAutoRestartRef.current = false;
       window.setTimeout(() => {
         void startListening();
-      }, 300);
+      }, 500);
     }
   };
 
@@ -567,14 +651,12 @@ function VoiceInterviewerWorkspace() {
   const checkHardwareAndPermissions = async () => {
     setCheckingHardware(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      webcamStreamRef.current = stream;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop()); // Immediately stop it, we only needed permission
+      webcamStreamRef.current = new MediaStream(); // empty stream for video
       setWebcamGranted(true);
       setMicGranted(true);
       
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = stream;
-      }
       await measureAmbientNoise();
     } catch {
       setWebcamGranted(false);
@@ -800,8 +882,16 @@ function VoiceInterviewerWorkspace() {
 
   // Launch interview
   const launchInterview = async () => {
+    // CRITICAL: Unlock Web Speech Synthesis during this user interaction!
+    if ("speechSynthesis" in window) {
+      const unlockUtterance = new SpeechSynthesisUtterance(" ");
+      unlockUtterance.volume = 0;
+      window.speechSynthesis.speak(unlockUtterance);
+    }
+
     setStep("countdown");
     setTimeRemaining(duration * 60);
+    isThinkingRef.current = true;
     setIsThinking(true);
 
     try {
@@ -824,11 +914,14 @@ function VoiceInterviewerWorkspace() {
         setSessionId(data.session.id);
         const greeting = data.session.aiResponses[0]?.content || "Hi, welcome! Please introduce yourself to begin.";
         setMessages([createMessage("assistant", greeting)]);
+      } else {
+        throw new Error(data.error || "Session missing on launch");
       }
     } catch {
       const fallbackGreeting = "Hi, welcome to the NextHire AI interview panel. Please share your self-introduction to start.";
       setMessages([createMessage("assistant", fallbackGreeting)]);
     } finally {
+      isThinkingRef.current = false;
       setIsThinking(false);
     }
   };
@@ -837,15 +930,21 @@ function VoiceInterviewerWorkspace() {
   const submitSpeechTurn = async (text: string) => {
     if (!text.trim() || isThinkingRef.current) return;
     
+    logVoiceEvent("Backend Request Started", `Text: ${text}`);
+
+    // Synchronously update the ref to prevent onend race conditions
+    isThinkingRef.current = true;
+    setIsThinking(true);
+
     stopListening();
     setVoiceDraft("");
     pendingTranscriptRef.current = "";
 
     const userMsg = createMessage("user", text);
     setMessages(prev => [...prev, userMsg]);
-    setIsThinking(true);
 
     try {
+      const startTime = Date.now();
       const res = await fetch("/api/voice-interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -856,8 +955,11 @@ function VoiceInterviewerWorkspace() {
         })
       });
       const data = await res.json();
+      logVoiceEvent("Backend Response Received", `Latency: ${Date.now() - startTime}ms`);
+      
       if (data.session) {
         const reply = data.reply || "Got it. Continue.";
+        logVoiceEvent("LLM Response Generated", `Length: ${reply.length}`);
         setMessages(prev => [...prev, createMessage("assistant", reply)]);
         
         // Handle programming question shifts
@@ -874,12 +976,17 @@ function VoiceInterviewerWorkspace() {
         }
 
         await speakReply(reply);
+      } else {
+        logVoiceEvent("Backend Error", "data.session missing");
+        throw new Error(data.error || "Session missing");
       }
-    } catch {
+    } catch (e) {
+      logVoiceEvent("Backend Error", String(e));
       const fallbackReply = "Understood. Tell me more about your experience and how you solve design problems.";
       setMessages(prev => [...prev, createMessage("assistant", fallbackReply)]);
       await speakReply(fallbackReply);
     } finally {
+      isThinkingRef.current = false;
       setIsThinking(false);
     }
   };
@@ -1183,6 +1290,9 @@ function VoiceInterviewerWorkspace() {
                   videoPreviewRef.current.srcObject = streams.video;
                 }
                 webcamStreamRef.current = streams.video;
+                
+                // CRITICAL: Stop the audio track so SpeechRecognition can use the mic!
+                streams.audio.getTracks().forEach(t => t.stop());
               }}
             />
           </div>
@@ -1400,19 +1510,8 @@ function VoiceInterviewerWorkspace() {
                   </div>
                   
                   <div className="space-y-2 font-medium text-xs leading-relaxed text-left">
-                    {/* Recruiter caption */}
-                    <div className="flex gap-2">
-                      <span className="text-cyan-400 font-extrabold select-none" aria-hidden="true">AI:</span>
-                      <span className={isSpeaking ? "text-foreground" : "text-foreground/60"} aria-live="polite" aria-atomic="true">
-                        {(() => {
-                          const lastRec = [...messages].reverse().find(m => m.role === "assistant");
-                          return lastRec?.content || "Recruiter initial introduction.";
-                        })()}
-                      </span>
-                    </div>
-
-                    {/* Candidate caption */}
-                    <div className="flex gap-2 border-t border-foreground/5 pt-2">
+                    {/* Candidate caption (Only user's speech as requested) */}
+                    <div className="flex gap-2 pt-2">
                       <span className="text-emerald-400 font-extrabold select-none" aria-hidden="true">You:</span>
                       <span className={isListening ? "text-foreground font-semibold" : "text-foreground/60"} aria-live="polite" aria-atomic="true">
                         {voiceDraft ? `"${voiceDraft}"` : (() => {
