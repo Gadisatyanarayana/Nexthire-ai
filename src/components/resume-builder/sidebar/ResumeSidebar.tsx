@@ -1,12 +1,13 @@
 import React from 'react';
-import { ResumeData } from '../types';
+import { ResumeDocument } from '../types';
 import { ThemeRegistry } from '../registries/ThemeRegistry';
 import { TypographyRegistry } from '../registries/TypographyRegistry';
-import { TemplateRegistry } from '../registries/TemplateRegistry';
+import { LayoutRegistry } from '../registries/LayoutRegistry';
+import { SectionRegistry } from '../registries/SectionRegistry';
 
 interface SidebarProps {
-  form: ResumeData;
-  updateField: (field: keyof ResumeData, value: any) => void;
+  form: ResumeDocument;
+  updateField: (field: keyof ResumeDocument, value: any) => void;
 }
 
 export default function ResumeSidebar({ form, updateField }: SidebarProps) {
@@ -17,14 +18,14 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
         
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Template</label>
+            <label className="text-xs text-gray-400 block mb-1">Layout Template</label>
             <select 
               className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-gray-200 outline-none focus:border-brand-blue"
-              value={form.templateId}
-              onChange={(e) => updateField('templateId', e.target.value)}
+              value={form.metadata.templateId}
+              onChange={(e) => updateField('metadata', { ...form.metadata, templateId: e.target.value })}
             >
-              {Object.keys(TemplateRegistry).map(key => (
-                <option key={key} value={key}>{TemplateRegistry[key].name}</option>
+              {Object.keys(LayoutRegistry).map(key => (
+                <option key={key} value={key}>{LayoutRegistry[key].name}</option>
               ))}
             </select>
           </div>
@@ -33,25 +34,42 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
             <label className="text-xs text-gray-400 block mb-1">Theme</label>
             <select 
               className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-gray-200 outline-none focus:border-brand-blue"
-              value={form.themeId}
-              onChange={(e) => updateField('themeId', e.target.value)}
+              value={form.theme.id}
+              onChange={(e) => {
+                const config = ThemeRegistry[e.target.value];
+                if (config) {
+                  // Merge the base ThemeSettings with the selected config's colors & styles
+                  updateField('theme', { 
+                    ...form.theme, 
+                    id: e.target.value,
+                    primaryColor: config.colors.primary,
+                    accentColor: config.colors.accent,
+                    backgroundColor: config.colors.background,
+                    headerStyle: config.style?.headerStyle || form.theme.headerStyle,
+                    sectionDivider: config.style?.dividerStyle || form.theme.sectionDivider,
+                  });
+                }
+              }}
             >
               {Object.keys(ThemeRegistry).map(key => (
                 <option key={key} value={key}>{ThemeRegistry[key].name}</option>
               ))}
             </select>
           </div>
-
           <div>
             <label className="text-xs text-gray-400 block mb-1">Typography</label>
             <select 
               className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-gray-200 outline-none focus:border-brand-blue"
-              value={form.typography?.fontFamily || "times"}
+              value={form.typography?.headingFont || "times"}
               onChange={(e) => {
-                const fontKey = e.target.value;
-                const config = TypographyRegistry[fontKey];
+                const config = TypographyRegistry[e.target.value];
                 if (config) {
-                  updateField('typography', { ...form.typography, fontFamily: config.fontFamily });
+                  updateField('typography', { 
+                    ...form.typography, 
+                    headingFont: config.fontFamily,
+                    bodyFont: config.fontFamily,
+                    headingSize: config.overrides?.headingSize || form.typography.headingSize,
+                  });
                 }
               }}
             >
@@ -63,16 +81,33 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
         </div>
       </div>
       
-      <div className="p-4">
-        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Sections</h2>
-        <ul className="space-y-1">
-          {['Personal Info', 'Summary', 'Experience', 'Projects', 'Education', 'Skills'].map((sec) => (
-            <li key={sec} className="px-3 py-2 text-sm rounded bg-white/5 border border-white/5 hover:bg-white/10 cursor-grab active:cursor-grabbing text-gray-300 flex items-center justify-between">
-              <span>{sec}</span>
-              <span className="text-gray-600">≡</span>
-            </li>
-          ))}
-        </ul>
+      <div className="p-4 flex-1">
+        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Add Sections</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {Object.keys(SectionRegistry).map(key => {
+            const plugin = SectionRegistry[key];
+            const alreadyAdded = form.sections.some(s => s.type === key);
+            
+            return (
+              <button 
+                key={key}
+                disabled={alreadyAdded && key === 'personal'} // allow multiples except personal
+                onClick={() => {
+                  const newSection = {
+                    id: `${key}-${Date.now()}`,
+                    type: key,
+                    visible: true,
+                    data: { ...plugin.defaultData }
+                  };
+                  updateField('sections', [...form.sections, newSection]);
+                }}
+                className={`text-xs px-2 py-2 rounded border ${alreadyAdded ? 'border-white/5 bg-white/5 text-gray-500' : 'border-white/10 bg-[#1a1a1a] hover:border-brand-blue text-gray-300'} transition-colors`}
+              >
+                + {plugin.name}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </aside>
   );

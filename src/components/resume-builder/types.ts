@@ -47,82 +47,99 @@ export interface SkillCategory {
 export interface ThemeSettings {
   id: string;
   primaryColor: string;
-  textColor: string;
+  accentColor: string;
   backgroundColor: string;
+  headerStyle: string;
+  sectionDivider: string;
+  bulletStyle: string;
+  borderRadius: string;
+  iconPack: string;
+  shadow: string;
 }
 
 export interface TypographySettings {
-  fontFamily: string;
-  fontSize: number; // base size
+  headingFont: string;
+  bodyFont: string;
+  headingSize: string;
+  bodySize: string;
   lineHeight: number;
+  letterSpacing: string;
+  paragraphGap: string;
+  sectionGap: string;
+  pageMargins: string;
+  columns: number;
 }
 
-export interface ResumeData {
-  id?: string;
-  // Global Settings
-  templateId: string;
-  themeId: string;
+export interface ResumeSection {
+  id: string;
+  type: string; // 'personal', 'summary', 'experience', 'education', 'projects', 'skills', etc.
+  visible: boolean;
+  data: any; // Dynamic payload based on the Section Registry
+}
+
+export interface ResumeDocument {
+  id: string;
+  version: string;
+  metadata: {
+    createdAt: string;
+    updatedAt: string;
+    targetRole: string;
+    templateId: string;
+  };
+  theme: ThemeSettings;
   typography: TypographySettings;
-  
-  // Personal Information
-  fullName: string;
-  email: string;
-  phone: string;
-  location: string;
-  linkedin: string;
-  github: string;
-  portfolio: string;
-  
-  // Summaries
-  targetRole: string;
-  summary: string;
-  careerObjective: string;
-  
-  // Structured Sections
-  experiences: Experience[];
-  projects: Project[];
-  education: Education[];
-  skills: SkillCategory[];
-  
-  // Legacy / Additional
-  leadership: string;
-  openSource: string;
-  achievements: string; // generic
-  certifications: string;
-  languages: string;
-  interests: string;
+  layout: any;
+  sections: ResumeSection[];
+  history: any[];
 }
 
-export const defaultResumeData: ResumeData = {
-  templateId: "jakes-resume",
-  themeId: "classic",
-  typography: {
-    fontFamily: "Times New Roman, serif",
-    fontSize: 12,
-    lineHeight: 1.5,
+// Ensure backward compatibility during migration
+export interface ResumeData extends ResumeDocument {}
+
+export const defaultResumeDocument: ResumeDocument = {
+  id: "",
+  version: "1.0.0",
+  metadata: {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    targetRole: "",
+    templateId: "jakes-resume",
   },
-  fullName: "",
-  email: "",
-  phone: "",
-  location: "",
-  linkedin: "",
-  github: "",
-  portfolio: "",
-  targetRole: "",
-  summary: "",
-  careerObjective: "",
-  experiences: [],
-  projects: [],
-  education: [],
-  skills: [
-    { id: "1", name: "Programming Languages", skills: "" },
-    { id: "2", name: "Frameworks & Libraries", skills: "" },
-    { id: "3", name: "Tools & Cloud", skills: "" }
+  theme: {
+    id: "classic",
+    primaryColor: "text-black",
+    accentColor: "text-gray-600",
+    backgroundColor: "bg-white",
+    headerStyle: "minimal",
+    sectionDivider: "thin",
+    bulletStyle: "disc",
+    borderRadius: "rounded-none",
+    iconPack: "lucide",
+    shadow: "none",
+  },
+  typography: {
+    headingFont: "Times New Roman, serif",
+    bodyFont: "Times New Roman, serif",
+    headingSize: "12pt",
+    bodySize: "10pt",
+    lineHeight: 1.5,
+    letterSpacing: "normal",
+    paragraphGap: "0.25rem",
+    sectionGap: "0.75rem",
+    pageMargins: "1in",
+    columns: 1,
+  },
+  layout: {},
+  sections: [
+    { id: "personal-1", type: "personal", visible: true, data: { fullName: "", email: "", phone: "", location: "", linkedin: "", github: "", portfolio: "" } },
+    { id: "summary-1", type: "summary", visible: true, data: { text: "" } },
+    { id: "experience-1", type: "experience", visible: true, data: { items: [] } },
+    { id: "projects-1", type: "projects", visible: true, data: { items: [] } },
+    { id: "education-1", type: "education", visible: true, data: { items: [] } },
+    { id: "skills-1", type: "skills", visible: true, data: { items: [] } },
   ],
-  leadership: "",
-  openSource: "",
-  achievements: "",
-  certifications: "",
-  languages: "",
-  interests: ""
+  history: [],
 };
+
+// Map legacy default to the new document
+export const defaultResumeData = defaultResumeDocument;

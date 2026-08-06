@@ -93,7 +93,15 @@ export default function ResumeDashboard() {
   const duplicateResume = async (resume: any) => {
     if (!session?.user?.email) return;
     const newId = Date.now().toString();
-    const newResume = { ...resume, id: newId, targetRole: (resume.targetRole ? `${resume.targetRole} (Copy)` : 'Copy') };
+    const newResume = { 
+      ...resume, 
+      id: newId, 
+      metadata: {
+        ...(resume.metadata || {}),
+        targetRole: (resume.metadata?.targetRole ? `${resume.metadata.targetRole} (Copy)` : 'Copy'),
+        updatedAt: new Date().toISOString()
+      } 
+    };
     
     const { data: existing } = await supabase
       .from("user_progress")
@@ -132,7 +140,7 @@ export default function ResumeDashboard() {
   };
 
   const getResumeName = (resume: any) => {
-    return resume.targetRole ? `${resume.targetRole} Resume` : "Untitled Resume";
+    return resume.metadata?.targetRole ? `${resume.metadata.targetRole} Resume` : "Untitled Resume";
   };
 
   if (loading) {
@@ -197,7 +205,7 @@ export default function ResumeDashboard() {
                   </h3>
                   <p className={`mt-1 text-xs flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                     <Clock className="h-3 w-3" />
-                    Updated {new Date(resume.created_at || Date.now()).toLocaleDateString()}
+                    Updated {new Date(resume.metadata?.updatedAt || Date.now()).toLocaleDateString()}
                   </p>
                 </div>
               </div>
