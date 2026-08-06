@@ -428,7 +428,7 @@ function VoiceInterviewerWorkspace() {
 
   const speakReply = async (text: string) => {
     if (!("speechSynthesis" in window)) {
-      window.setTimeout(() => {
+      setTimeout(() => {
         void startListening();
       }, 500);
       return;
@@ -436,7 +436,7 @@ function VoiceInterviewerWorkspace() {
 
     const chunks = splitSpeechChunks(text);
     if (chunks.length === 0) {
-      window.setTimeout(() => {
+      setTimeout(() => {
         void startListening();
       }, 500);
       return;

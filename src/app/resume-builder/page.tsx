@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, Download, Loader2, Save, Sparkles, UploadCloud } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { useEffect, useState } from "react";
 import { saveUserData, supabase } from "@/lib/supabase";
 
@@ -537,87 +536,7 @@ export default function ResumeBuilderPage() {
   };
 
   const downloadPdf = () => {
-    const pdf = new jsPDF({ unit: "pt", format: "a4" });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const left = 48;
-    const right = 48;
-    const maxWidth = pageWidth - left - right;
-
-    const bodyFont = pdfTemplateStyle === "ats" || atsFriendly ? "courier" : "helvetica";
-    const headingSize = pdfTemplateStyle === "modern" ? 12 : 11;
-    const bodySize = pdfTemplateStyle === "modern" ? 10.5 : 10;
-    const nameSize = pdfTemplateStyle === "modern" ? 21 : 18;
-
-    let y = 56;
-
-    const writeLine = (text: string, isHeading = false) => {
-      const line = text.trim();
-      if (!line) return;
-      const size = isHeading ? headingSize : bodySize;
-      pdf.setFont(bodyFont, isHeading ? "bold" : "normal");
-      pdf.setFontSize(size);
-
-      const lines = pdf.splitTextToSize(line, maxWidth) as string[];
-      const neededHeight = lines.length * (isHeading ? 15 : 14);
-
-      if (y + neededHeight > pageHeight - 48) {
-        pdf.addPage();
-        y = 56;
-      }
-
-      lines.forEach((item) => {
-        pdf.text(item, left, y);
-        y += isHeading ? 15 : 14;
-      });
-    };
-
-    const writeSection = (title: string, lines: string[]) => {
-      if (!lines.some((line) => line.trim().length > 0)) return;
-      y += 8;
-      writeLine(title, true);
-      if (pdfTemplateStyle === "modern" && !atsFriendly) {
-        pdf.setDrawColor(80);
-        pdf.line(left, y + 2, pageWidth - right, y + 2);
-        y += 8;
-      }
-      lines.forEach((line) => writeLine(line));
-    };
-
-    pdf.setFont(bodyFont, "bold");
-    pdf.setFontSize(nameSize);
-    pdf.text(form.fullName || "Candidate Name", left, y);
-    y += 20;
-
-    pdf.setFont(bodyFont, "normal");
-    pdf.setFontSize(bodySize);
-    const contactLine = [form.email, form.phone, form.location].filter(Boolean).join(" | ");
-    writeLine(contactLine || "Email | Phone | Location");
-    writeLine([form.dateOfBirth ? `DOB: ${form.dateOfBirth}` : "", form.currentSemester ? `Semester: ${form.currentSemester}` : ""].filter(Boolean).join(" | "));
-    writeLine([form.linkedin, form.github, form.portfolio].filter(Boolean).join(" | "));
-
-    writeSection("TARGET ROLE", [form.targetRole]);
-    writeSection("PROFESSIONAL SUMMARY", [form.summary]);
-    writeSection("TECHNICAL SKILLS", [form.technicalSkills]);
-    writeSection("SOFT SKILLS", [form.softSkills]);
-    writeSection("PREFERRED LOCATIONS", [form.preferredLocations]);
-    writeSection("EXPECTED CTC", [form.expectedCtc]);
-    writeSection("COURSEWORK", [form.coursework]);
-    writeSection("PROJECT", [form.projectTitle, form.projectTech, form.projectDescription]);
-    writeSection("EXPERIENCE", [
-      `${form.internshipRole}${form.internshipCompany ? ` - ${form.internshipCompany}` : ""}${form.internshipDuration ? ` (${form.internshipDuration})` : ""}`,
-      form.internshipAchievements,
-    ]);
-    writeSection("OPEN SOURCE", [form.openSource]);
-    writeSection("LEADERSHIP", [form.leadership]);
-    writeSection("HACKATHONS", [form.hackathons]);
-    writeSection("ACHIEVEMENTS", [form.achievements]);
-    writeSection("EDUCATION", [`${form.degree}${form.college ? ` - ${form.college}` : ""}${form.graduationYear ? ` (${form.graduationYear})` : ""}`, form.cgpa ? `CGPA: ${form.cgpa}` : ""]);
-    writeSection("LANGUAGES", [form.languages]);
-    writeSection("CERTIFICATIONS", [form.certifications]);
-
-    const fileSafeName = (form.fullName || "resume").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    pdf.save(`${fileSafeName}-${selectedTemplate.id}.pdf`);
+    window.print();
   };
 
   const improveButton = (key: keyof FormState, section: string) => (
@@ -636,9 +555,10 @@ export default function ResumeBuilderPage() {
   );
 
   return (
-    <main className={`min-h-screen px-4 pb-8 pt-2 md:px-6 md:pb-10 md:pt-3 ${isDark ? "bg-black" : "bg-slate-50"}`}>
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+    <main className={`min-h-screen px-4 pb-8 pt-2 md:px-6 md:pb-10 md:pt-3 ${isDark ? "bg-black" : "bg-slate-50"} print:bg-white print:p-0 print:m-0`}>
+      <div className="mx-auto max-w-7xl space-y-6 print:space-y-0 print:max-w-none print:w-full">
+        {/* Navigation - hidden on print */}
+        <div className="flex items-center justify-between gap-3 flex-wrap print:hidden">
           <button
             type="button"
             onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
@@ -659,7 +579,7 @@ export default function ResumeBuilderPage() {
           </Link>
         </div>
 
-        <Glass isDark={isDark} className="p-6">
+        <Glass isDark={isDark} className="p-4 sm:p-6 print:hidden">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className={`text-3xl font-semibold ${isDark ? "text-white" : "text-black"}`}>Professional Resume Builder</h1>
@@ -740,7 +660,7 @@ export default function ResumeBuilderPage() {
         </Glass>
 
         {autofillMeta && (
-          <Glass isDark={isDark} className="p-4">
+          <Glass isDark={isDark} className="p-4 print:hidden">
             <p className={`text-sm font-semibold ${isDark ? "text-white" : "text-black"}`}>
               Autofill Source: {autofillMeta.source} | Extracted Text: {autofillMeta.extractedChars} chars
             </p>
@@ -750,7 +670,7 @@ export default function ResumeBuilderPage() {
           </Glass>
         )}
 
-        <Glass isDark={isDark} className="p-5">
+        <Glass isDark={isDark} className="p-5 print:hidden">
           <div className="flex flex-wrap items-center gap-2">
             {(["professional", "friendly", "ats"] as TemplateSection[]).map((section) => (
               <button
@@ -812,7 +732,7 @@ export default function ResumeBuilderPage() {
           </div>
         </Glass>
 
-        <Glass isDark={isDark} className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-black/10'}`}>
+        <Glass isDark={isDark} className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-black/10'} print:hidden`}>
           <div className="flex flex-wrap gap-1 mb-4">
             {([
               ["student", "1. Student Info"],
@@ -851,12 +771,12 @@ export default function ResumeBuilderPage() {
           </div>
         </Glass>
 
-        <Glass isDark={isDark} className="p-4">
+        <Glass isDark={isDark} className="p-4 print:hidden">
           <p className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>{STEP_GUIDANCE[step]}</p>
         </Glass>
 
         {missingFields.length > 0 && (
-          <Glass isDark={isDark} className="p-4">
+          <Glass isDark={isDark} className="p-4 print:hidden">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className={`text-sm font-semibold ${isDark ? "text-white" : "text-black"}`}>Auto-fill complete. Remaining empty fields:</p>
@@ -877,8 +797,8 @@ export default function ResumeBuilderPage() {
           </Glass>
         )}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="space-y-4 lg:col-span-7">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 print:block print:gap-0">
+          <div className="space-y-4 lg:col-span-7 print:hidden">
             {step === "student" && (
               <Glass isDark={isDark} className="p-5 space-y-4">
                 <h2 className={`text-xl font-semibold ${isDark ? "text-white" : "text-black"}`}>Student Information</h2>
@@ -984,17 +904,17 @@ export default function ResumeBuilderPage() {
             )}
           </div>
 
-          <div className="lg:col-span-5">
-            <Glass isDark={isDark} className="sticky top-28 p-6">
-              <h2 className={`mb-4 text-lg font-bold tracking-wide ${isDark ? "text-white" : "text-black"}`}>Live Preview</h2>
-              <div className={`space-y-4 text-sm ${isDark ? "text-gray-100" : "text-gray-900"}`}>
+          <div className="lg:col-span-5 print:block print:w-full">
+            <Glass isDark={isDark} className="sticky top-28 p-6 print:p-0 print:border-none print:shadow-none print:bg-white print:text-black">
+              <h2 className={`mb-4 text-lg font-bold tracking-wide ${isDark ? "text-white" : "text-black"} print:hidden`}>Live Preview</h2>
+              <div className={`space-y-4 text-sm ${isDark ? "text-gray-100" : "text-gray-900"} print:text-black print:space-y-3`}>
                 {/* Header */}
-                <div className="pb-3 border-b border-gray-300/20">
-                  <p className={`text-xl font-bold leading-tight ${isDark ? "text-white" : "text-black"}`}>{form.fullName || "Your Name"}</p>
-                  <p className={`text-xs tracking-wide mt-1.5 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                <div className="pb-3 border-b border-gray-300/20 print:border-black/30">
+                  <p className={`text-xl font-bold leading-tight ${isDark ? "text-white" : "text-black"} print:text-black print:text-2xl`}>{form.fullName || "Your Name"}</p>
+                  <p className={`text-xs tracking-wide mt-1.5 ${isDark ? "text-gray-400" : "text-gray-600"} print:text-gray-700`}>
                     {[form.email, form.phone, form.location].filter(Boolean).join(" • ") || "Email • Phone • Location"}
                   </p>
-                  <p className={`text-xs mt-0.5 ${isDark ? "text-gray-500" : "text-gray-600"}`}>
+                  <p className={`text-xs mt-0.5 ${isDark ? "text-gray-500" : "text-gray-600"} print:text-gray-700`}>
                     {[form.linkedin, form.github, form.portfolio].filter(Boolean).join(" • ") || "Links"}
                   </p>
                 </div>
@@ -1002,31 +922,31 @@ export default function ResumeBuilderPage() {
                 {/* Target Role */}
                 {form.targetRole && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Target Role</p>
-                    <p className={`mt-1.5 font-semibold ${isDark ? "text-white" : "text-black"}`}>{form.targetRole}</p>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Target Role</p>
+                    <p className={`mt-1.5 font-semibold ${isDark ? "text-white" : "text-black"} print:text-black`}>{form.targetRole}</p>
                   </div>
                 )}
 
                 {/* Summary */}
                 {form.summary && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Summary</p>
-                    <p className="mt-1.5 leading-relaxed">{form.summary}</p>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Summary</p>
+                    <p className="mt-1.5 leading-relaxed print:text-black">{form.summary}</p>
                   </div>
                 )}
 
                 {/* Skills */}
                 {form.technicalSkills && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Technical Skills</p>
-                    <p className="mt-1.5">{form.technicalSkills}</p>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Technical Skills</p>
+                    <p className="mt-1.5 print:text-black">{form.technicalSkills}</p>
                   </div>
                 )}
 
                 {form.softSkills && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Soft Skills</p>
-                    <p className="mt-1.5">{form.softSkills}</p>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Soft Skills</p>
+                    <p className="mt-1.5 print:text-black">{form.softSkills}</p>
                   </div>
                 )}
 
@@ -1035,14 +955,14 @@ export default function ResumeBuilderPage() {
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     {form.preferredLocations && (
                       <div>
-                        <p className={`font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Locations</p>
-                        <p className="mt-1">{form.preferredLocations}</p>
+                        <p className={`font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Locations</p>
+                        <p className="mt-1 print:text-black">{form.preferredLocations}</p>
                       </div>
                     )}
                     {form.expectedCtc && (
                       <div>
-                        <p className={`font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Expected CTC</p>
-                        <p className="mt-1">{form.expectedCtc}</p>
+                        <p className={`font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Expected CTC</p>
+                        <p className="mt-1 print:text-black">{form.expectedCtc}</p>
                       </div>
                     )}
                   </div>
@@ -1051,54 +971,54 @@ export default function ResumeBuilderPage() {
                 {/* Experience */}
                 {form.internshipRole && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Experience</p>
-                    <p className={`mt-1.5 font-semibold ${isDark ? "text-white" : "text-black"}`}>{form.internshipRole} {form.internshipCompany && `• ${form.internshipCompany}`}</p>
-                    {form.internshipDuration && <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-600"}`}>{form.internshipDuration}</p>}
-                    {form.internshipAchievements && <p className="mt-1 leading-relaxed">{form.internshipAchievements}</p>}
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Experience</p>
+                    <p className={`mt-1.5 font-semibold ${isDark ? "text-white" : "text-black"} print:text-black`}>{form.internshipRole} {form.internshipCompany && `• ${form.internshipCompany}`}</p>
+                    {form.internshipDuration && <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-600"} print:text-gray-600`}>{form.internshipDuration}</p>}
+                    {form.internshipAchievements && <p className="mt-1 leading-relaxed print:text-black">{form.internshipAchievements}</p>}
                   </div>
                 )}
 
                 {/* Project */}
                 {form.projectTitle && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Project</p>
-                    <p className={`mt-1.5 font-semibold ${isDark ? "text-white" : "text-black"}`}>{form.projectTitle}</p>
-                    {form.projectTech && <p className={`text-xs mt-0.5 ${isDark ? "text-gray-500" : "text-gray-600"}`}>{form.projectTech}</p>}
-                    {form.projectDescription && <p className="mt-1 leading-relaxed">{form.projectDescription}</p>}
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Project</p>
+                    <p className={`mt-1.5 font-semibold ${isDark ? "text-white" : "text-black"} print:text-black`}>{form.projectTitle}</p>
+                    {form.projectTech && <p className={`text-xs mt-0.5 ${isDark ? "text-gray-500" : "text-gray-600"} print:text-gray-600`}>{form.projectTech}</p>}
+                    {form.projectDescription && <p className="mt-1 leading-relaxed print:text-black">{form.projectDescription}</p>}
                   </div>
                 )}
 
                 {/* Education */}
                 {(form.degree || form.college) && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Education</p>
-                    <p className={`mt-1.5 font-semibold ${isDark ? "text-white" : "text-black"}`}>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Education</p>
+                    <p className={`mt-1.5 font-semibold ${isDark ? "text-white" : "text-black"} print:text-black`}>
                       {form.degree} {form.college && `• ${form.college}`}
                     </p>
-                    {form.graduationYear && <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-600"}`}>{form.graduationYear}</p>}
-                    {form.cgpa && <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-600"}`}>CGPA: {form.cgpa}</p>}
+                    {form.graduationYear && <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-600"} print:text-gray-600`}>{form.graduationYear}</p>}
+                    {form.cgpa && <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-600"} print:text-gray-600`}>CGPA: {form.cgpa}</p>}
                   </div>
                 )}
 
                 {/* Other sections */}
                 {form.leadership && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Leadership</p>
-                    <p className="mt-1.5">{form.leadership}</p>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Leadership</p>
+                    <p className="mt-1.5 print:text-black">{form.leadership}</p>
                   </div>
                 )}
 
                 {form.openSource && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Open Source</p>
-                    <p className="mt-1.5">{form.openSource}</p>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Open Source</p>
+                    <p className="mt-1.5 print:text-black">{form.openSource}</p>
                   </div>
                 )}
 
                 {form.achievements && (
                   <div>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"}`}>Achievements</p>
-                    <p className="mt-1.5">{form.achievements}</p>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-gray-400" : "text-gray-600"} print:text-black`}>Achievements</p>
+                    <p className="mt-1.5 print:text-black">{form.achievements}</p>
                   </div>
                 )}
               </div>
@@ -1106,7 +1026,7 @@ export default function ResumeBuilderPage() {
           </div>
         </div>
 
-        <Glass isDark={isDark} className="p-6">
+        <Glass isDark={isDark} className="p-6 print:hidden">
           <h3 className={`mb-3 text-lg font-semibold ${isDark ? "text-white" : "text-black"}`}>Download / Save</h3>
           <div className="flex flex-wrap gap-3">
             <button
@@ -1139,7 +1059,7 @@ export default function ResumeBuilderPage() {
           </div>
         </Glass>
 
-        {error && <p className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>{error}</p>}
+        {error && <p className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"} print:hidden`}>{error}</p>}
       </div>
     </main>
   );
