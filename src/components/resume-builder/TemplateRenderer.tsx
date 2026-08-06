@@ -1,6 +1,5 @@
 import React from "react";
 import { ResumeTemplateConfig } from "./templates/JakesResume";
-import { MapPin, Phone, Mail, Linkedin, Github, Globe } from "lucide-react";
 
 // The FormState type must match the one from the page.
 // We'll define a simplified interface here that matches the usage.

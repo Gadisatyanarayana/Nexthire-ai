@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ArrowLeft, Download, Loader2, Save, Sparkles, UploadCloud } from "lucide-react";
 import { useEffect, useState } from "react";
 import { saveUserData, supabase } from "@/lib/supabase";
