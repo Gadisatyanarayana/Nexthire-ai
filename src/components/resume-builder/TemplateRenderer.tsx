@@ -1,38 +1,9 @@
 import React from "react";
 import { ResumeTemplateConfig } from "./templates/JakesResume";
-
-// The FormState type must match the one from the page.
-// We'll define a simplified interface here that matches the usage.
-export interface TemplateFormState {
-  fullName: string;
-  email: string;
-  phone: string;
-  location: string;
-  linkedin: string;
-  github: string;
-  portfolio: string;
-  summary: string;
-  targetRole: string;
-  technicalSkills: string;
-  softSkills: string;
-  internshipCompany: string;
-  internshipRole: string;
-  internshipDuration: string;
-  internshipAchievements: string;
-  projectTitle: string;
-  projectTech: string;
-  projectDescription: string;
-  degree: string;
-  college: string;
-  graduationYear: string;
-  cgpa: string;
-  leadership: string;
-  achievements: string;
-  openSource: string;
-}
+import { ResumeData, Experience, Project, Education, SkillCategory } from "./types";
 
 interface TemplateRendererProps {
-  form: TemplateFormState;
+  form: ResumeData;
   config: ResumeTemplateConfig;
   className?: string;
 }
@@ -101,91 +72,95 @@ export default function TemplateRenderer({ form, config, className = "" }: Templ
       )}
 
       {/* EDUCATION */}
-      {(form.degree || form.college) && (
+      {form.education && form.education.length > 0 && (
         <div className={layout.spacing.section}>
           <SectionTitle title="Education" />
-          <div className={layout.spacing.item}>
-            <div className={`flex justify-between items-start ${fontSize.body}`}>
-              <div>
-                <span className="font-bold">{form.college || "University Name"}</span>
+          {form.education.map((edu, idx) => (
+            <div key={edu.id || idx} className={layout.spacing.item}>
+              <div className={`flex justify-between items-start ${fontSize.body}`}>
+                <div>
+                  <span className="font-bold">{edu.institute || "University Name"}</span>
+                </div>
+                <div className="text-right whitespace-nowrap">
+                  {(edu.startDate || edu.endDate) ? `${edu.startDate} ${edu.startDate && edu.endDate ? '-' : ''} ${edu.endDate}` : ""}
+                </div>
               </div>
-              <div className="text-right whitespace-nowrap">
-                {form.graduationYear || "Graduation Year"}
+              <div className={`flex justify-between items-start ${fontSize.body}`}>
+                <div>
+                  <span className="italic">{edu.degree || "Degree Name"}</span>
+                </div>
+                <div className="text-right whitespace-nowrap">
+                  {edu.cgpa && `CGPA: ${edu.cgpa}`}
+                </div>
               </div>
             </div>
-            <div className={`flex justify-between items-start ${fontSize.body}`}>
-              <div>
-                <span className="italic">{form.degree || "Degree Name"}</span>
-              </div>
-              <div className="text-right whitespace-nowrap">
-                {form.cgpa && `CGPA: ${form.cgpa}`}
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       )}
 
       {/* EXPERIENCE */}
-      {(form.internshipRole || form.internshipCompany) && (
+      {form.experiences && form.experiences.length > 0 && (
         <div className={layout.spacing.section}>
           <SectionTitle title="Experience" />
-          <div className={layout.spacing.item}>
-            <div className={`flex justify-between items-start ${fontSize.body}`}>
-              <div>
-                <span className="font-bold">{form.internshipRole || "Job Title"}</span>
-                {form.internshipCompany && <span> | <span className="italic">{form.internshipCompany}</span></span>}
+          {form.experiences.map((exp, idx) => (
+            <div key={exp.id || idx} className={layout.spacing.item}>
+              <div className={`flex justify-between items-start ${fontSize.body}`}>
+                <div>
+                  <span className="font-bold">{exp.role || "Job Title"}</span>
+                  {exp.company && <span> | <span className="italic">{exp.company}</span></span>}
+                </div>
+                <div className="text-right whitespace-nowrap">
+                  {(exp.startDate || exp.endDate) ? `${exp.startDate} ${exp.startDate && exp.endDate ? '-' : ''} ${exp.endDate || (exp.current ? 'Present' : '')}` : ""}
+                </div>
               </div>
-              <div className="text-right whitespace-nowrap">
-                {form.internshipDuration || "Date Range"}
-              </div>
+              {exp.achievements && exp.achievements.length > 0 && (
+                <ul className={`list-disc list-outside ml-4 mt-1 ${fontSize.body} space-y-0.5`}>
+                  {exp.achievements.map((bullet, i) => (
+                    <li key={i} className="leading-snug">{bullet}</li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {form.internshipAchievements && (
-              <ul className={`list-disc list-outside ml-4 mt-1 ${fontSize.body} space-y-0.5`}>
-                {parseBullets(form.internshipAchievements).map((bullet, i) => (
-                  <li key={i} className="leading-snug">{bullet}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+          ))}
         </div>
       )}
 
       {/* PROJECTS */}
-      {(form.projectTitle) && (
+      {form.projects && form.projects.length > 0 && (
         <div className={layout.spacing.section}>
           <SectionTitle title="Projects" />
-          <div className={layout.spacing.item}>
-            <div className={`flex justify-between items-start ${fontSize.body}`}>
-              <div>
-                <span className="font-bold">{form.projectTitle || "Project Name"}</span>
-                {form.projectTech && <span> | <span className="italic">{form.projectTech}</span></span>}
+          {form.projects.map((proj, idx) => (
+            <div key={proj.id || idx} className={layout.spacing.item}>
+              <div className={`flex justify-between items-start ${fontSize.body}`}>
+                <div>
+                  <span className="font-bold">{proj.name || "Project Name"}</span>
+                  {proj.techStack && <span> | <span className="italic">{proj.techStack}</span></span>}
+                </div>
+                <div className="text-right whitespace-nowrap">
+                  {proj.duration}
+                </div>
               </div>
+              {proj.achievements && proj.achievements.length > 0 && (
+                <ul className={`list-disc list-outside ml-4 mt-1 ${fontSize.body} space-y-0.5`}>
+                  {proj.achievements.map((bullet, i) => (
+                    <li key={i} className="leading-snug">{bullet}</li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {form.projectDescription && (
-              <ul className={`list-disc list-outside ml-4 mt-1 ${fontSize.body} space-y-0.5`}>
-                {parseBullets(form.projectDescription).map((bullet, i) => (
-                  <li key={i} className="leading-snug">{bullet}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+          ))}
         </div>
       )}
 
       {/* SKILLS */}
-      {(form.technicalSkills || form.softSkills) && (
+      {form.skills && form.skills.some((sc) => sc.skills.trim().length > 0) && (
         <div className={layout.spacing.section}>
           <SectionTitle title="Skills" />
-          {form.technicalSkills && (
-            <div className={`${fontSize.body} leading-snug`}>
-              <span className="font-bold">Technical: </span> {form.technicalSkills}
+          {form.skills.filter((sc) => sc.skills.trim().length > 0).map((sc, idx) => (
+            <div key={sc.id || idx} className={`${fontSize.body} leading-snug mt-1`}>
+              <span className="font-bold">{sc.name}: </span> {sc.skills}
             </div>
-          )}
-          {form.softSkills && (
-            <div className={`${fontSize.body} leading-snug mt-1`}>
-              <span className="font-bold">Soft Skills: </span> {form.softSkills}
-            </div>
-          )}
+          ))}
         </div>
       )}
 
