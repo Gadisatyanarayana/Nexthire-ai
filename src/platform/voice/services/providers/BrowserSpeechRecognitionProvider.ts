@@ -115,6 +115,5 @@ export class BrowserSpeechRecognitionProvider implements SpeechRecognitionProvid
     }
     this.isListening = false;
     this.recognition = null;
-    this.teardownVAD();
   }
 }
