@@ -11,7 +11,7 @@ interface EditorProps {
 
 export default function ResumeEditor({ form, updateField }: EditorProps) {
   
-  const handleUpdateExperience = (index: number, field: keyof Experience, value: any) => {
+  const handleUpdateExperience = (index: number, field: any, value: any) => {
     const newExperiences = [...form.experiences];
     (newExperiences[index] as any)[field] = value;
     updateField('experiences', newExperiences);

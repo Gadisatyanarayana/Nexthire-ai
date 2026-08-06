@@ -1,11 +1,11 @@
 import React from 'react';
 import { Plus, Trash2, Sparkles } from 'lucide-react';
-import { Experience } from '../../types';
+import { Experience } from '../types';
 
 interface ExperienceCardProps {
   exp: Experience;
   index: number;
-  onUpdate: (index: number, field: keyof Experience, value: any) => void;
+  onUpdate: (index: number, field: any, value: any) => void;
   onDelete: (index: number) => void;
 }
 
@@ -109,7 +109,7 @@ export default function ExperienceCard({ exp, index, onUpdate, onDelete }: Exper
         </div>
         
         <div className="space-y-3">
-          {exp.achievements.map((bullet, bIndex) => (
+          {exp.achievements.map((bullet: string, bIndex: number) => (
             <div key={bIndex} className="flex gap-3 items-start group/bullet">
               <div className="mt-2.5 w-1.5 h-1.5 rounded-full bg-gray-600 flex-shrink-0" />
               <div className="flex-1 relative">
@@ -126,7 +126,7 @@ export default function ExperienceCard({ exp, index, onUpdate, onDelete }: Exper
                 />
                 <button 
                   onClick={() => {
-                    const newAchievements = exp.achievements.filter((_, i) => i !== bIndex);
+                    const newAchievements = exp.achievements.filter((_: string, i: number) => i !== bIndex);
                     onUpdate(index, "achievements", newAchievements);
                   }}
                   className="absolute top-2 right-2 text-gray-500 hover:text-red-400 opacity-0 group-hover/bullet:opacity-100 transition-opacity bg-black rounded"
