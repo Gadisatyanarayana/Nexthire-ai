@@ -8,6 +8,7 @@ export interface Experience {
   startDate: string;
   endDate: string;
   current: boolean;
+  techStack?: string;
   achievements: string[];
 }
 
@@ -28,6 +29,7 @@ export interface Education {
   id: string;
   institute: string;
   degree: string;
+  branch?: string;
   cgpa: string;
   startDate: string;
   endDate: string;
@@ -42,8 +44,26 @@ export interface SkillCategory {
   skills: string;
 }
 
+export interface ThemeSettings {
+  id: string;
+  primaryColor: string;
+  textColor: string;
+  backgroundColor: string;
+}
+
+export interface TypographySettings {
+  fontFamily: string;
+  fontSize: number; // base size
+  lineHeight: number;
+}
+
 export interface ResumeData {
   id?: string;
+  // Global Settings
+  templateId: string;
+  themeId: string;
+  typography: TypographySettings;
+  
   // Personal Information
   fullName: string;
   email: string;
@@ -74,6 +94,13 @@ export interface ResumeData {
 }
 
 export const defaultResumeData: ResumeData = {
+  templateId: "jakes-resume",
+  themeId: "classic",
+  typography: {
+    fontFamily: "Times New Roman, serif",
+    fontSize: 12,
+    lineHeight: 1.5,
+  },
   fullName: "",
   email: "",
   phone: "",
