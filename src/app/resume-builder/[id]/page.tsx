@@ -147,6 +147,7 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
       
       {/* Universal Enterprise Toolbar */}
       <Toolbar 
+        form={form}
         saving={saving} 
         lastSaved={lastSaved} 
         error={error} 

@@ -77,6 +77,88 @@ export interface ResumeSection {
   data: any; // Dynamic payload based on the Section Registry
 }
 
+// --- AI INTELLIGENCE SCHEMA ---
+
+export interface CareerInsights {
+  careerLevel: string;
+  targetRoles: string[];
+  primaryStack: string[];
+  strengths: string[];
+  weaknesses: string[];
+  leadership: string[];
+  achievements: string[];
+  missingSections: string[];
+  estimatedExperience: string;
+  careerSummary: string;
+}
+
+export interface ATSAnalysis {
+  overallScore: number;
+  dimensions: {
+    content: number;
+    formatting: number;
+    readability: number;
+    keywords: number;
+    impact: number;
+  };
+  review: {
+    strengths: string[];
+    weaknesses: string[];
+    recommendations: { text: string; priority: 'HIGH' | 'MEDIUM' | 'LOW' }[];
+  };
+}
+
+export interface JDAnalysis {
+  overallMatch: number;
+  roleFit: number;
+  technicalFit: number;
+  softSkillsMatch: number;
+  missingKeywords: string[];
+  recommendedKeywords: string[];
+  matchingProjects: string[];
+}
+
+export interface AIRecommendations {
+  bulletImprovements: string[];
+  coverLetterReady: boolean;
+  targetCompanies: string[];
+}
+
+export interface InterviewContext {
+  targetCompany: string;
+  targetRole: string;
+  difficulty: string;
+  focusAreas: string[];
+  generatedQuestions: string[];
+}
+
+export interface ResumeAnalytics {
+  healthScore: number;
+  placementReadiness: number;
+  interviewReadiness: number;
+  history: { date: string; score: number }[];
+}
+
+export interface ResumeIntelligence {
+  resumeProfile: CareerInsights;
+  atsAnalysis?: ATSAnalysis;
+  jdAnalysis?: JDAnalysis;
+  aiRecommendations?: AIRecommendations;
+  interviewContext?: InterviewContext;
+  analytics?: ResumeAnalytics;
+  metadata: {
+    version: string;
+    schemaVersion: string;
+    provider: string;
+    model: string;
+    generatedAt: string;
+    resumeHash: string;
+    promptVersion: string;
+    pipelineVersion: string;
+    cacheVersion: string;
+  };
+}
+
 export interface ResumeDocument {
   id: string;
   version: string;
@@ -91,6 +173,7 @@ export interface ResumeDocument {
   layout: any;
   sections: ResumeSection[];
   history: any[];
+  intelligence?: ResumeIntelligence;
 }
 
 // Ensure backward compatibility during migration

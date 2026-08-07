@@ -1,5 +1,5 @@
-import React from 'react';
-import { Plus, Trash2, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import { Experience } from '../types';
 
 interface ExperienceCardProps {
@@ -10,6 +10,30 @@ interface ExperienceCardProps {
 }
 
 export default function ExperienceCard({ exp, index, onUpdate, onDelete }: ExperienceCardProps) {
+  const [improvingIndex, setImprovingIndex] = useState<number | null>(null);
+  const [variations, setVariations] = useState<Record<number, any[]>>({});
+
+  const handleAIImprove = async (bulletIndex: number) => {
+    const text = exp.achievements[bulletIndex];
+    if (!text) return;
+    setImprovingIndex(bulletIndex);
+    try {
+      const res = await fetch('/api/resume/improve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, type: 'bullet' })
+      });
+      const result = await res.json();
+      if (result.success && result.data?.variations) {
+        setVariations({ ...variations, [bulletIndex]: result.data.variations });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setImprovingIndex(null);
+    }
+  };
+
   return (
     <div className="bg-[#1a1a1a] p-5 rounded-xl border border-white/5 space-y-5 relative group transition-all hover:border-white/10 shadow-lg">
       <button 
@@ -93,9 +117,6 @@ export default function ExperienceCard({ exp, index, onUpdate, onDelete }: Exper
         <div className="flex justify-between items-center mb-3">
           <label className="text-xs font-semibold text-gray-300 uppercase tracking-wide">Achievements & Impact</label>
           <div className="flex gap-3">
-            <button className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 bg-purple-500/10 px-2 py-1 rounded transition-colors">
-              <Sparkles className="h-3 w-3"/> AI STAR Generator
-            </button>
             <button 
               onClick={() => {
                 const newAchievements = [...exp.achievements, ""];
@@ -124,15 +145,52 @@ export default function ExperienceCard({ exp, index, onUpdate, onDelete }: Exper
                     onUpdate(index, "achievements", newAchievements);
                   }} 
                 />
-                <button 
-                  onClick={() => {
-                    const newAchievements = exp.achievements.filter((_: string, i: number) => i !== bIndex);
-                    onUpdate(index, "achievements", newAchievements);
-                  }}
-                  className="absolute top-2 right-2 text-gray-500 hover:text-red-400 opacity-0 group-hover/bullet:opacity-100 transition-opacity bg-black rounded"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/bullet:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => handleAIImprove(bIndex)}
+                    disabled={improvingIndex === bIndex || !bullet}
+                    className="p-1.5 text-purple-400 hover:text-purple-300 bg-black rounded disabled:opacity-50"
+                    title="Improve with AI"
+                  >
+                    {improvingIndex === bIndex ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const newAchievements = exp.achievements.filter((_: string, i: number) => i !== bIndex);
+                      onUpdate(index, "achievements", newAchievements);
+                    }}
+                    className="p-1.5 text-gray-500 hover:text-red-400 bg-black rounded"
+                    title="Delete Bullet"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {/* AI Variations Dropdown */}
+                {variations[bIndex] && (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-xs text-brand-blue font-semibold uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" /> Select Variation
+                    </p>
+                    {variations[bIndex].map((v, vIndex) => (
+                      <div 
+                        key={vIndex}
+                        onClick={() => {
+                          const newAchievements = [...exp.achievements];
+                          newAchievements[bIndex] = v.text;
+                          onUpdate(index, "achievements", newAchievements);
+                          // Clear variations after selection
+                          const newVars = { ...variations };
+                          delete newVars[bIndex];
+                          setVariations(newVars);
+                        }}
+                        className="p-2 text-xs bg-black/40 hover:bg-brand-blue/10 border border-white/5 hover:border-brand-blue/30 rounded cursor-pointer transition-colors"
+                      >
+                        <span className="font-bold text-gray-300 block mb-0.5">{v.type}</span>
+                        <span className="text-gray-400">{v.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}
