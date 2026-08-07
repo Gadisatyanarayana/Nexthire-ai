@@ -206,7 +206,7 @@ export interface ResumeDocument {
 }
 
 // Ensure backward compatibility during migration
-export interface ResumeData extends ResumeDocument {}
+export type ResumeData = ResumeDocument;
 
 export const defaultResumeDocument: ResumeDocument = {
   id: "",

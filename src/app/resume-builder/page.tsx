@@ -41,18 +41,6 @@ export default function ResumeDashboard() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/auth/signin");
-      return;
-    }
-    
-    if (status !== "authenticated" || !session?.user?.email) return;
-
-    fetchResumes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, status, router]);
-
   const fetchResumes = async () => {
     if (!session?.user?.email) return;
     setLoading(true);
@@ -70,7 +58,7 @@ export default function ResumeDashboard() {
       if (rootData.resumes) {
         // Map the resumes dictionary into an array
         for (const [id, resume] of Object.entries(rootData.resumes)) {
-          resumesList.push(resume);
+          resumesList.push({ ...(resume as object), id });
         }
       } else if (rootData.experiences) {
         // Legacy flat resume
@@ -85,13 +73,27 @@ export default function ResumeDashboard() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+      return;
+    }
+    
+    if (status !== "authenticated" || !session?.user?.email) return;
+
+    fetchResumes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status, router]);
+
   const createNewResume = () => {
+    // eslint-disable-next-line react-hooks/purity
     const id = Date.now().toString();
     router.push(`/resume-builder/${id}`);
   };
   
   const duplicateResume = async (resume: any) => {
     if (!session?.user?.email) return;
+    // eslint-disable-next-line react-hooks/purity
     const newId = Date.now().toString();
     const newResume = { 
       ...resume, 
@@ -205,7 +207,7 @@ export default function ResumeDashboard() {
                   </h3>
                   <p className={`mt-1 text-xs flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                     <Clock className="h-3 w-3" />
-                    Updated {new Date(resume.metadata?.updatedAt || Date.now()).toLocaleDateString()}
+                    Updated {resume.metadata?.updatedAt ? new Date(resume.metadata.updatedAt).toLocaleDateString() : 'Unknown date'}
                   </p>
                 </div>
               </div>

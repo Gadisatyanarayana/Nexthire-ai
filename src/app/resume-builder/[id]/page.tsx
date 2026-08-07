@@ -34,7 +34,6 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
     } else {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id, session]);
 
   const readStoredForm = async () => {
@@ -123,7 +122,6 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
       saveDraft(form);
     }, 2000);
     return () => clearTimeout(handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form]);
 
   const updateField = useCallback((field: keyof ResumeData, value: any) => {
