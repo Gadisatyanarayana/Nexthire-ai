@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const maxDuration = 60; // Allow AI endpoints more time to process on Vercel
+
 import { ATSEngine } from '@/platform/ai/pipelines/ats/ATSEngine';
 import { AICacheManager } from '@/platform/ai/cache/AICacheManager';
 import { ResumeDocument, ResumeIntelligence } from '@/components/resume-builder/types';

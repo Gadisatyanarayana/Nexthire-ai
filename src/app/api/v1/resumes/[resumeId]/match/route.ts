@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+
+export const maxDuration = 60; // Allow AI endpoints more time to process on Vercel
 import { JDMatchEngine } from '@/platform/ai/pipelines/jd_matcher/JDMatchEngine';
 import { AICacheManager } from '@/platform/ai/cache/AICacheManager';
 import { ResumeIntelligence } from '@/components/resume-builder/types';

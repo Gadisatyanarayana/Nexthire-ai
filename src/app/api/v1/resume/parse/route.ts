@@ -3,6 +3,8 @@ import { withAISecurity } from '../../../../../platform/ai/middleware/PlatformSe
 import { ResumeApplicationService } from '../../../../../platform/ai/services/ResumeApplicationService';
 import { z } from 'zod';
 
+export const maxDuration = 60; // Allow AI endpoints more time to process on Vercel
+
 const RequestSchema = z.any(); // Handled as FormData
 
 export const POST = withAISecurity(RequestSchema, async ({ req, requestId, user }: { req: NextRequest, requestId: string, user: { id: string }, body?: any }) => {
