@@ -65,3 +65,31 @@ export const ResumeIntelligenceSchema = z.object({
     cacheVersion: z.string().optional(),
   })
 });
+
+export const ATSAnalysisSchema = z.object({
+  overallScore: z.number(),
+  dimensionScores: z.object({
+    content: z.number(),
+    formatting: z.number(),
+    readability: z.number(),
+    keywords: z.number(),
+    impact: z.number(),
+    atsCompatibility: z.number(),
+  }),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  recommendations: z.array(z.object({
+    priority: z.enum(['HIGH', 'MEDIUM', 'LOW'] as [string, ...string[]]),
+    effort: z.enum(['HIGH', 'MEDIUM', 'LOW'] as [string, ...string[]]),
+    impact: z.enum(['HIGH', 'MEDIUM', 'LOW'] as [string, ...string[]]),
+    text: z.string()
+  })),
+  missingKeywords: z.array(z.string()),
+  duplicateBullets: z.array(z.string()),
+  statistics: z.object({
+    bulletCount: z.number(),
+    quantifiedBullets: z.number(),
+    actionVerbCoverage: z.number(),
+    keywordDensity: z.number()
+  })
+});

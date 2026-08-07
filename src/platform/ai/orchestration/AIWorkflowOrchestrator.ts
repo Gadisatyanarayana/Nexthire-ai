@@ -42,7 +42,7 @@ export class AIWorkflowOrchestrator {
 
       // 2. Dispatch subsequent downstream tasks concurrently or sequentially depending on dependency
       const [atsResult] = await Promise.all([
-        ATSEngine.analyze(resumeDocument),
+        ATSEngine.analyze(resumeDocument, intelligence),
         // JDMatcher.match(intelligence, ...),
         // CareerCoach.generate(intelligence, ...)
       ]);

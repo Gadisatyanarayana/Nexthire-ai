@@ -34,7 +34,7 @@ export class AIProviderRouter {
     // Abstracting provider selection with Capability Resolver
     const providerMap: Record<AICapability, { provider: string, model: string, fallbackProvider: string, fallbackModel: string, retries: number }> = {
       'RESUME_PARSE': { provider: 'google', model: 'gemini-1.5-pro', fallbackProvider: 'openai', fallbackModel: 'gpt-4o', retries: 2 },
-      'ATS_REVIEW': { provider: 'google', model: 'gemini-1.5-pro', fallbackProvider: 'openai', fallbackModel: 'gpt-4o', retries: 2 },
+      'ATS_REVIEW': { provider: 'google', model: 'gemini-1.5-flash', fallbackProvider: 'openai', fallbackModel: 'gpt-4o', retries: 2 },
       'JD_MATCH': { provider: 'google', model: 'gemini-1.5-flash', fallbackProvider: 'openai', fallbackModel: 'gpt-4o-mini', retries: 3 },
       'FAST_REWRITE': { provider: 'groq', model: 'llama3-70b-8192', fallbackProvider: 'google', fallbackModel: 'gemini-1.5-flash', retries: 2 },
       'VOICE_REASONING': { provider: 'openai', model: 'gpt-4o', fallbackProvider: 'google', fallbackModel: 'gemini-1.5-pro', retries: 1 },

@@ -1,0 +1,30 @@
+John Doe
+Software Engineer
+San Francisco, CA
+john.doe@example.com | linkedin.com/in/johndoe | github.com/johndoe
+
+SUMMARY
+Experienced Software Engineer with 5+ years specializing in building scalable web applications using React, Node.js, and TypeScript. Proven ability to lead cross-functional teams and deliver high-impact features on schedule.
+
+EXPERIENCE
+Tech Innovators Inc. - Senior Software Engineer
+January 2021 - Present
+- Architected and implemented a microservices-based backend using Node.js and Express, reducing API latency by 40%.
+- Mentored 3 junior developers and established best practices for code reviews and testing.
+- Spearheaded the migration of the frontend to React 18, improving page load speeds by 25%.
+
+Web Solutions LLC - Frontend Developer
+June 2018 - December 2020
+- Developed responsive and accessible user interfaces using React and Tailwind CSS.
+- Integrated third-party APIs for payment processing and user authentication.
+
+EDUCATION
+University of California, Berkeley
+B.S. in Computer Science
+Graduated May 2018 | GPA: 3.8/4.0
+
+SKILLS
+Programming Languages: JavaScript, TypeScript, Python
+Frontend: React, Next.js, HTML, CSS, Tailwind CSS
+Backend: Node.js, Express, PostgreSQL, MongoDB
+Tools: Git, Docker, AWS, CI/CD

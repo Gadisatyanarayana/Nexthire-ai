@@ -94,17 +94,29 @@ export interface CareerInsights {
 
 export interface ATSAnalysis {
   overallScore: number;
-  dimensions: {
+  dimensionScores: {
     content: number;
     formatting: number;
     readability: number;
     keywords: number;
     impact: number;
+    atsCompatibility: number;
   };
-  review: {
-    strengths: string[];
-    weaknesses: string[];
-    recommendations: { text: string; priority: 'HIGH' | 'MEDIUM' | 'LOW' }[];
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: {
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+    effort: 'HIGH' | 'MEDIUM' | 'LOW';
+    impact: 'HIGH' | 'MEDIUM' | 'LOW';
+    text: string;
+  }[];
+  missingKeywords: string[];
+  duplicateBullets: string[];
+  statistics: {
+    bulletCount: number;
+    quantifiedBullets: number;
+    actionVerbCoverage: number;
+    keywordDensity: number;
   };
 }
 

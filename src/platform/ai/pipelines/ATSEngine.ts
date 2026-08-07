@@ -1,62 +1,88 @@
 import { AILogger } from '../observability/AILogger';
-import { ResumeDocument, ATSAnalysis } from '../../../components/resume-builder/types';
+import { ResumeDocument, ResumeIntelligence, ATSAnalysis } from '../../../components/resume-builder/types';
 import { AIProviderRouter } from '../router/AIProviderRouter';
 
 export class ATSEngine {
-  static async analyze(resume: ResumeDocument): Promise<ATSAnalysis> {
+  static async analyze(resume: ResumeDocument, intelligence: ResumeIntelligence): Promise<ATSAnalysis> {
     const requestId = crypto.randomUUID();
     
     try {
-      // Stage 1: Rule Engine (Deterministic)
-      const ruleScore = this.runRuleEngine(resume);
-      
-      // Stage 2: Formatting Engine (Deterministic)
-      const formatScore = this.runFormattingEngine(resume);
-      
-      // Stage 3: Keyword Engine (Deterministic/Statistical)
-      const keywordScore = this.runKeywordEngine(resume);
-      
-      // Stage 4: Statistics Engine (Deterministic)
-      const statScore = this.runStatisticsEngine(resume);
-      
-      // Stage 5: Grammar Engine (Could be deterministic or light LLM)
-      const grammarScore = 90; // Mock
+      AILogger.info('Starting ATS Engine pipeline', { requestId, resumeId: resume.id });
+
+      // Stage 1: Document Validation
+      const docValidation = this.runDocumentValidation(resume);
+
+      // Stage 2: Rule Engine
+      const ruleDeductions = this.runRuleEngine(resume);
+
+      // Stage 3: Formatting Engine
+      const formattingResult = this.runFormattingEngine(resume);
+
+      // Stage 4: Readability Engine
+      const readabilityResult = this.runReadabilityEngine(resume);
+
+      // Stage 5: Keyword Engine
+      const keywordResult = this.runKeywordEngine(resume, intelligence);
 
       // Stage 6: Impact Engine
-      const impactEngineScore = this.runImpactEngine(resume);
+      const impactResult = this.runImpactEngine(resume);
 
       // Stage 7: Duplicate Content Engine
-      const duplicateScore = this.runDuplicateContentEngine(resume);
+      const duplicateResult = this.runDuplicateContentEngine(resume);
 
-      // Stage 8: LLM Reviewer (For qualitative feedback)
-      const llmFeedback = await this.runLLMReview(resume, requestId);
+      // Stage 8: ATS Compatibility Engine
+      const compatibilityResult = this.runATSCompatibilityEngine(resume);
 
-      // Stage 9: Score Aggregator
-      const overallScore = Math.round(
-        (ruleScore.score * 0.1) + 
-        (formatScore.score * 0.1) + 
-        (keywordScore.score * 0.2) + 
-        (statScore.score * 0.1) + 
-        (grammarScore * 0.1) + 
-        (impactEngineScore.score * 0.15) +
-        (duplicateScore.score * 0.1) +
-        (llmFeedback.impactScore * 0.15)
+      // Aggregate Statistics
+      const statistics = {
+        bulletCount: formattingResult.bulletCount,
+        quantifiedBullets: impactResult.quantifiedBullets,
+        actionVerbCoverage: impactResult.actionVerbCoverage,
+        keywordDensity: keywordResult.density
+      };
+
+      // Aggregate dimensions (base 100 minus deductions)
+      const contentScore = Math.max(0, 100 - ruleDeductions.deductions);
+      const formattingScore = Math.max(0, 100 - formattingResult.deductions);
+      const readabilityScore = Math.max(0, 100 - readabilityResult.deductions);
+      const keywordsScore = Math.max(0, 100 - keywordResult.deductions);
+      const impactScore = Math.max(0, 100 - impactResult.deductions);
+      const atsCompatibilityScore = Math.max(0, 100 - compatibilityResult.deductions);
+
+      // Calculate initial overall score
+      let overallScore = Math.round(
+        (contentScore * 0.15) + 
+        (formattingScore * 0.15) + 
+        (readabilityScore * 0.1) + 
+        (keywordsScore * 0.2) + 
+        (impactScore * 0.25) + 
+        (atsCompatibilityScore * 0.15)
+      );
+
+      // Stage 9: Qualitative LLM Reviewer (Offloaded to Gemini Flash)
+      const llmReview = await this.runLLMReview(
+        resume, 
+        intelligence, 
+        { contentScore, formattingScore, readabilityScore, keywordsScore, impactScore, atsCompatibilityScore },
+        requestId
       );
 
       return {
         overallScore,
-        dimensions: {
-          content: ruleScore.score,
-          formatting: formatScore.score,
-          readability: statScore.score,
-          keywords: keywordScore.score,
-          impact: llmFeedback.impactScore
+        dimensionScores: {
+          content: contentScore,
+          formatting: formattingScore,
+          readability: readabilityScore,
+          keywords: keywordsScore,
+          impact: impactScore,
+          atsCompatibility: atsCompatibilityScore
         },
-        review: {
-          strengths: llmFeedback.strengths,
-          weaknesses: llmFeedback.weaknesses,
-          recommendations: llmFeedback.recommendations
-        }
+        strengths: llmReview.strengths || [],
+        weaknesses: llmReview.weaknesses || [],
+        recommendations: llmReview.recommendations || [],
+        missingKeywords: keywordResult.missingKeywords,
+        duplicateBullets: duplicateResult.duplicateBullets,
+        statistics
       };
 
     } catch (error) {
@@ -72,52 +98,149 @@ export class ATSEngine {
 
   // --- Pipeline Stages ---
 
+  private static runDocumentValidation(resume: ResumeDocument) {
+    let isValid = true;
+    if (!resume.sections || resume.sections.length === 0) isValid = false;
+    return { isValid };
+  }
+
   private static runRuleEngine(resume: ResumeDocument) {
-    // Check for missing sections (e.g. Education, Experience)
-    let score = 100;
-    if (!resume.sections.find(s => s.type === 'experience')) score -= 20;
-    if (!resume.sections.find(s => s.type === 'education')) score -= 20;
-    return { score };
+    let deductions = 0;
+    
+    const personal = resume.sections.find(s => s.type === 'personal')?.data;
+    if (!personal?.email) deductions += 10;
+    if (!personal?.phone) deductions += 5;
+    if (!personal?.linkedin) deductions += 5;
+
+    if (!resume.sections.find(s => s.type === 'experience')) deductions += 30;
+    if (!resume.sections.find(s => s.type === 'education')) deductions += 10;
+
+    return { deductions };
   }
 
   private static runFormattingEngine(resume: ResumeDocument) {
-    // Check lengths, bullet limits, standard section names
-    return { score: 95 };
+    let deductions = 0;
+    let bulletCount = 0;
+
+    const experience = resume.sections.find(s => s.type === 'experience')?.data;
+    if (experience && Array.isArray(experience.items)) {
+      experience.items.forEach((item: any) => {
+        const count = item.achievements?.length || 0;
+        bulletCount += count;
+        if (count > 6) deductions += 2; // Too many bullets
+        if (count > 0 && count < 2) deductions += 2; // Too few bullets
+      });
+    }
+
+    if (bulletCount < 5) deductions += 15;
+    
+    return { deductions, bulletCount };
   }
 
-  private static runKeywordEngine(resume: ResumeDocument) {
-    // Standard industry keyword presence
-    return { score: 85 };
+  private static runReadabilityEngine(resume: ResumeDocument) {
+    let deductions = 0;
+    // Simple deterministic checks: long bullets > 30 words
+    const experience = resume.sections.find(s => s.type === 'experience')?.data;
+    if (experience && Array.isArray(experience.items)) {
+      experience.items.forEach((item: any) => {
+        item.achievements?.forEach((bullet: string) => {
+          const wordCount = bullet.split(' ').length;
+          if (wordCount > 40) deductions += 2; // Too long
+          if (wordCount < 5) deductions += 1;  // Too short
+        });
+      });
+    }
+    return { deductions };
   }
 
-  private static runStatisticsEngine(resume: ResumeDocument) {
-    // Action verb density, quantifiable metrics density
-    return { score: 75 };
+  private static runKeywordEngine(resume: ResumeDocument, intelligence: ResumeIntelligence) {
+    let deductions = 0;
+    const targetRoles = intelligence.resumeProfile.targetRoles || [];
+    const stack = intelligence.resumeProfile.primaryStack || [];
+    
+    // In a real scenario, this would compare against a JD or a massive taxonomy graph
+    let matchedKeywords = 0;
+    let missingKeywords: string[] = [];
+
+    if (stack.length < 3) deductions += 20;
+
+    return { 
+      deductions, 
+      density: stack.length * 2, // arbitrary metric
+      missingKeywords 
+    };
   }
 
   private static runImpactEngine(resume: ResumeDocument) {
-    // Evaluates sentence structures for X-Y-Z formula (Google format)
-    return { score: 85 };
+    let deductions = 0;
+    let quantifiedBullets = 0;
+    let totalBullets = 0;
+    
+    const numberRegex = /\d+%|\$\d+|\b\d+\b/g;
+
+    const experience = resume.sections.find(s => s.type === 'experience')?.data;
+    if (experience && Array.isArray(experience.items)) {
+      experience.items.forEach((item: any) => {
+        item.achievements?.forEach((bullet: string) => {
+          totalBullets++;
+          if (numberRegex.test(bullet)) {
+            quantifiedBullets++;
+          } else {
+            deductions += 1;
+          }
+        });
+      });
+    }
+
+    const coverage = totalBullets > 0 ? Math.round((quantifiedBullets / totalBullets) * 100) : 0;
+    if (coverage < 30) deductions += 10;
+
+    return { deductions, quantifiedBullets, actionVerbCoverage: coverage };
   }
 
   private static runDuplicateContentEngine(resume: ResumeDocument) {
-    // Detects repeated action verbs, duplicated bullet structures across roles
-    return { score: 80 };
+    // Detects repeated action verbs
+    let duplicateBullets: string[] = [];
+    return { deductions: 0, duplicateBullets };
   }
 
-  private static async runLLMReview(resume: ResumeDocument, requestId: string) {
-    // We only use the LLM to find subtle qualitative improvements.
-    // Abstracted behind AIProviderRouter
-    const prompt = `Review this resume qualitatively. Provide impact score (0-100), strengths, weaknesses, and recommendations.`;
+  private static runATSCompatibilityEngine(resume: ResumeDocument) {
+    let deductions = 0;
+    // Detect columns, tables, headers/footers based on the layout schema
+    if (resume.typography.columns > 1) deductions += 10;
+    return { deductions };
+  }
+
+  private static async runLLMReview(resume: ResumeDocument, intelligence: ResumeIntelligence, dimensionScores: any, requestId: string) {
+    const prompt = `
+      You are an elite ATS Analyst. Review this resume based on the following deterministic scores:
+      Content: ${dimensionScores.content}
+      Formatting: ${dimensionScores.formatting}
+      Readability: ${dimensionScores.readability}
+      Keywords: ${dimensionScores.keywords}
+      Impact: ${dimensionScores.impact}
+      ATS Compatibility: ${dimensionScores.atsCompatibility}
+
+      Extract the strengths and weaknesses.
+      Generate 3 highly actionable recommendations to improve the resume.
+      Provide the output EXACTLY matching this JSON schema:
+      {
+        "strengths": ["..."],
+        "weaknesses": ["..."],
+        "recommendations": [
+          { "priority": "HIGH", "effort": "LOW", "impact": "HIGH", "text": "..." }
+        ]
+      }
+
+      Resume Data:
+      ${JSON.stringify(intelligence.resumeProfile)}
+    `;
     
-    // In a real scenario, we pass a smaller, structured representation of the resume to the LLM
-    const response = await AIProviderRouter.execute('ATS_REVIEW', prompt, { requestId });
+    const response = await AIProviderRouter.execute('ATS_REVIEW', prompt, { 
+      requestId,
+      systemInstruction: "You are an ATS analyzer. Respond strictly in valid JSON matching the schema."
+    });
     
-    return {
-      impactScore: 88,
-      strengths: ['Strong action verbs in recent roles'],
-      weaknesses: ['Lack of metrics in first project'],
-      recommendations: [{ text: 'Add measurable outcomes to Project A', priority: 'HIGH' as const }]
-    };
+    return response.result;
   }
 }
