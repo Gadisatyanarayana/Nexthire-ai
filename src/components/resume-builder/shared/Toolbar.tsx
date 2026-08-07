@@ -87,77 +87,93 @@ export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrin
 
   return (
     <>
-      <div className="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-[#0a0a0a] z-50 print:hidden text-gray-300">
+      <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#050505]/80 backdrop-blur-xl z-50 print:hidden text-gray-300 shadow-sm relative">
+        
+        {/* Subtle top highlight for glass effect */}
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
         
       {/* Undo/Redo & Zoom Group */}
-      <div className="flex items-center gap-2 border-r border-white/10 pr-4">
-        <button className="p-1.5 rounded hover:bg-white/10 transition text-gray-500 cursor-not-allowed">
+      <div className="flex items-center gap-1.5 border-r border-white/10 pr-6">
+        <button className="p-2 rounded-lg hover:bg-white/5 transition-all duration-200 text-gray-500 cursor-not-allowed hover:text-gray-400">
           <Undo className="h-4 w-4" />
         </button>
-        <button className="p-1.5 rounded hover:bg-white/10 transition text-gray-500 cursor-not-allowed">
+        <button className="p-2 rounded-lg hover:bg-white/5 transition-all duration-200 text-gray-500 cursor-not-allowed hover:text-gray-400">
           <Redo className="h-4 w-4" />
         </button>
         
-        <div className="w-px h-4 bg-white/10 mx-2"></div>
+        <div className="w-px h-6 bg-white/5 mx-2"></div>
         
-        <button onClick={onZoomOut} className="p-1.5 rounded hover:bg-white/10 transition">
+        <button onClick={onZoomOut} className="p-2 rounded-lg hover:bg-white/10 transition-all duration-200 text-gray-400 hover:text-white">
           <ZoomOut className="h-4 w-4" />
         </button>
-        <button onClick={onZoomIn} className="p-1.5 rounded hover:bg-white/10 transition">
+        <button onClick={onZoomIn} className="p-2 rounded-lg hover:bg-white/10 transition-all duration-200 text-gray-400 hover:text-white">
           <ZoomIn className="h-4 w-4" />
         </button>
       </div>
       
       {/* Autosave Status */}
-      <div className="text-xs flex items-center gap-2">
+      <div className="text-xs flex items-center gap-2 font-medium tracking-wide">
         {error ? (
-          <span className="text-red-400 font-medium">{error}</span>
+          <span className="text-red-400/90 flex items-center gap-1.5 bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">{error}</span>
         ) : saving ? (
-          <span className="flex items-center gap-1.5 text-gray-400">
-            <Loader2 className="h-3 w-3 animate-spin"/> Saving changes...
+          <span className="flex items-center gap-2 text-gray-400 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-blue"/> Saving securely...
           </span>
         ) : lastSaved ? (
-          <span className="text-gray-500 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> 
-            All changes saved
+          <span className="text-gray-400 flex items-center gap-2 bg-green-500/5 px-3 py-1.5 rounded-full border border-green-500/10 transition-all duration-500">
+            <span className="w-2 h-2 rounded-full bg-green-500/80 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></span> 
+            Saved to Cloud
           </span>
         ) : null}
       </div>
 
       {/* ATS Score & Export Controls */}
-      <div className="flex items-center gap-2 pl-4 border-l border-white/10">
+      <div className="flex items-center gap-3 pl-6 border-l border-white/10">
         <button 
           onClick={handleCoach}
           disabled={generatingCoach}
-          className="flex items-center gap-1.5 p-1.5 px-3 rounded hover:bg-white/10 transition text-sm text-gray-400"
+          className="group flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white/10 transition-all duration-300 text-sm font-medium text-gray-300 hover:text-white"
         >
-          {generatingCoach ? <Loader2 className="h-4 w-4 animate-spin"/> : <Compass className="h-4 w-4" />}
-          Coach
+          {generatingCoach ? <Loader2 className="h-4 w-4 animate-spin text-purple-400"/> : <Compass className="h-4 w-4 text-purple-400 group-hover:scale-110 transition-transform" />}
+          AI Coach
         </button>
         <button 
           onClick={handleGenerateCoverLetter}
           disabled={generatingLetter}
-          className="flex items-center gap-1.5 p-1.5 px-3 rounded hover:bg-white/10 transition text-sm text-gray-400"
+          className="group flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white/10 transition-all duration-300 text-sm font-medium text-gray-300 hover:text-white"
         >
-          {generatingLetter ? <Loader2 className="h-4 w-4 animate-spin"/> : <FileText className="h-4 w-4" />}
+          {generatingLetter ? <Loader2 className="h-4 w-4 animate-spin text-blue-400"/> : <FileText className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />}
           Cover Letter
         </button>
+        
+        <div className="w-px h-6 bg-white/5 mx-1"></div>
+
         <button 
           onClick={() => { if (atsScore) setShowAnalytics(true); else handleATSAnalyze(); }}
           disabled={scoring}
-          className={`flex items-center gap-1.5 p-1.5 px-3 rounded transition text-sm font-medium border ${atsScore ? (atsScore > 80 ? 'border-green-500/50 bg-green-500/10 text-green-400' : 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400') : 'border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'}`}
+          className={`flex items-center gap-2 px-5 py-2 rounded-full transition-all duration-300 text-sm font-semibold shadow-lg ${
+            atsScore 
+              ? (atsScore > 80 
+                  ? 'border border-green-500/40 bg-green-500/15 text-green-300 hover:bg-green-500/25' 
+                  : 'border border-yellow-500/40 bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/25') 
+              : 'border border-purple-500/30 bg-gradient-to-r from-purple-600/20 to-brand-blue/20 text-purple-300 hover:from-purple-600/30 hover:to-brand-blue/30 hover:border-purple-500/50'
+          }`}
         >
           {scoring ? <Loader2 className="h-4 w-4 animate-spin"/> : atsScore ? <CheckCircle2 className="h-4 w-4" /> : <Target className="h-4 w-4" />}
           {scoring ? "Analyzing..." : atsScore ? `ATS Score: ${atsScore}` : "Check ATS Score"}
         </button>
-        <button className="flex items-center gap-1.5 p-1.5 px-3 rounded hover:bg-white/10 transition text-sm">
-          <Share2 className="h-3.5 w-3.5" /> Share
+        
+        <button className="flex items-center gap-2 p-2 rounded-full hover:bg-white/10 transition-all duration-200 text-gray-400 hover:text-white" title="Share Resume">
+          <Share2 className="h-4 w-4" />
         </button>
-        <button onClick={onPrint} className="flex items-center gap-1.5 p-1.5 px-3 rounded hover:bg-white/10 transition text-sm">
-          <Printer className="h-3.5 w-3.5" /> Print
+        <button onClick={onPrint} className="flex items-center gap-2 p-2 rounded-full hover:bg-white/10 transition-all duration-200 text-gray-400 hover:text-white" title="Print Resume">
+          <Printer className="h-4 w-4" />
         </button>
-        <button onClick={onPrint} className="flex items-center gap-1.5 px-4 py-1.5 rounded bg-brand-blue text-white hover:bg-blue-600 transition text-sm font-medium">
-          <Download className="h-3.5 w-3.5" /> Export PDF
+        <button 
+          onClick={onPrint} 
+          className="flex items-center gap-2 px-6 py-2 ml-2 rounded-full bg-white text-black hover:bg-gray-100 transition-all duration-300 text-sm font-bold shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] hover:-translate-y-0.5 active:translate-y-0"
+        >
+          <Download className="h-4 w-4" /> Export PDF
         </button>
       </div>
 

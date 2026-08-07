@@ -141,7 +141,10 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="h-screen bg-[#0a0a0a] text-white flex flex-col font-sans overflow-hidden">
+    <div className="h-screen bg-[#050505] text-white flex flex-col font-sans overflow-hidden relative selection:bg-brand-blue/30 selection:text-brand-blue">
+      {/* Premium Ambient Background Effects */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand-blue/10 blur-[120px] pointer-events-none opacity-50" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[40%] rounded-full bg-purple-500/10 blur-[120px] pointer-events-none opacity-50" />
       
       {/* Universal Enterprise Toolbar */}
       <Toolbar 

@@ -73,26 +73,30 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
     }
   };
   return (
-    <aside className="w-72 border-r border-white/10 bg-[#111] flex flex-col overflow-y-auto print:hidden">
+    <aside className="w-80 border-r border-white/5 bg-[#0a0a0a]/80 backdrop-blur-md flex flex-col overflow-y-auto print:hidden shadow-[4px_0_24px_rgba(0,0,0,0.5)] z-40 relative">
       
       {/* Upload Parser */}
-      <div className="p-4 border-b border-white/10 bg-brand-blue/5">
-        <label className="flex items-center justify-center gap-2 w-full py-2 rounded bg-brand-blue/20 text-brand-blue text-sm font-medium hover:bg-brand-blue/30 transition-colors cursor-pointer border border-brand-blue/20">
-          {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          {parsing ? "Parsing PDF..." : "Import PDF Resume"}
+      <div className="p-5 border-b border-white/5 bg-gradient-to-b from-brand-blue/10 to-transparent">
+        <label className="flex flex-col items-center justify-center gap-3 w-full py-6 rounded-xl bg-brand-blue/5 border border-dashed border-brand-blue/30 text-brand-blue text-sm font-medium hover:bg-brand-blue/10 hover:border-brand-blue/50 transition-all duration-300 cursor-pointer shadow-inner">
+          <div className="p-3 rounded-full bg-brand-blue/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+            {parsing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+          </div>
+          <span className="tracking-wide">{parsing ? "Extracting Data..." : "Import PDF Resume"}</span>
           <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} disabled={parsing} />
         </label>
-        <p className="text-[10px] text-gray-500 text-center mt-2">AI will automatically extract your data</p>
+        <p className="text-[11px] text-gray-500/80 text-center mt-3 font-medium tracking-wide">AI WILL AUTOMATICALLY EXTRACT YOUR DATA</p>
       </div>
 
-      <div className="p-4 border-b border-white/10">
-        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Global Design</h2>
+      <div className="p-5 border-b border-white/5">
+        <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+          <div className="h-px w-4 bg-gray-600"></div> Global Design
+        </h2>
         
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">Layout Template</label>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-[11px] text-gray-500 font-semibold tracking-wide uppercase">Layout Template</label>
             <select 
-              className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-gray-200 outline-none focus:border-brand-blue"
+              className="w-full bg-[#151515] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
               value={form.metadata.templateId}
               onChange={(e) => updateField('metadata', { ...form.metadata, templateId: e.target.value })}
             >
@@ -102,15 +106,14 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
             </select>
           </div>
 
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">Theme</label>
+          <div className="space-y-2">
+            <label className="text-[11px] text-gray-500 font-semibold tracking-wide uppercase">Theme Palette</label>
             <select 
-              className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-gray-200 outline-none focus:border-brand-blue"
+              className="w-full bg-[#151515] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
               value={form.theme.id}
               onChange={(e) => {
                 const config = ThemeRegistry[e.target.value];
                 if (config) {
-                  // Merge the base ThemeSettings with the selected config's colors & styles
                   updateField('theme', { 
                     ...form.theme, 
                     id: e.target.value,
@@ -128,10 +131,10 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
               ))}
             </select>
           </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">Typography</label>
+          <div className="space-y-2">
+            <label className="text-[11px] text-gray-500 font-semibold tracking-wide uppercase">Typography</label>
             <select 
-              className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-gray-200 outline-none focus:border-brand-blue"
+              className="w-full bg-[#151515] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
               value={form.typography?.headingFont || "times"}
               onChange={(e) => {
                 const config = TypographyRegistry[e.target.value];
@@ -153,9 +156,11 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
         </div>
       </div>
       
-      <div className="p-4 flex-1">
-        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Add Sections</h2>
-        <div className="grid grid-cols-2 gap-2">
+      <div className="p-5 flex-1 border-b border-white/5 bg-[#0a0a0a]">
+        <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+          <div className="h-px w-4 bg-gray-600"></div> Add Sections
+        </h2>
+        <div className="grid grid-cols-2 gap-2.5">
           {Object.keys(SectionRegistry).map(key => {
             const plugin = SectionRegistry[key];
             const alreadyAdded = form.sections.some(s => s.type === key);
@@ -173,49 +178,62 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
                   };
                   updateField('sections', [...form.sections, newSection]);
                 }}
-                className={`text-xs px-2 py-2 rounded border ${alreadyAdded ? 'border-white/5 bg-white/5 text-gray-500' : 'border-white/10 bg-[#1a1a1a] hover:border-brand-blue text-gray-300'} transition-colors`}
+                className={`text-xs px-3 py-2.5 rounded-lg border font-medium text-left flex items-center gap-2 transition-all duration-200 shadow-sm ${
+                  alreadyAdded 
+                    ? 'border-white/5 bg-white/5 text-gray-600 cursor-not-allowed' 
+                    : 'border-white/10 bg-[#151515] hover:bg-[#202020] hover:border-brand-blue/50 hover:shadow-[0_0_10px_rgba(59,130,246,0.1)] text-gray-300'
+                }`}
               >
-                + {plugin.name}
+                <span className="text-brand-blue/70">+</span> {plugin.name}
               </button>
             )
           })}
         </div>
       </div>
-      <div className="p-4 border-t border-white/10">
-        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1">
-          <Target className="h-3 w-3" /> Job Matcher
+      <div className="p-5 bg-gradient-to-t from-brand-blue/5 to-transparent relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/10 blur-[50px] pointer-events-none rounded-full" />
+        <h2 className="text-[10px] font-bold text-brand-blue/80 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 relative z-10">
+          <Target className="h-3.5 w-3.5" /> Job Matcher
         </h2>
         <textarea
-          className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-xs text-gray-300 outline-none focus:border-brand-blue min-h-[80px] resize-y mb-2"
-          placeholder="Paste Job Description here to analyze keyword match..."
+          className="w-full bg-[#0a0a0a]/80 backdrop-blur-sm border border-brand-blue/20 rounded-xl px-3 py-3 text-xs text-gray-300 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 min-h-[90px] resize-y mb-3 shadow-inner relative z-10 transition-all placeholder:text-gray-600"
+          placeholder="Paste Job Description to optimize resume..."
           value={jdText}
           onChange={(e) => setJdText(e.target.value)}
         />
         <button
           onClick={handleMatch}
           disabled={matching || !jdText}
-          className="w-full py-1.5 rounded bg-brand-blue/10 text-brand-blue text-xs font-medium hover:bg-brand-blue/20 transition-colors disabled:opacity-50 flex justify-center items-center gap-1"
+          className="w-full py-2.5 rounded-lg bg-brand-blue text-white text-xs font-bold tracking-wide hover:bg-blue-600 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none flex justify-center items-center gap-2 relative z-10"
         >
-          {matching ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-          {matching ? "Analyzing..." : "Match JD"}
+          {matching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {matching ? "ANALYZING JD..." : "OPTIMIZE FOR ROLE"}
         </button>
 
         {matchResult && (
-          <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded text-xs space-y-3">
-            <div className="flex justify-between items-center font-bold">
-              <span className="text-gray-300">Overall Match:</span>
-              <span className={matchResult.overallMatch > 75 ? "text-green-400" : "text-yellow-400"}>{matchResult.overallMatch}%</span>
+          <div className="mt-5 p-4 bg-[#0a0a0a]/80 backdrop-blur-md border border-white/10 rounded-xl text-xs shadow-xl relative z-10">
+            <div className="flex justify-between items-center font-bold text-sm mb-4">
+              <span className="text-gray-300">Overall Match</span>
+              <div className={`px-2.5 py-1 rounded-full ${matchResult.overallMatch > 75 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}`}>
+                {matchResult.overallMatch}%
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pb-2 border-b border-white/5 text-gray-400">
-              <div className="flex justify-between"><span>Role:</span> <span>{matchResult.roleFit}%</span></div>
-              <div className="flex justify-between"><span>Tech:</span> <span>{matchResult.technicalFit}%</span></div>
+            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-white/5 text-gray-400 mb-3">
+              <div className="bg-white/5 p-2 rounded-lg">
+                <span className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Role Fit</span>
+                <span className="font-medium text-white">{matchResult.roleFit}%</span>
+              </div>
+              <div className="bg-white/5 p-2 rounded-lg">
+                <span className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Tech Fit</span>
+                <span className="font-medium text-white">{matchResult.technicalFit}%</span>
+              </div>
             </div>
             
             {matchResult.missingKeywords?.length > 0 && (
-              <div>
-                <span className="text-gray-400 block mb-1">Missing Keywords (Click to add):</span>
-                <div className="flex flex-wrap gap-1">
+              <div className="mb-3">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-500 block mb-2">Missing Required Keywords</span>
+                <div className="flex flex-wrap gap-1.5">
                   {matchResult.missingKeywords.map((kw: string, i: number) => (
                     <button 
                       key={i} 
@@ -233,9 +251,9 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
                           updateField('sections', newSections);
                         }
                       }}
-                      className="px-1.5 py-0.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/20 transition-colors"
+                      className="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors shadow-sm group relative"
                     >
-                      + {kw}
+                      <span className="opacity-50 group-hover:opacity-100 mr-1 transition-opacity">+</span>{kw}
                     </button>
                   ))}
                 </div>
@@ -244,10 +262,10 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
             
             {matchResult.recommendedKeywords?.length > 0 && (
               <div>
-                <span className="text-gray-400 block mb-1">Recommended Keywords:</span>
-                <div className="flex flex-wrap gap-1">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-500 block mb-2">Recommended Additions</span>
+                <div className="flex flex-wrap gap-1.5">
                   {matchResult.recommendedKeywords.map((kw: string, i: number) => (
-                    <span key={i} className="px-1.5 py-0.5 bg-yellow-500/10 text-yellow-400 rounded border border-yellow-500/20">{kw}</span>
+                    <span key={i} className="px-2 py-1 bg-yellow-500/10 text-yellow-400/90 rounded-md border border-yellow-500/20">{kw}</span>
                   ))}
                 </div>
               </div>
