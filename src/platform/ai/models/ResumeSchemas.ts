@@ -68,17 +68,27 @@ export const ResumeIntelligenceSchema = z.object({
 
 export const ATSAnalysisSchema = z.object({
   overallScore: z.number(),
+  confidence: z.number(),
+  percentile: z.number(),
+  target: z.string(),
   dimensionScores: z.object({
-    content: z.number(),
-    formatting: z.number(),
-    readability: z.number(),
-    keywords: z.number(),
-    impact: z.number(),
-    atsCompatibility: z.number(),
+    content: z.object({ score: z.number(), earned: z.number(), possible: z.number(), reasons: z.array(z.string()) }),
+    formatting: z.object({ score: z.number(), earned: z.number(), possible: z.number(), reasons: z.array(z.string()) }),
+    readability: z.object({ score: z.number(), earned: z.number(), possible: z.number(), reasons: z.array(z.string()) }),
+    keywords: z.object({ score: z.number(), earned: z.number(), possible: z.number(), reasons: z.array(z.string()) }),
+    impact: z.object({ score: z.number(), earned: z.number(), possible: z.number(), reasons: z.array(z.string()) }),
+    atsCompatibility: z.object({ score: z.number(), earned: z.number(), possible: z.number(), reasons: z.array(z.string()) }),
+  }),
+  qualityMetrics: z.object({
+    resumeCompleteness: z.number(),
+    resumeConsistency: z.number(),
+    resumeProfessionalism: z.number(),
+    resumeTechnicalStrength: z.number()
   }),
   strengths: z.array(z.string()),
   weaknesses: z.array(z.string()),
   recommendations: z.array(z.object({
+    id: z.string().optional(),
     priority: z.enum(['HIGH', 'MEDIUM', 'LOW'] as [string, ...string[]]),
     effort: z.enum(['HIGH', 'MEDIUM', 'LOW'] as [string, ...string[]]),
     impact: z.enum(['HIGH', 'MEDIUM', 'LOW'] as [string, ...string[]]),
@@ -91,5 +101,12 @@ export const ATSAnalysisSchema = z.object({
     quantifiedBullets: z.number(),
     actionVerbCoverage: z.number(),
     keywordDensity: z.number()
+  }),
+  version: z.object({
+    reportVersion: z.number(),
+    resumeVersion: z.number(),
+    engineVersion: z.string(),
+    promptVersion: z.string(),
+    generatedAt: z.string()
   })
 });

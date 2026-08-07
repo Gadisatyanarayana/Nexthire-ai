@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
-import { PlatformSecurityMiddleware } from '../../../../../platform/ai/middleware/PlatformSecurityMiddleware';
-import { ATSEngine } from '../../../../../platform/ai/pipelines/ATSEngine';
-import { AICacheManager } from '../../../../../platform/ai/cache/AICacheManager';
-import { ResumeDocument, ResumeIntelligence } from '../../../../../components/resume-builder/types';
-import { db } from '../../../../../db'; // Assumed DB
-import { resumeAnalytics } from '../../../../../db/schema'; // Assumed DB Schema
-import { AILogger } from '../../../../../platform/ai/observability/AILogger';
 
-export async function POST(req: Request, { params }: { params: { resumeId: string } }) {
+import { ATSEngine } from '@/platform/ai/pipelines/ats/ATSEngine';
+import { AICacheManager } from '@/platform/ai/cache/AICacheManager';
+import { ResumeDocument, ResumeIntelligence } from '@/components/resume-builder/types';
+// Removing assumed schema import since it causes errors
+import { AILogger } from '@/platform/ai/observability/AILogger';
+
+export async function POST(req: Request, { params }: { params: Promise<{ resumeId: string }> }) {
   try {
-    const { userId } = await PlatformSecurityMiddleware.validateRequest(req);
-    const { resumeId } = params;
+    const userId = 'mock-user-id'; // Replaced validateRequest with mock until auth is implemented
+    const resolvedParams = await params;
+    const resumeId = resolvedParams.resumeId;
 
     const body = await req.json();
     const { document, intelligence } = body as { document: ResumeDocument, intelligence: ResumeIntelligence };
@@ -33,18 +33,11 @@ export async function POST(req: Request, { params }: { params: { resumeId: strin
     await AICacheManager.set('ats', cacheKey, atsResult);
 
     // 4. Store Analytics History (Background task, don't await blocking UI)
+    // 4. Store Analytics History (mocked for now)
     try {
-        if (db && resumeAnalytics) {
-            await db.insert(resumeAnalytics).values({
-                resumeId,
-                userId,
-                score: atsResult.overallScore,
-                breakdown: atsResult.dimensionScores,
-                analyzedAt: new Date().toISOString()
-            }).execute();
-        }
+        AILogger.debug('Analytics would be stored here', { resumeId, userId });
     } catch (e) {
-        AILogger.warn('Failed to track ATS analytics', e, { resumeId });
+        AILogger.warn('Failed to track ATS analytics', { error: e, resumeId });
     }
 
     return NextResponse.json({ success: true, data: atsResult, cached: false });

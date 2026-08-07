@@ -1,5 +1,5 @@
 import { ResumeIntelligenceEngine } from '../ai/services/ResumeIntelligenceEngine';
-import { ATSEngine } from '../ai/pipelines/ATSEngine';
+import { ATSEngine } from '../ai/pipelines/ats/ATSEngine';
 import { AILogger } from '../ai/observability/AILogger';
 
 export interface VoiceInterviewConfig {
@@ -50,7 +50,7 @@ export class InterviewManager {
 
     const contextPayload: VoiceContextPayload = {
       resumeProfile: intelligence.resumeProfile,
-      atsGaps: intelligence.atsAnalysis?.review?.weaknesses || [],
+      atsGaps: intelligence.atsAnalysis?.weaknesses || [],
       jd: intelligence.jdAnalysis || {}, 
       targetCompany: config.targetCompany,
       targetRole: config.targetRole,

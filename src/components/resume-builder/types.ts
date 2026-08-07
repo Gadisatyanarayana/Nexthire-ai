@@ -94,17 +94,27 @@ export interface CareerInsights {
 
 export interface ATSAnalysis {
   overallScore: number;
+  confidence: number;
+  percentile: number;
+  target: string;
   dimensionScores: {
-    content: number;
-    formatting: number;
-    readability: number;
-    keywords: number;
-    impact: number;
-    atsCompatibility: number;
+    content: { score: number; earned: number; possible: number; reasons: string[] };
+    formatting: { score: number; earned: number; possible: number; reasons: string[] };
+    readability: { score: number; earned: number; possible: number; reasons: string[] };
+    keywords: { score: number; earned: number; possible: number; reasons: string[] };
+    impact: { score: number; earned: number; possible: number; reasons: string[] };
+    atsCompatibility: { score: number; earned: number; possible: number; reasons: string[] };
+  };
+  qualityMetrics: {
+    resumeCompleteness: number;
+    resumeConsistency: number;
+    resumeProfessionalism: number;
+    resumeTechnicalStrength: number;
   };
   strengths: string[];
   weaknesses: string[];
   recommendations: {
+    id?: string;
     priority: 'HIGH' | 'MEDIUM' | 'LOW';
     effort: 'HIGH' | 'MEDIUM' | 'LOW';
     impact: 'HIGH' | 'MEDIUM' | 'LOW';
@@ -117,6 +127,13 @@ export interface ATSAnalysis {
     quantifiedBullets: number;
     actionVerbCoverage: number;
     keywordDensity: number;
+  };
+  version: {
+    reportVersion: number;
+    resumeVersion: number;
+    engineVersion: string;
+    promptVersion: string;
+    generatedAt: string;
   };
 }
 

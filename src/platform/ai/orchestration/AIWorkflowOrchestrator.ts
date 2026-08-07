@@ -1,5 +1,5 @@
 import { ResumeIntelligenceEngine } from '../services/ResumeIntelligenceEngine';
-import { ATSEngine } from '../pipelines/ATSEngine';
+import { ATSEngine } from '../pipelines/ats/ATSEngine';
 import { ResumeDocument } from '../../../components/resume-builder/types';
 import { AILogger } from '../observability/AILogger';
 import { AIProviderRouter } from '../router/AIProviderRouter';

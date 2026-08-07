@@ -1,0 +1,80 @@
+{
+  "NO_GITHUB": {
+    "priority": "HIGH",
+    "impact": "HIGH",
+    "effort": "LOW",
+    "text": "Add a GitHub profile link to improve recruiter visibility and showcase code."
+  },
+  "NO_LINKEDIN": {
+    "priority": "HIGH",
+    "impact": "HIGH",
+    "effort": "LOW",
+    "text": "Add your LinkedIn profile to establish professional presence."
+  },
+  "NO_EMAIL": {
+    "priority": "HIGH",
+    "impact": "HIGH",
+    "effort": "LOW",
+    "text": "Add a professional email address so recruiters can contact you."
+  },
+  "NO_PHONE": {
+    "priority": "HIGH",
+    "impact": "HIGH",
+    "effort": "LOW",
+    "text": "Add a phone number to allow for quick recruiter screening."
+  },
+  "MISSING_EXPERIENCE": {
+    "priority": "HIGH",
+    "impact": "HIGH",
+    "effort": "HIGH",
+    "text": "Your resume is missing an Experience section. Add your work history or relevant projects."
+  },
+  "MISSING_EDUCATION": {
+    "priority": "MEDIUM",
+    "impact": "MEDIUM",
+    "effort": "LOW",
+    "text": "Add an Education section to highlight your academic background."
+  },
+  "TOO_MANY_BULLETS": {
+    "priority": "MEDIUM",
+    "impact": "LOW",
+    "effort": "MEDIUM",
+    "text": "Some roles have too many bullet points. Keep it to 3-6 highly impactful bullets per role."
+  },
+  "TOO_FEW_BULLETS": {
+    "priority": "HIGH",
+    "impact": "MEDIUM",
+    "effort": "HIGH",
+    "text": "Expand on your experience by adding more detailed bullet points (aim for 3-6 per role)."
+  },
+  "POOR_READABILITY": {
+    "priority": "MEDIUM",
+    "impact": "MEDIUM",
+    "effort": "HIGH",
+    "text": "Some bullet points are too wordy. Break them down or make them more concise."
+  },
+  "LACKING_KEYWORDS": {
+    "priority": "HIGH",
+    "impact": "HIGH",
+    "effort": "MEDIUM",
+    "text": "Your resume lacks key technical skills required for your target role. Include more specific technologies."
+  },
+  "LOW_IMPACT": {
+    "priority": "HIGH",
+    "impact": "HIGH",
+    "effort": "HIGH",
+    "text": "Quantify your achievements. Add numbers, percentages, or dollar amounts to demonstrate scale."
+  },
+  "DUPLICATE_CONTENT": {
+    "priority": "LOW",
+    "impact": "LOW",
+    "effort": "MEDIUM",
+    "text": "Avoid repeating the same action verbs or structures across multiple bullet points."
+  },
+  "MULTI_COLUMN_LAYOUT": {
+    "priority": "HIGH",
+    "impact": "HIGH",
+    "effort": "LOW",
+    "text": "Avoid multi-column layouts as they often confuse older ATS systems. Stick to a single-column format."
+  }
+}

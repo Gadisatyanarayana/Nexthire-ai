@@ -1,0 +1,38 @@
+{
+  "Software Engineer": {
+    "overall": 85,
+    "content": 90,
+    "keywords": 85,
+    "impact": 80,
+    "readability": 85,
+    "formatting": 90,
+    "atsCompatibility": 100
+  },
+  "Data Scientist": {
+    "overall": 88,
+    "content": 92,
+    "keywords": 90,
+    "impact": 85,
+    "readability": 80,
+    "formatting": 90,
+    "atsCompatibility": 100
+  },
+  "Product Manager": {
+    "overall": 86,
+    "content": 90,
+    "keywords": 80,
+    "impact": 95,
+    "readability": 90,
+    "formatting": 90,
+    "atsCompatibility": 100
+  },
+  "DEFAULT": {
+    "overall": 80,
+    "content": 85,
+    "keywords": 75,
+    "impact": 70,
+    "readability": 80,
+    "formatting": 85,
+    "atsCompatibility": 100
+  }
+}

@@ -25,12 +25,20 @@ export interface AILogContext {
 }
 
 export class AILogger {
-  static info(message: string, context: AILogContext & Record<string, any>) {
+  static info(message: string, context: Partial<AILogContext> & Record<string, any>) {
     logger.info({ ...context }, message);
   }
 
-  static error(message: string, error: unknown, context: AILogContext & Record<string, any>) {
+  static error(message: string, error: unknown, context: Partial<AILogContext> & Record<string, any>) {
     logger.error({ ...context, error }, message);
+  }
+
+  static debug(message: string, context: Partial<AILogContext> & Record<string, any>) {
+    logger.debug({ ...context }, message);
+  }
+
+  static warn(message: string, context: Partial<AILogContext> & Record<string, any>) {
+    logger.warn({ ...context }, message);
   }
 
   static trackPerformance(

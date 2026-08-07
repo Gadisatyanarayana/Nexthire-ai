@@ -1,0 +1,12 @@
+{
+  "Node.js": ["Node", "NodeJS", "Node Js"],
+  "React": ["ReactJS", "React.js"],
+  "REST API": ["REST", "RESTful API", "REST APIs", "RESTful Web Services"],
+  "Machine Learning": ["ML", "Machine-Learning"],
+  "Artificial Intelligence": ["AI"],
+  "AWS": ["Amazon Web Services"],
+  "GCP": ["Google Cloud Platform", "Google Cloud"],
+  "SQL": ["Structured Query Language", "MySQL", "PostgreSQL"],
+  "NoSQL": ["MongoDB", "DynamoDB"],
+  "CI/CD": ["Continuous Integration", "Continuous Deployment", "Continuous Delivery", "Jenkins", "GitHub Actions"]
+}

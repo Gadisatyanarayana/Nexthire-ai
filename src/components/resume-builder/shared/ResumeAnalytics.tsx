@@ -1,6 +1,6 @@
 import React from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
-import { X, Target, Briefcase, Zap, Trophy, MessageSquare } from 'lucide-react';
+import { X, Target, Briefcase, Zap, Trophy, MessageSquare, AlertTriangle, Info } from 'lucide-react';
 import { ResumeDocument, ATSAnalysis } from '../types';
 
 interface ResumeAnalyticsProps {
@@ -29,11 +29,11 @@ export default function ResumeAnalytics({ document, onClose }: ResumeAnalyticsPr
   }
 
   const data = [
-    { subject: 'Content', A: ats.dimensions.content, fullMark: 100 },
-    { subject: 'Formatting', A: ats.dimensions.formatting, fullMark: 100 },
-    { subject: 'Readability', A: ats.dimensions.readability, fullMark: 100 },
-    { subject: 'Keywords', A: ats.dimensions.keywords, fullMark: 100 },
-    { subject: 'Impact', A: ats.dimensions.impact, fullMark: 100 },
+    { subject: 'Content', A: ats.dimensionScores.content, fullMark: 100 },
+    { subject: 'Formatting', A: ats.dimensionScores.formatting, fullMark: 100 },
+    { subject: 'Readability', A: ats.dimensionScores.readability, fullMark: 100 },
+    { subject: 'Keywords', A: ats.dimensionScores.keywords, fullMark: 100 },
+    { subject: 'Impact', A: ats.dimensionScores.impact, fullMark: 100 },
   ];
 
   return (
@@ -76,7 +76,7 @@ export default function ResumeAnalytics({ document, onClose }: ResumeAnalyticsPr
                 <Trophy className="h-4 w-4" /> Strengths
               </h3>
               <ul className="space-y-2">
-                {ats.review.strengths.map((s, i) => (
+                {ats.strengths.map((s, i) => (
                   <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
                     <span className="text-green-500 mt-0.5">✓</span> {s}
                   </li>
@@ -89,7 +89,7 @@ export default function ResumeAnalytics({ document, onClose }: ResumeAnalyticsPr
                 <Zap className="h-4 w-4" /> Areas for Improvement
               </h3>
               <ul className="space-y-2">
-                {ats.review.weaknesses.map((w, i) => (
+                {ats.weaknesses.map((w, i) => (
                   <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
                     <span className="text-red-500 mt-0.5">✗</span> {w}
                   </li>
@@ -102,14 +102,16 @@ export default function ResumeAnalytics({ document, onClose }: ResumeAnalyticsPr
                 <Briefcase className="h-4 w-4" /> Recommendations
               </h3>
               <div className="space-y-3">
-                {ats.review.recommendations.map((r, i) => (
-                  <div key={i} className="bg-brand-blue/10 border border-brand-blue/20 rounded-lg p-3">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-bold text-brand-blue uppercase">{r.priority} Priority</span>
-                    </div>
-                    <p className="text-sm text-gray-300">{r.text}</p>
-                  </div>
-                ))}
+                {ats.recommendations.map((r, i) => (
+                <div key={i} className="flex gap-2">
+                  {r.priority === 'HIGH' ? (
+                    <AlertTriangle className="h-4 w-4 text-orange-500 mt-1 flex-shrink-0" />
+                  ) : (
+                    <Info className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
+                  )}
+                  <span className="text-sm text-gray-300">{r.text}</span>
+                </div>
+              ))}
               </div>
             </div>
           </div>
