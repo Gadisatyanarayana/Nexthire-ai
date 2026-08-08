@@ -4,14 +4,15 @@ import { ThemeRegistry } from '../registries/ThemeRegistry';
 import { TypographyRegistry } from '../registries/TypographyRegistry';
 import { LayoutRegistry } from '../registries/LayoutRegistry';
 import { SectionRegistry } from '../registries/SectionRegistry';
-import { Target, Loader2, Sparkles, Upload } from 'lucide-react';
+import { Target, Loader2, Sparkles, Upload, LayoutTemplate, Palette, Type, GripVertical, Plus } from 'lucide-react';
 
 interface SidebarProps {
   form: ResumeDocument;
   updateField: (field: keyof ResumeDocument, value: any) => void;
+  isDark: boolean;
 }
 
-export default function ResumeSidebar({ form, updateField }: SidebarProps) {
+export default function ResumeSidebar({ form, updateField, isDark }: SidebarProps) {
   const [jdText, setJdText] = useState("");
   const [matching, setMatching] = useState(false);
   const [matchResult, setMatchResult] = useState<any>(null);
@@ -33,7 +34,6 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
       const result = await res.json();
       
       if (result.success && result.data) {
-        // Merge parsed data back into form.sections
         const parsed = result.data;
         const newSections = form.sections.map(sec => {
           if (sec.type === 'personal') return { ...sec, data: { ...sec.data, ...parsed } };
@@ -72,202 +72,188 @@ export default function ResumeSidebar({ form, updateField }: SidebarProps) {
       setMatching(false);
     }
   };
+
+  const themeKeys = Object.keys(ThemeRegistry);
+
   return (
-    <aside className="w-80 border-r border-white/5 bg-[#0a0a0a]/80 backdrop-blur-md flex flex-col overflow-y-auto print:hidden shadow-[4px_0_24px_rgba(0,0,0,0.5)] z-40 relative">
+    <aside className="w-[320px] min-w-[320px] border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#0A0A0A] flex flex-col overflow-y-auto print:hidden shadow-sm z-40 relative transition-colors duration-300">
       
       {/* Upload Parser */}
-      <div className="p-5 border-b border-white/5 bg-gradient-to-b from-brand-blue/10 to-transparent">
-        <label className="flex flex-col items-center justify-center gap-3 w-full py-6 rounded-xl bg-brand-blue/5 border border-dashed border-brand-blue/30 text-brand-blue text-sm font-medium hover:bg-brand-blue/10 hover:border-brand-blue/50 transition-all duration-300 cursor-pointer shadow-inner">
-          <div className="p-3 rounded-full bg-brand-blue/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-            {parsing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
-          </div>
-          <span className="tracking-wide">{parsing ? "Extracting Data..." : "Import PDF Resume"}</span>
+      <div className="p-5 border-b border-gray-100 dark:border-white/5">
+        <label className="flex flex-col items-center justify-center gap-2 w-full py-4 rounded-lg bg-gray-50 dark:bg-white/5 border border-dashed border-gray-300 dark:border-white/20 text-gray-600 dark:text-gray-400 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer">
+          {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          <span className="text-xs">{parsing ? "Extracting..." : "Import PDF"}</span>
           <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} disabled={parsing} />
         </label>
-        <p className="text-[11px] text-gray-500/80 text-center mt-3 font-medium tracking-wide">AI WILL AUTOMATICALLY EXTRACT YOUR DATA</p>
       </div>
 
-      <div className="p-5 border-b border-white/5">
-        <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-          <div className="h-px w-4 bg-gray-600"></div> Global Design
+      {/* Design Panel */}
+      <div className="p-5 border-b border-gray-100 dark:border-white/5">
+        <h2 className="text-xs font-bold text-gray-900 dark:text-gray-100 tracking-wider mb-5 flex items-center gap-2">
+          DESIGN
         </h2>
         
-        <div className="space-y-5">
+        <div className="space-y-6">
+          {/* Template */}
           <div className="space-y-2">
-            <label className="text-[11px] text-gray-500 font-semibold tracking-wide uppercase">Layout Template</label>
-            <select 
-              className="w-full bg-[#151515] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
-              value={form.metadata.templateId}
-              onChange={(e) => updateField('metadata', { ...form.metadata, templateId: e.target.value })}
-            >
-              {Object.keys(LayoutRegistry).map(key => (
-                <option key={key} value={key}>{LayoutRegistry[key].name}</option>
-              ))}
-            </select>
+            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><LayoutTemplate className="h-3 w-3"/> Template</label>
+            <div className="relative">
+              <select 
+                className="w-full bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
+                value={form.metadata.templateId}
+                onChange={(e) => updateField('metadata', { ...form.metadata, templateId: e.target.value })}
+              >
+                {Object.keys(LayoutRegistry).map(key => (
+                  <option key={key} value={key}>{LayoutRegistry[key].name}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">›</div>
+            </div>
           </div>
 
+          {/* Color */}
           <div className="space-y-2">
-            <label className="text-[11px] text-gray-500 font-semibold tracking-wide uppercase">Theme Palette</label>
-            <select 
-              className="w-full bg-[#151515] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
-              value={form.theme.id}
-              onChange={(e) => {
-                const config = ThemeRegistry[e.target.value];
-                if (config) {
-                  updateField('theme', { 
-                    ...form.theme, 
-                    id: e.target.value,
-                    primaryColor: config.colors.primary,
-                    accentColor: config.colors.accent,
-                    backgroundColor: config.colors.background,
-                    headerStyle: config.style?.headerStyle || form.theme.headerStyle,
-                    sectionDivider: config.style?.dividerStyle || form.theme.sectionDivider,
-                  });
-                }
-              }}
-            >
-              {Object.keys(ThemeRegistry).map(key => (
-                <option key={key} value={key}>{ThemeRegistry[key].name}</option>
-              ))}
-            </select>
+            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><Palette className="h-3 w-3"/> Color</label>
+            <div className="flex items-center gap-3">
+              {themeKeys.map(key => {
+                const config = ThemeRegistry[key];
+                const isSelected = form.theme.id === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      updateField('theme', { 
+                        ...form.theme, 
+                        id: key,
+                        primaryColor: config.colors.primary,
+                        accentColor: config.colors.accent,
+                        backgroundColor: config.colors.background,
+                        headerStyle: config.style?.headerStyle || form.theme.headerStyle,
+                        sectionDivider: config.style?.dividerStyle || form.theme.sectionDivider,
+                      });
+                    }}
+                    className={`flex items-center gap-1.5 text-xs font-medium transition-all ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                  >
+                    <span 
+                      className={`w-4 h-4 rounded-full border-2 ${isSelected ? 'border-gray-900 dark:border-white' : 'border-transparent'} shadow-sm`}
+                      style={{ backgroundColor: config.colors.primary }}
+                    />
+                    {config.name.split(' ')[0]}
+                  </button>
+                )
+              })}
+            </div>
           </div>
+
+          {/* Typography */}
           <div className="space-y-2">
-            <label className="text-[11px] text-gray-500 font-semibold tracking-wide uppercase">Typography</label>
-            <select 
-              className="w-full bg-[#151515] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
-              value={form.typography?.headingFont || "times"}
-              onChange={(e) => {
-                const config = TypographyRegistry[e.target.value];
-                if (config) {
-                  updateField('typography', { 
-                    ...form.typography, 
-                    headingFont: config.fontFamily,
-                    bodyFont: config.fontFamily,
-                    headingSize: config.overrides?.headingSize || form.typography.headingSize,
-                  });
-                }
-              }}
-            >
-              {Object.keys(TypographyRegistry).map(key => (
-                <option key={key} value={key}>{TypographyRegistry[key].name}</option>
-              ))}
-            </select>
+            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><Type className="h-3 w-3"/> Typography</label>
+            <div className="relative">
+              <select 
+                className="w-full bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
+                value={form.typography?.headingFont || "times"}
+                onChange={(e) => {
+                  const config = TypographyRegistry[e.target.value];
+                  if (config) {
+                    updateField('typography', { 
+                      ...form.typography, 
+                      headingFont: config.fontFamily,
+                      bodyFont: config.fontFamily,
+                      headingSize: config.overrides?.headingSize || form.typography.headingSize,
+                    });
+                  }
+                }}
+              >
+                {Object.keys(TypographyRegistry).map(key => (
+                  <option key={key} value={key}>{TypographyRegistry[key].name}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">›</div>
+            </div>
           </div>
         </div>
       </div>
       
-      <div className="p-5 flex-1 border-b border-white/5 bg-[#0a0a0a]">
-        <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-          <div className="h-px w-4 bg-gray-600"></div> Add Sections
+      {/* Content Panel */}
+      <div className="p-5 flex-1 border-b border-gray-100 dark:border-white/5">
+        <h2 className="text-xs font-bold text-gray-900 dark:text-gray-100 tracking-wider mb-4 flex items-center gap-2">
+          CONTENT
         </h2>
-        <div className="grid grid-cols-2 gap-2.5">
-          {Object.keys(SectionRegistry).map(key => {
-            const plugin = SectionRegistry[key];
-            const alreadyAdded = form.sections.some(s => s.type === key);
-            
+        
+        <div className="space-y-1.5">
+          {form.sections.map((section) => {
+            const plugin = SectionRegistry[section.type];
             return (
-              <button 
-                key={key}
-                disabled={alreadyAdded && key === 'personal'} // allow multiples except personal
-                onClick={() => {
-                  const newSection = {
-                    id: `${key}-${Date.now()}`,
-                    type: key,
-                    visible: true,
-                    data: { ...plugin.defaultData }
-                  };
-                  updateField('sections', [...form.sections, newSection]);
-                }}
-                className={`text-xs px-3 py-2.5 rounded-lg border font-medium text-left flex items-center gap-2 transition-all duration-200 shadow-sm ${
-                  alreadyAdded 
-                    ? 'border-white/5 bg-white/5 text-gray-600 cursor-not-allowed' 
-                    : 'border-white/10 bg-[#151515] hover:bg-[#202020] hover:border-brand-blue/50 hover:shadow-[0_0_10px_rgba(59,130,246,0.1)] text-gray-300'
-                }`}
-              >
-                <span className="text-brand-blue/70">+</span> {plugin.name}
-              </button>
-            )
+              <div key={section.id} className="flex items-center gap-2 py-1.5 text-sm text-gray-700 dark:text-gray-300">
+                <GripVertical className="h-4 w-4 text-gray-400" />
+                <span>{plugin?.name || section.type}</span>
+              </div>
+            );
           })}
         </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/10">
+          <div className="grid grid-cols-2 gap-2">
+            {Object.keys(SectionRegistry).map(key => {
+              const plugin = SectionRegistry[key];
+              const alreadyAdded = form.sections.some(s => s.type === key);
+              
+              return (
+                <button 
+                  key={key}
+                  disabled={alreadyAdded && key === 'personal'} // allow multiples except personal
+                  onClick={() => {
+                    const newSection = {
+                      id: `${key}-${Date.now()}`,
+                      type: key,
+                      visible: true,
+                      data: { ...plugin.defaultData }
+                    };
+                    updateField('sections', [...form.sections, newSection]);
+                  }}
+                  className={`text-xs px-2.5 py-1.5 rounded-md font-medium text-left flex items-center gap-1.5 transition-colors ${
+                    alreadyAdded 
+                      ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed bg-gray-50 dark:bg-transparent' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Plus className="h-3 w-3" /> {plugin.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
-      <div className="p-5 bg-gradient-to-t from-brand-blue/5 to-transparent relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/10 blur-[50px] pointer-events-none rounded-full" />
-        <h2 className="text-[10px] font-bold text-brand-blue/80 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 relative z-10">
+      
+      {/* Job Matcher Area (Simplified) */}
+      <div className="p-5 bg-gray-50 dark:bg-white/5 mt-auto">
+        <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
           <Target className="h-3.5 w-3.5" /> Job Matcher
         </h2>
         <textarea
-          className="w-full bg-[#0a0a0a]/80 backdrop-blur-sm border border-brand-blue/20 rounded-xl px-3 py-3 text-xs text-gray-300 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 min-h-[90px] resize-y mb-3 shadow-inner relative z-10 transition-all placeholder:text-gray-600"
-          placeholder="Paste Job Description to optimize resume..."
+          className="w-full bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-md px-3 py-2 text-xs text-gray-900 dark:text-gray-200 outline-none focus:border-brand-blue mb-2 resize-y min-h-[60px]"
+          placeholder="Paste Job Description..."
           value={jdText}
           onChange={(e) => setJdText(e.target.value)}
         />
         <button
           onClick={handleMatch}
           disabled={matching || !jdText}
-          className="w-full py-2.5 rounded-lg bg-brand-blue text-white text-xs font-bold tracking-wide hover:bg-blue-600 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none flex justify-center items-center gap-2 relative z-10"
+          className="w-full py-2 rounded-md bg-gray-900 dark:bg-white text-white dark:text-black text-xs font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 flex justify-center items-center gap-1.5"
         >
           {matching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-          {matching ? "ANALYZING JD..." : "OPTIMIZE FOR ROLE"}
+          {matching ? "Analyzing..." : "Optimize"}
         </button>
 
         {matchResult && (
-          <div className="mt-5 p-4 bg-[#0a0a0a]/80 backdrop-blur-md border border-white/10 rounded-xl text-xs shadow-xl relative z-10">
-            <div className="flex justify-between items-center font-bold text-sm mb-4">
-              <span className="text-gray-300">Overall Match</span>
-              <div className={`px-2.5 py-1 rounded-full ${matchResult.overallMatch > 75 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}`}>
-                {matchResult.overallMatch}%
-              </div>
+          <div className="mt-3 p-3 bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-md text-xs">
+            <div className="flex justify-between items-center font-bold mb-2">
+              <span className="text-gray-700 dark:text-gray-300">Match</span>
+              <span className={matchResult.overallMatch > 75 ? 'text-green-500' : 'text-yellow-500'}>{matchResult.overallMatch}%</span>
             </div>
-
-            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-white/5 text-gray-400 mb-3">
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Role Fit</span>
-                <span className="font-medium text-white">{matchResult.roleFit}%</span>
-              </div>
-              <div className="bg-white/5 p-2 rounded-lg">
-                <span className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Tech Fit</span>
-                <span className="font-medium text-white">{matchResult.technicalFit}%</span>
-              </div>
-            </div>
-            
             {matchResult.missingKeywords?.length > 0 && (
-              <div className="mb-3">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-500 block mb-2">Missing Required Keywords</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {matchResult.missingKeywords.map((kw: string, i: number) => (
-                    <button 
-                      key={i} 
-                      onClick={() => {
-                        const skillsSection = form.sections.find(s => s.type === 'skills');
-                        if (skillsSection) {
-                          const items = skillsSection.data.items || [];
-                          const updated = [...items];
-                          if (updated.length > 0) {
-                            updated[0].skills = updated[0].skills ? updated[0].skills + `, ${kw}` : kw;
-                          } else {
-                            updated.push({ name: "Required", skills: kw });
-                          }
-                          const newSections = form.sections.map(s => s.type === 'skills' ? { ...s, data: { items: updated } } : s);
-                          updateField('sections', newSections);
-                        }
-                      }}
-                      className="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors shadow-sm group relative"
-                    >
-                      <span className="opacity-50 group-hover:opacity-100 mr-1 transition-opacity">+</span>{kw}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {matchResult.recommendedKeywords?.length > 0 && (
-              <div>
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-500 block mb-2">Recommended Additions</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {matchResult.recommendedKeywords.map((kw: string, i: number) => (
-                    <span key={i} className="px-2 py-1 bg-yellow-500/10 text-yellow-400/90 rounded-md border border-yellow-500/20">{kw}</span>
-                  ))}
-                </div>
+              <div className="mt-2 text-gray-500 text-[10px] uppercase">
+                Missing: {matchResult.missingKeywords.join(", ")}
               </div>
             )}
           </div>

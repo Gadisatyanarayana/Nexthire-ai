@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, Download, Loader2, Save } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, use } from "react";
 import { supabase } from "@/lib/supabase";
 import { ResumeData, defaultResumeData } from "@/components/resume-builder/types";
 
@@ -13,7 +13,9 @@ import ResumeEditor from "@/components/resume-builder/editor/ResumeEditor";
 import ResumePreview from "@/components/resume-builder/preview/ResumePreview";
 import Toolbar from "@/components/resume-builder/shared/Toolbar";
 
-export default function ResumeOSStudio({ params }: { params: { id: string } }) {
+export default function ResumeOSStudio({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
+  const id = unwrappedParams.id;
   const { data: session } = useSession();
   const router = useRouter();
   
@@ -27,14 +29,15 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
   
   // View State
   const [zoom, setZoom] = useState(0.85);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    if (params.id !== "new") {
+    if (id !== "new") {
       readStoredForm();
     } else {
       setLoading(false);
     }
-  }, [params.id, session]);
+  }, [id, session]);
 
   const readStoredForm = async () => {
     if (!session?.user?.email) return;
@@ -50,19 +53,18 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
       if (data?.resume_data) {
         const rootData = data.resume_data as any;
         
-        // Backward compatibility: If it's a flat resume, upgrade it
         let targetResume = null;
         if (rootData.experiences && !rootData.resumes) {
           targetResume = rootData; 
-        } else if (rootData.resumes && rootData.resumes[params.id]) {
-          targetResume = rootData.resumes[params.id];
+        } else if (rootData.resumes && rootData.resumes[id]) {
+          targetResume = rootData.resumes[id];
         }
 
         if (targetResume) {
           setForm({
             ...defaultResumeData,
             ...targetResume,
-            id: params.id // enforce id
+            id: id // enforce id
           });
         }
       }
@@ -90,7 +92,7 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
         ...existingData,
         resumes: {
           ...(existingData.resumes || {}),
-          [params.id]: { ...dataToSave, id: params.id }
+          [id]: { ...dataToSave, id: id }
         }
       };
 
@@ -141,11 +143,7 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="h-screen bg-[#050505] text-white flex flex-col font-sans overflow-hidden relative selection:bg-brand-blue/30 selection:text-brand-blue">
-      {/* Premium Ambient Background Effects */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand-blue/10 blur-[120px] pointer-events-none opacity-50" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[40%] rounded-full bg-purple-500/10 blur-[120px] pointer-events-none opacity-50" />
-      
+    <div className={`${isDark ? "dark" : ""} h-screen flex flex-col font-sans overflow-hidden selection:bg-brand-blue/30 selection:text-brand-blue bg-[#F7F7F8] dark:bg-[#0A0A0A] text-[#18181B] dark:text-gray-100 transition-colors duration-300`}>
       {/* Universal Enterprise Toolbar */}
       <Toolbar 
         form={form}
@@ -156,12 +154,14 @@ export default function ResumeOSStudio({ params }: { params: { id: string } }) {
         onPrint={handlePrint}
         onZoomIn={() => setZoom(z => Math.min(z + 0.1, 2.0))}
         onZoomOut={() => setZoom(z => Math.max(z - 0.1, 0.5))}
+        isDark={isDark}
+        setIsDark={setIsDark}
       />
 
       {/* Three Column Modular Workspace */}
       <main className="flex-1 flex overflow-hidden">
-        <ResumeSidebar form={form} updateField={updateField} />
-        <ResumeEditor form={form} updateField={updateField} />
+        <ResumeSidebar form={form} updateField={updateField} isDark={isDark} />
+        <ResumeEditor form={form} updateField={updateField} isDark={isDark} />
         <ResumePreview form={form} zoom={zoom} />
       </main>
     </div>

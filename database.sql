@@ -1272,3 +1272,14 @@ CREATE TABLE IF NOT EXISTS apt_companies (
 ALTER TABLE apt_companies ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "apt_companies_read_access" ON apt_companies;
 CREATE POLICY "apt_companies_read_access" ON apt_companies FOR SELECT USING (true);
+
+-- Added for user_progress table fix
+CREATE TABLE IF NOT EXISTS public.user_progress (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  resume_data jsonb not null default '{}'::jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+NOTIFY pgrst, 'reload schema';
+
