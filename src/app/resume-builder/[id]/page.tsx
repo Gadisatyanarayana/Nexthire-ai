@@ -42,16 +42,15 @@ export default function ResumeOSStudio({ params }: { params: Promise<{ id: strin
   const readStoredForm = async () => {
     if (!session?.user?.email) return;
     try {
-      const { data, error } = await supabase
-        .from("user_progress")
-        .select("resume_data")
-        .eq("email", session.user.email)
-        .single();
+      const res = await fetch("/api/resume-builder/progress");
+      if (!res.ok) throw new Error("Failed to fetch progress");
       
-      if (error && error.code !== "PGRST116") throw error;
+      const { resume_data, error } = await res.json();
       
-      if (data?.resume_data) {
-        const rootData = data.resume_data as any;
+      if (error) throw new Error(error);
+      
+      if (resume_data) {
+        const rootData = resume_data as any;
         
         let targetResume = null;
         if (rootData.experiences && !rootData.resumes) {
@@ -81,13 +80,10 @@ export default function ResumeOSStudio({ params }: { params: Promise<{ id: strin
     setError("");
     try {
       // Fetch existing first to not overwrite other resumes
-      const { data: existing } = await supabase
-        .from("user_progress")
-        .select("resume_data")
-        .eq("email", session.user.email)
-        .single();
+      const res = await fetch("/api/resume-builder/progress");
+      const { resume_data: existing } = await res.json();
 
-      const existingData = existing?.resume_data || {};
+      const existingData = existing || {};
       const newRootData = {
         ...existingData,
         resumes: {
@@ -101,14 +97,15 @@ export default function ResumeOSStudio({ params }: { params: Promise<{ id: strin
         delete newRootData.experiences; // cleaning up legacy root keys if needed, but safer to leave alone
       }
 
-      const { error } = await supabase
-        .from("user_progress")
-        .upsert({ 
-          email: session.user.email, 
-          resume_data: newRootData 
-        }, { onConflict: "email" });
+      const saveRes = await fetch("/api/resume-builder/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume_data: newRootData }),
+      });
+      
+      const saveResult = await saveRes.json();
+      if (saveResult.error) throw new Error(saveResult.error);
 
-      if (error) throw error;
       setLastSaved(new Date());
       setTimeout(() => setSaving(false), 1000);
     } catch (err: any) {
