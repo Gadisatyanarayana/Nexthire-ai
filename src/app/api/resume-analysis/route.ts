@@ -47,6 +47,14 @@ type SectionScores = {
   education: number;
 };
 
+export interface AnalyzerFinding {
+  category: string;
+  statement: string;
+  evidence: string[];
+  confidence: number;
+  status: "PRESENT" | "MISSING" | "UNKNOWN";
+}
+
 type ResumeAnalysisResponse = {
   atsScore?: number;
   label?: "Excellent" | "Good" | "Needs Improvement";
@@ -54,6 +62,7 @@ type ResumeAnalysisResponse = {
   strengths?: string[];
   weaknesses?: string[];
   suggestions?: string[];
+  findings?: AnalyzerFinding[];
   includedKeywords?: string[];
   missingKeywords?: string[];
   sectionScores?: SectionScores;
@@ -384,9 +393,31 @@ export async function POST(req: NextRequest) {
 
     if (mode === "resume") {
       const fallback = heuristicResumeAnalysis(normalizedResume);
-      const prompt = `Analyze this resume and return JSON with exact shape:
-{"aiSummary": string, "strengths": string[], "weaknesses": string[], "suggestions": string[], "includedKeywords": string[], "missingKeywords": string[]}
-Focus on professional recruiter-style feedback. Resume file: ${resumeFileName ?? "unknown"}. Resume text: ${normalizedResume || "No text extracted"}`;
+      const prompt = `You are an expert ATS analyzer. Analyze this resume. 
+CRITICAL RULE: DO NOT hallucinate. Ground your analysis strictly in the provided resume text.
+You must extract findings and state whether they are PRESENT, MISSING, or UNKNOWN based ONLY on the text. 
+
+Return JSON with this exact shape:
+{
+  "aiSummary": "string",
+  "strengths": ["string"],
+  "weaknesses": ["string"],
+  "suggestions": ["string"],
+  "includedKeywords": ["string"],
+  "missingKeywords": ["string"],
+  "findings": [
+    {
+      "category": "string (e.g. Technical Skills, Leadership, Github)",
+      "statement": "string",
+      "evidence": ["string array containing exact excerpts from the text. Empty if missing"],
+      "confidence": 0.0 to 1.0,
+      "status": "PRESENT" | "MISSING" | "UNKNOWN"
+    }
+  ]
+}
+
+Resume file: ${resumeFileName ?? "unknown"}. 
+Resume text: ${normalizedResume || "No text extracted"}`;
 
       const ai = await callOpenRouter(prompt);
       const responsePayload = !ai
@@ -409,6 +440,7 @@ Focus on professional recruiter-style feedback. Resume file: ${resumeFileName ??
           normalizeStringArray(ai.suggestions, 8).length > 0
             ? normalizeStringArray(ai.suggestions, 8)
             : fallback.suggestions,
+        findings: Array.isArray(ai.findings) ? ai.findings : [],
         includedKeywords:
           normalizeStringArray(ai.includedKeywords, 10).length > 0
             ? normalizeStringArray(ai.includedKeywords, 10)

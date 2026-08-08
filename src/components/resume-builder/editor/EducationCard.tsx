@@ -19,38 +19,99 @@ export default function EducationCard({ edu, index, onUpdate, onDelete }: Educat
         <Trash2 className="h-4 w-4" />
       </button>
 
+      {/* Qualification Level Selection Tabs */}
+      <div className="space-y-1.5 col-span-2">
+        <label className="text-xs font-semibold text-gray-300">Qualification Level</label>
+        <div className="grid grid-cols-4 gap-1.5">
+          {[
+            { id: "college", label: "College / Degree" },
+            { id: "intermediate", label: "Class 12 / Inter" },
+            { id: "diploma", label: "Diploma / Poly" },
+            { id: "school", label: "Class 10 / High School" },
+          ].map((level) => {
+            const isSelected = (edu.qualificationLevel || "college") === level.id;
+            return (
+              <button
+                key={level.id}
+                type="button"
+                onClick={() => {
+                  onUpdate(index, "qualificationLevel", level.id);
+                  if (level.id === "intermediate") {
+                    if (!edu.degree) onUpdate(index, "degree", "Class XII / Senior Secondary");
+                  } else if (level.id === "school") {
+                    if (!edu.degree) onUpdate(index, "degree", "Class X / Secondary School");
+                  } else if (level.id === "diploma") {
+                    if (!edu.degree) onUpdate(index, "degree", "Diploma in Engineering");
+                  }
+                }}
+                className={`py-1.5 px-2 text-xs font-semibold rounded-lg border transition-all ${
+                  isSelected
+                    ? "bg-brand-blue/20 border-brand-blue text-brand-blue shadow-sm"
+                    : "bg-black/40 border-white/10 text-gray-400 hover:text-white hover:border-white/20"
+                }`}
+              >
+                {level.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 pr-8">
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">University / Institute</label>
+          <label className="text-xs text-gray-400 mb-1 block">
+            {edu.qualificationLevel === "school" || edu.qualificationLevel === "intermediate"
+              ? "School / Junior College Name"
+              : "University / Institute Name"}
+          </label>
           <input className="w-full bg-black border border-white/10 rounded-md px-3 py-2 text-sm focus:border-brand-blue outline-none transition-colors" 
-            placeholder="Stanford University" 
+            placeholder={
+              edu.qualificationLevel === "school"
+                ? "Narayana / Sri Chaitanya High School"
+                : edu.qualificationLevel === "intermediate"
+                ? "Sri Chaitanya Junior College"
+                : "Stanford University / JNTU"
+            } 
             value={edu.institute} 
             onChange={(e) => onUpdate(index, "institute", e.target.value)} 
           />
         </div>
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">Degree</label>
+          <label className="text-xs text-gray-400 mb-1 block">Board / University</label>
           <input className="w-full bg-black border border-white/10 rounded-md px-3 py-2 text-sm focus:border-brand-blue outline-none transition-colors" 
-            placeholder="Bachelor of Science" 
+            placeholder="CBSE / State Board / JNTUH" 
+            value={edu.boardOrUniversity || ""} 
+            onChange={(e) => onUpdate(index, "boardOrUniversity", e.target.value)} 
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-400 mb-1 block">Degree / Course Name</label>
+          <input className="w-full bg-black border border-white/10 rounded-md px-3 py-2 text-sm focus:border-brand-blue outline-none transition-colors" 
+            placeholder="B.Tech / Class XII / Diploma" 
             value={edu.degree} 
             onChange={(e) => onUpdate(index, "degree", e.target.value)} 
           />
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">Branch / Major</label>
+          <label className="text-xs text-gray-400 mb-1 block">Branch / Group / Stream</label>
           <input className="w-full bg-black border border-white/10 rounded-md px-3 py-2 text-sm focus:border-brand-blue outline-none transition-colors" 
-            placeholder="Computer Science" 
+            placeholder="CSE / MPC / BiPC / ECE" 
             value={edu.branch || ""} 
             onChange={(e) => onUpdate(index, "branch", e.target.value)} 
           />
         </div>
+
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">CGPA / Percentage</label>
+          <label className="text-xs text-gray-400 mb-1 block">CGPA or Percentage Marks</label>
           <input className="w-full bg-black border border-white/10 rounded-md px-3 py-2 text-sm focus:border-brand-blue outline-none transition-colors" 
-            placeholder="3.8 / 4.0" 
-            value={edu.cgpa} 
-            onChange={(e) => onUpdate(index, "cgpa", e.target.value)} 
+            placeholder="8.9 CGPA or 94.5%" 
+            value={edu.cgpa || edu.percentage || ""} 
+            onChange={(e) => {
+              onUpdate(index, "cgpa", e.target.value);
+              onUpdate(index, "percentage", e.target.value);
+            }} 
           />
         </div>
         
@@ -98,14 +159,14 @@ export default function EducationCard({ edu, index, onUpdate, onDelete }: Educat
                   placeholder="Data Structures, Algorithms..." 
                   value={course}
                   onChange={(e) => {
-                    const newCoursework = [...edu.coursework];
+                    const newCoursework = [...(edu.coursework || [])];
                     newCoursework[cIndex] = e.target.value;
                     onUpdate(index, "coursework", newCoursework);
                   }} 
                 />
                 <button 
                   onClick={() => {
-                    const newCoursework = edu.coursework.filter((_: string, i: number) => i !== cIndex);
+                    const newCoursework = (edu.coursework || []).filter((_: string, i: number) => i !== cIndex);
                     onUpdate(index, "coursework", newCoursework);
                   }}
                   className="absolute top-1.5 right-2 text-gray-500 hover:text-red-400 opacity-0 group-hover/bullet:opacity-100 transition-opacity bg-black rounded"

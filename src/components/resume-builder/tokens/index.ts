@@ -1,8 +1,10 @@
 import { ThemeSettings, TypographySettings } from "../types";
+import { getThemeConfig } from "../registries/ThemeRegistry";
 
 export interface DesignTokens {
   colors: {
     primary: string;
+    text: string;
     accent: string;
     background: string;
   };
@@ -29,11 +31,14 @@ export interface DesignTokens {
 }
 
 export function generateTokens(theme: ThemeSettings, typography: TypographySettings): DesignTokens {
+  const actualTheme = getThemeConfig(theme.id || 'classic');
+  
   return {
     colors: {
-      primary: theme.primaryColor,
-      accent: theme.accentColor,
-      background: theme.backgroundColor,
+      primary: actualTheme.colors.primary,
+      text: actualTheme.colors.text,
+      accent: actualTheme.colors.accent,
+      background: actualTheme.colors.background,
     },
     typography: {
       ...typography

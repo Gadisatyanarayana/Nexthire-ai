@@ -79,6 +79,14 @@
   --surface-strong: rgba(255,255,255,0.07);
   --border-soft: rgba(255,255,255,0.08);
   --shadow-soft: 0 20px 60px rgba(0,0,0,0.6);
+
+  /* Studio Theme */
+  --studio-background: #0A0A0A;
+  --studio-surface: #111111;
+  --studio-border: rgba(255, 255, 255, 0.1);
+  --studio-text: #ffffff;
+  --studio-muted: #9ca3af;
+  --studio-accent: #3b82f6;
 }
 
 /* ─── Base reset ─────────────────────────────────────── */
@@ -879,4 +887,3 @@ html[data-theme="light"] .theme-toggle-moon { display: block; }
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
-

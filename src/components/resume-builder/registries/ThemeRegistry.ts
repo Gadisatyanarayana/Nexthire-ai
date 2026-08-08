@@ -2,10 +2,10 @@ export interface ThemeConfig {
   id: string;
   name: string;
   colors: {
-    primary: string; // Used for names, main headings
-    text: string;    // Main body text
-    accent: string;  // Subtle dividers, dates
-    background: string; // Paper background
+    primary: string; // Used for names, main headings (e.g. #000000)
+    text: string;    // Main body text (e.g. #333333)
+    accent: string;  // Subtle dividers, dates (e.g. #666666)
+    background: string; // Paper background (e.g. #ffffff)
   };
   style?: {
     headerStyle?: "minimal" | "block" | "underline";
@@ -20,40 +20,40 @@ export const ThemeRegistry: Record<string, ThemeConfig> = {
     id: "classic",
     name: "Classic Black",
     colors: {
-      primary: "text-black",
-      text: "text-gray-900",
-      accent: "text-gray-600",
-      background: "bg-white"
+      primary: "#000000",
+      text: "#111827",
+      accent: "#4B5563",
+      background: "#ffffff"
     }
   },
   "corporate-blue": {
     id: "corporate-blue",
     name: "Corporate Blue",
     colors: {
-      primary: "text-blue-900",
-      text: "text-gray-900",
-      accent: "text-blue-700",
-      background: "bg-white"
+      primary: "#1E3A8A",
+      text: "#111827",
+      accent: "#1D4ED8",
+      background: "#ffffff"
     }
   },
   "google": {
     id: "google",
     name: "Google (Grey/Blue)",
     colors: {
-      primary: "text-[#1a73e8]",
-      text: "text-[#202124]",
-      accent: "text-[#5f6368]",
-      background: "bg-white"
+      primary: "#1a73e8",
+      text: "#202124",
+      accent: "#5f6368",
+      background: "#ffffff"
     }
   },
   "dark": {
     id: "dark",
     name: "Dark Mode Minimal",
     colors: {
-      primary: "text-white",
-      text: "text-gray-300",
-      accent: "text-gray-400",
-      background: "bg-[#121212]"
+      primary: "#ffffff",
+      text: "#d1d5db",
+      accent: "#9ca3af",
+      background: "#121212"
     }
   }
 };

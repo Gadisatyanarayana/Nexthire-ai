@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { ResumeDocument } from '../types';
-import { ThemeRegistry } from '../registries/ThemeRegistry';
-import { TypographyRegistry } from '../registries/TypographyRegistry';
-import { LayoutRegistry } from '../registries/LayoutRegistry';
 import { SectionRegistry } from '../registries/SectionRegistry';
+import { ColorPaletteRegistry } from '../theme/ColorRegistry';
+import { TypographyRegistry } from '../theme/TypographyRegistry';
+import { ProductionTemplates } from '../templates/config/TemplateDefinitions';
+import TemplateGalleryModal from '../templates/TemplateGalleryModal';
 import { Target, Loader2, Sparkles, Upload, LayoutTemplate, Palette, Type, GripVertical, Plus } from 'lucide-react';
 
 interface SidebarProps {
   form: ResumeDocument;
   updateField: (field: keyof ResumeDocument, value: any) => void;
-  isDark: boolean;
 }
 
-export default function ResumeSidebar({ form, updateField, isDark }: SidebarProps) {
+export default function ResumeSidebar({ form, updateField }: SidebarProps) {
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [jdText, setJdText] = useState("");
   const [matching, setMatching] = useState(false);
   const [matchResult, setMatchResult] = useState<any>(null);
@@ -73,10 +74,8 @@ export default function ResumeSidebar({ form, updateField, isDark }: SidebarProp
     }
   };
 
-  const themeKeys = Object.keys(ThemeRegistry);
-
   return (
-    <aside className="w-[320px] min-w-[320px] border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#0A0A0A] flex flex-col overflow-y-auto print:hidden shadow-sm z-40 relative transition-colors duration-300">
+    <aside className="w-[320px] min-w-[320px] border-r border-[var(--studio-border)] bg-[var(--studio-surface)] flex flex-col overflow-y-auto print:hidden shadow-sm z-40 relative transition-colors duration-300">
       
       {/* Upload Parser */}
       <div className="p-5 border-b border-gray-100 dark:border-white/5">
@@ -89,83 +88,89 @@ export default function ResumeSidebar({ form, updateField, isDark }: SidebarProp
 
       {/* Design Panel */}
       <div className="p-5 border-b border-gray-100 dark:border-white/5">
-        <h2 className="text-xs font-bold text-gray-900 dark:text-gray-100 tracking-wider mb-5 flex items-center gap-2">
-          DESIGN
+        <h2 className="text-xs font-bold text-gray-900 dark:text-gray-100 tracking-wider mb-5 flex items-center justify-between">
+          <span>DESIGN STUDIO</span>
+          <span className="text-[10px] bg-brand-blue/20 text-brand-blue px-2 py-0.5 rounded font-mono">LIVE A4</span>
         </h2>
         
-        <div className="space-y-6">
-          {/* Template */}
-          <div className="space-y-2">
-            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><LayoutTemplate className="h-3 w-3"/> Template</label>
-            <div className="relative">
-              <select 
-                className="w-full bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
-                value={form.metadata.templateId}
-                onChange={(e) => updateField('metadata', { ...form.metadata, templateId: e.target.value })}
-              >
-                {Object.keys(LayoutRegistry).map(key => (
-                  <option key={key} value={key}>{LayoutRegistry[key].name}</option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">›</div>
-            </div>
+        <div className="space-y-5">
+          {/* Template Gallery Button */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><LayoutTemplate className="h-3.5 w-3.5 text-brand-blue"/> Template</label>
+            <button
+              onClick={() => setIsGalleryOpen(true)}
+              className="w-full bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 hover:border-brand-blue/60 rounded-lg px-3 py-2.5 text-xs text-gray-900 dark:text-gray-200 flex items-center justify-between transition-all group shadow-sm"
+            >
+              <div className="flex flex-col text-left">
+                <span className="font-bold text-white group-hover:text-brand-blue transition-colors">
+                  {ProductionTemplates[form.metadata?.templateId || "software-engineer"]?.name || "Software Engineer"}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  {ProductionTemplates[form.metadata?.templateId || "software-engineer"]?.category || "TECHNICAL"} • ATS Safe
+                </span>
+              </div>
+              <span className="text-xs font-semibold px-2 py-1 bg-brand-blue/10 text-brand-blue rounded group-hover:bg-brand-blue group-hover:text-white transition-all">
+                Browse (10)
+              </span>
+            </button>
           </div>
 
-          {/* Color */}
+          {/* Color Palette System */}
           <div className="space-y-2">
-            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><Palette className="h-3 w-3"/> Color</label>
-            <div className="flex items-center gap-3">
-              {themeKeys.map(key => {
-                const config = ThemeRegistry[key];
-                const isSelected = form.theme.id === key;
+            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><Palette className="h-3.5 w-3.5 text-emerald-400"/> Color Palette</label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {Object.keys(ColorPaletteRegistry).map((key) => {
+                const palette = ColorPaletteRegistry[key];
+                const isSelected = (form.metadata?.colorPaletteId || "navy") === key;
+
                 return (
                   <button
                     key={key}
                     onClick={() => {
-                      updateField('theme', { 
-                        ...form.theme, 
-                        id: key,
-                        primaryColor: config.colors.primary,
-                        accentColor: config.colors.accent,
-                        backgroundColor: config.colors.background,
-                        headerStyle: config.style?.headerStyle || form.theme.headerStyle,
-                        sectionDivider: config.style?.dividerStyle || form.theme.sectionDivider,
-                      });
+                      updateField("metadata", { ...form.metadata, colorPaletteId: key });
                     }}
-                    className={`flex items-center gap-1.5 text-xs font-medium transition-all ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    title={palette.name}
+                    className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${
+                      isSelected
+                        ? "border-brand-blue bg-brand-blue/10 ring-1 ring-brand-blue"
+                        : "border-gray-200 dark:border-white/10 hover:border-white/30 bg-white dark:bg-[#151515]"
+                    }`}
                   >
-                    <span 
-                      className={`w-4 h-4 rounded-full border-2 ${isSelected ? 'border-gray-900 dark:border-white' : 'border-transparent'} shadow-sm`}
-                      style={{ backgroundColor: config.colors.primary }}
+                    <span
+                      className="w-5 h-5 rounded-full border border-black/20 shadow-sm"
+                      style={{ backgroundColor: palette.colors.primary }}
                     />
-                    {config.name.split(' ')[0]}
+                    <span className="text-[9.5px] mt-1 text-gray-400 truncate w-full text-center font-medium">
+                      {palette.name.split(" ")[0]}
+                    </span>
                   </button>
-                )
+                );
               })}
             </div>
           </div>
 
-          {/* Typography */}
-          <div className="space-y-2">
-            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><Type className="h-3 w-3"/> Typography</label>
+          {/* Typography System */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><Type className="h-3.5 w-3.5 text-amber-400"/> Font Family</label>
             <div className="relative">
               <select 
-                className="w-full bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
-                value={form.typography?.headingFont || "times"}
+                className="w-full bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-gray-900 dark:text-gray-200 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all appearance-none cursor-pointer"
+                value={form.typography?.bodyFont ? "inter" : "inter"}
                 onChange={(e) => {
-                  const config = TypographyRegistry[e.target.value];
-                  if (config) {
-                    updateField('typography', { 
+                  const fontConfig = TypographyRegistry[e.target.value];
+                  if (fontConfig) {
+                    updateField("typography", { 
                       ...form.typography, 
-                      headingFont: config.fontFamily,
-                      bodyFont: config.fontFamily,
-                      headingSize: config.overrides?.headingSize || form.typography.headingSize,
+                      headingFont: fontConfig.fontFamily,
+                      bodyFont: fontConfig.fontFamily,
                     });
                   }
                 }}
               >
-                {Object.keys(TypographyRegistry).map(key => (
-                  <option key={key} value={key}>{TypographyRegistry[key].name}</option>
+                {Object.keys(TypographyRegistry).map((key) => (
+                  <option key={key} value={key}>
+                    {TypographyRegistry[key].name} ({TypographyRegistry[key].category})
+                  </option>
                 ))}
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">›</div>
@@ -260,6 +265,15 @@ export default function ResumeSidebar({ form, updateField, isDark }: SidebarProp
         )}
       </div>
 
+      {/* Template Gallery Modal */}
+      <TemplateGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        document={form}
+        onSelectTemplate={(id) => {
+          updateField("metadata", { ...form.metadata, templateId: id });
+        }}
+      />
     </aside>
   );
 }

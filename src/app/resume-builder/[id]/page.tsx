@@ -29,7 +29,6 @@ export default function ResumeOSStudio({ params }: { params: Promise<{ id: strin
   
   // View State
   const [zoom, setZoom] = useState(0.85);
-  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     if (id !== "new") {
@@ -140,7 +139,7 @@ export default function ResumeOSStudio({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className={`${isDark ? "dark" : ""} h-screen flex flex-col font-sans overflow-hidden selection:bg-brand-blue/30 selection:text-brand-blue bg-[#F7F7F8] dark:bg-[#0A0A0A] text-[#18181B] dark:text-gray-100 transition-colors duration-300`}>
+    <div className="dark h-screen flex flex-col font-sans overflow-hidden selection:bg-brand-blue/30 selection:text-brand-blue bg-[var(--studio-background)] text-[var(--studio-text)] transition-colors duration-300">
       {/* Universal Enterprise Toolbar */}
       <Toolbar 
         form={form}
@@ -151,14 +150,12 @@ export default function ResumeOSStudio({ params }: { params: Promise<{ id: strin
         onPrint={handlePrint}
         onZoomIn={() => setZoom(z => Math.min(z + 0.1, 2.0))}
         onZoomOut={() => setZoom(z => Math.max(z - 0.1, 0.5))}
-        isDark={isDark}
-        setIsDark={setIsDark}
       />
 
       {/* Three Column Modular Workspace */}
       <main className="flex-1 flex overflow-hidden">
-        <ResumeSidebar form={form} updateField={updateField} isDark={isDark} />
-        <ResumeEditor form={form} updateField={updateField} isDark={isDark} />
+        <ResumeSidebar form={form} updateField={updateField} />
+        <ResumeEditor form={form} updateField={updateField} />
         <ResumePreview form={form} zoom={zoom} />
       </main>
     </div>

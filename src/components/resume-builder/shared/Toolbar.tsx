@@ -13,11 +13,9 @@ interface ToolbarProps {
   onPrint: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
-  isDark: boolean;
-  setIsDark: (dark: boolean) => void;
 }
 
-export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrint, onZoomIn, onZoomOut, isDark, setIsDark }: ToolbarProps) {
+export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrint, onZoomIn, onZoomOut }: ToolbarProps) {
   const [atsScore, setAtsScore] = useState<number | null>(null);
   const [scoring, setScoring] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -104,13 +102,13 @@ export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrin
     }
   };
 
-  const btnHover = "hover:bg-gray-100 dark:hover:bg-white/10";
-  const iconColor = "text-gray-500 dark:text-gray-400";
-  const iconHoverColor = "hover:text-gray-900 dark:hover:text-white";
+  const btnHover = "hover:bg-[var(--studio-border)]";
+  const iconColor = "text-[var(--studio-muted)]";
+  const iconHoverColor = "hover:text-[var(--studio-text)]";
 
   return (
     <>
-      <div className="h-16 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-6 bg-white dark:bg-[#0A0A0A] z-50 print:hidden shadow-sm transition-colors duration-300">
+      <div className="h-16 border-b border-[var(--studio-border)] flex items-center justify-between px-6 bg-[var(--studio-surface)] z-50 print:hidden shadow-sm transition-colors duration-300">
         
         {/* Left Section: Back, Resume Name, Status */}
         <div className="flex items-center gap-4">
@@ -118,10 +116,10 @@ export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrin
             <ArrowLeft className="h-4 w-4" /> My Resumes
           </Link>
           
-          <div className="w-px h-6 bg-gray-200 dark:bg-white/10 mx-2"></div>
+          <div className="w-px h-6 bg-[var(--studio-border)] mx-2"></div>
           
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            <span className="text-sm font-semibold text-[var(--studio-text)]">
               {form.metadata?.targetRole ? `${form.metadata.targetRole} Resume` : "Untitled Resume"}
             </span>
             <div className="text-[10px] font-medium tracking-wide flex items-center gap-1.5 h-4">
@@ -145,12 +143,12 @@ export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrin
             <Redo className="h-4 w-4" />
           </button>
           
-          <div className="w-px h-5 bg-gray-200 dark:bg-white/10 mx-2"></div>
+          <div className="w-px h-5 bg-[var(--studio-border)] mx-2"></div>
           
           <button onClick={onZoomOut} className={`p-2 rounded-md transition-colors ${iconColor} ${btnHover}`}>
             <ZoomOut className="h-4 w-4" />
           </button>
-          <span className="text-xs font-medium text-gray-500 min-w-[36px] text-center">100%</span>
+          <span className="text-xs font-medium text-[var(--studio-muted)] min-w-[36px] text-center">100%</span>
           <button onClick={onZoomIn} className={`p-2 rounded-md transition-colors ${iconColor} ${btnHover}`}>
             <ZoomIn className="h-4 w-4" />
           </button>
@@ -159,33 +157,25 @@ export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrin
         {/* Right Section: AI, Share, Export */}
         <div className="flex items-center gap-3">
           
-          <button 
-            onClick={() => setIsDark(!isDark)} 
-            className={`p-2 rounded-md transition-colors ${iconColor} ${btnHover}`} 
-            title="Toggle Theme"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
-          <div className="w-px h-5 bg-gray-200 dark:bg-white/10 mx-1"></div>
+          <div className="w-px h-5 bg-[var(--studio-border)] mx-1"></div>
 
           {/* AI Tools Dropdown */}
           <div className="relative" ref={aiDropdownRef}>
             <button 
               onClick={() => setShowAiDropdown(!showAiDropdown)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${showAiDropdown ? 'bg-gray-100 dark:bg-white/10 text-brand-blue' : `${iconColor} ${btnHover}`}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${showAiDropdown ? 'bg-[var(--studio-border)] text-[var(--studio-accent)]' : `${iconColor} ${btnHover}`}`}
             >
-              <Sparkles className="h-4 w-4 text-purple-500" />
+              <Sparkles className="h-4 w-4 text-[var(--studio-accent)]" />
               AI Tools
               <ChevronDown className={`h-3 w-3 transition-transform ${showAiDropdown ? 'rotate-180' : ''}`} />
             </button>
 
             {showAiDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-lg shadow-lg py-1.5 z-50">
+              <div className="absolute right-0 mt-2 w-48 bg-[var(--studio-surface)] border border-[var(--studio-border)] rounded-lg shadow-lg py-1.5 z-50">
                 <button 
                   onClick={handleCoach} 
                   disabled={generatingCoach}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-[var(--studio-text)] hover:bg-[var(--studio-border)] disabled:opacity-50"
                 >
                   {generatingCoach ? <Loader2 className="h-4 w-4 animate-spin"/> : <Compass className="h-4 w-4 text-purple-500"/>}
                   AI Coach
@@ -193,17 +183,17 @@ export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrin
                 <button 
                   onClick={handleGenerateCoverLetter} 
                   disabled={generatingLetter}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-[var(--studio-text)] hover:bg-[var(--studio-border)] disabled:opacity-50"
                 >
-                  {generatingLetter ? <Loader2 className="h-4 w-4 animate-spin"/> : <FileText className="h-4 w-4 text-blue-500"/>}
+                  {generatingLetter ? <Loader2 className="h-4 w-4 animate-spin"/> : <FileText className="h-4 w-4 text-[var(--studio-accent)]"/>}
                   Generate Cover Letter
                 </button>
                 <button 
                   onClick={() => { if (atsScore) setShowAnalytics(true); else handleATSAnalyze(); }}
                   disabled={scoring}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-[var(--studio-text)] hover:bg-[var(--studio-border)] disabled:opacity-50"
                 >
-                  {scoring ? <Loader2 className="h-4 w-4 animate-spin"/> : atsScore ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Target className="h-4 w-4 text-brand-blue" />}
+                  {scoring ? <Loader2 className="h-4 w-4 animate-spin"/> : atsScore ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Target className="h-4 w-4 text-[var(--studio-accent)]" />}
                   {atsScore ? "View ATS Analysis" : "Analyze ATS Score"}
                 </button>
               </div>
@@ -215,7 +205,7 @@ export default function Toolbar({ saving, lastSaved, error, form, onSave, onPrin
           </button>
           <button 
             onClick={onPrint} 
-            className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-gray-900 text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors text-sm font-medium shadow-sm ml-1"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-white text-black hover:bg-gray-200 transition-colors text-sm font-medium shadow-sm ml-1"
           >
             <Download className="h-4 w-4" /> Export PDF
           </button>

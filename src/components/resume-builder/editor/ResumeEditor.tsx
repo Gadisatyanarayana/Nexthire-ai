@@ -6,10 +6,9 @@ import { GripVertical, Eye, EyeOff, Trash2 } from 'lucide-react';
 interface EditorProps {
   form: ResumeDocument;
   updateField: (field: keyof ResumeDocument, value: any) => void;
-  isDark: boolean;
 }
 
-export default function ResumeEditor({ form, updateField, isDark }: EditorProps) {
+export default function ResumeEditor({ form, updateField }: EditorProps) {
   
   const handleUpdateSection = (sectionId: string, newData: any) => {
     const newSections = form.sections.map(s => s.id === sectionId ? { ...s, data: newData } : s);
@@ -35,7 +34,7 @@ export default function ResumeEditor({ form, updateField, isDark }: EditorProps)
             const EditorComponent = plugin.editorComponent;
             
             return (
-              <div key={section.id} className={`bg-white dark:bg-[#151515] border ${section.visible ? 'border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 shadow-sm hover:shadow' : 'border-gray-100 dark:border-white/5 opacity-50 hover:opacity-75'} rounded-xl overflow-hidden transition-all duration-300 relative group/card`}>
+              <div key={section.id} className={`bg-[var(--studio-surface)] border ${section.visible ? 'border-[var(--studio-border)] hover:border-gray-300 dark:hover:border-white/20 shadow-sm hover:shadow' : 'border-[var(--studio-border)] opacity-50 hover:opacity-75'} rounded-xl overflow-hidden transition-all duration-300 relative group/card`}>
                 
                 {/* Section Header (Drag Handle & Controls) */}
                 <div className="bg-gray-50/80 dark:bg-black/20 px-4 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between group">

@@ -16,6 +16,7 @@ import { ExperienceSectionPlugin } from '../sections/ExperienceSection';
 import { EducationSectionPlugin } from '../sections/EducationSection';
 import { ProjectsSectionPlugin } from '../sections/ProjectsSection';
 import { SkillsSectionPlugin } from '../sections/SkillsSection';
+import { CertificationsSectionPlugin, PublicationsSectionPlugin, AchievementsSectionPlugin } from '../sections/ExtendedSections';
 
 export const SectionRegistry: Record<string, SectionPlugin> = {
   [PersonalSectionPlugin.id]: PersonalSectionPlugin,
@@ -24,6 +25,9 @@ export const SectionRegistry: Record<string, SectionPlugin> = {
   [EducationSectionPlugin.id]: EducationSectionPlugin,
   [ProjectsSectionPlugin.id]: ProjectsSectionPlugin,
   [SkillsSectionPlugin.id]: SkillsSectionPlugin,
+  [CertificationsSectionPlugin.id]: CertificationsSectionPlugin,
+  [PublicationsSectionPlugin.id]: PublicationsSectionPlugin,
+  [AchievementsSectionPlugin.id]: AchievementsSectionPlugin,
 };
 
 export function getSectionPlugin(type: string): SectionPlugin {
