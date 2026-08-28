@@ -14,8 +14,8 @@ function indentLines(lines: string[], indentation: string): string[] {
 
 function buildJavaBatchWrapper(userCode: string, functionName: string, cases: JudgeCase[], inputType?: string): string {
   // Ensure standard utilities are available for the generated wrapper
-  const importLine = 'import java.util.*;';
-  const userCodeWithImport = userCode.includes(importLine) ? userCode : `${importLine}\n${userCode}`;
+  const defaultImports = 'import java.util.*;\nimport java.io.*;\nimport java.math.*;';
+  const userCodeWithImport = userCode.includes('import java.util') ? `${defaultImports}\n${userCode}` : `${defaultImports}\n${userCode}`;
   const isVoid = detectJavaVoidReturn(userCodeWithImport, functionName);
   const casesCode = cases
     .map((testcase, caseIndex) => {
@@ -106,13 +106,22 @@ ${prelude.length > 0 ? `${prelude.join("\n")}\n` : ""}        auto __caseStart =
     })
     .join("\n");
 
-  return `#include <chrono>
+  return `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <unordered_map>
+#include <map>
+#include <queue>
+#include <stack>
+#include <set>
+#include <sstream>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <chrono>
 #include <exception>
 #include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
 
 using namespace std;
 
@@ -194,11 +203,19 @@ function buildPythonBatchWrapper(userCode: string, functionName: string, cases: 
     })
     .join("\n");
 
-  return `${userCode}
-
-import sys
+  return `import sys
 import json
 import time
+import math
+import collections
+import heapq
+import bisect
+import functools
+import itertools
+import re
+from typing import *
+
+${userCode}
 
 def _invoke_fn(fn_name, *args):
     if "Solution" in globals():

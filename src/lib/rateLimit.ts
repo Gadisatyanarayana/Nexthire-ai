@@ -20,8 +20,8 @@ const buckets = new Map<string, Bucket>();
 const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL || "";
 const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || "";
 const REDIS_RATE_LIMIT_TIMEOUT_MS = Math.max(
-  500,
-  Math.min(5000, Number(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || 1500))
+  50,
+  Math.min(1000, Number(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || 150))
 );
 
 function hasRedisRateLimitConfig() {

@@ -53,24 +53,21 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
 
     // Try joint request first
     try {
-      const combinedStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const combinedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      console.log("getUserMedia() succeeded: combined stream received");
-      console.log("Stream received ID:", combinedStream.id);
+      console.log("getUserMedia() succeeded: stream received");
 
       setCameraState("granted");
       setMicState("granted");
-      addToast("All permissions granted", "success");
+      addToast("Microphone permission granted", "success");
 
-      const videoTracks = combinedStream.getVideoTracks();
       const audioTracks = combinedStream.getAudioTracks();
 
-      cameraStream = new MediaStream(videoTracks);
       micStream = new MediaStream(audioTracks);
 
       setRequesting(false);
       requestInProgress.current = false;
-      onAllPermissionsGranted({ video: cameraStream, audio: micStream });
+      onAllPermissionsGranted({ video: new MediaStream(), audio: micStream });
       return;
     } catch (e) {
       const combinedErr = e as Error;
@@ -175,21 +172,19 @@ export function PermissionFlow({ onAllPermissionsGranted, onCancel }: Permission
       if (camPassed && micPassed) {
         console.log("Both checks passed in isolation fallback. Re-calling getUserMedia() for final combined streams...");
         try {
-          const finalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-          const videoTracks = finalStream.getVideoTracks();
+          const finalStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           const audioTracks = finalStream.getAudioTracks();
 
-          cameraStream = new MediaStream(videoTracks);
           micStream = new MediaStream(audioTracks);
 
-          addToast("All permissions granted", "success");
-          onAllPermissionsGranted({ video: cameraStream, audio: micStream });
+          addToast("Microphone permission granted", "success");
+          onAllPermissionsGranted({ video: new MediaStream(), audio: micStream });
         } catch (e) {
           console.error("Failed final combined re-acquisition stream callback:", e);
           setShowRecovery(true);
         }
       } else {
-        console.log("One or both devices failed checks. Recovery dialog shown.");
+        console.log("Device failed checks. Recovery dialog shown.");
         setShowRecovery(true);
       }
     }

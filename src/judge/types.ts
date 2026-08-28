@@ -143,6 +143,8 @@ export type SubmissionEnvelope = {
   error?: string;
 };
 
+export type ProblemReadyState = "READY" | "MISSING_HIDDEN_CASES" | "MISSING_TEST_CASES" | "INVALID_TEST_CASES";
+
 export type LoadedProblemCases = {
   problemId: string;
   source: "normalized_test_cases" | "questions_fallback";
@@ -154,4 +156,6 @@ export type LoadedProblemCases = {
   cases: JudgeCase[];
   visibleCount: number;
   hiddenCount: number;
+  /** Whether this problem has sufficient real test cases for a trusted evaluation. */
+  readyState: ProblemReadyState;
 };

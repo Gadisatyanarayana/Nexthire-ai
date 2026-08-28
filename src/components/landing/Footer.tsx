@@ -67,11 +67,7 @@ export function LandingFooter() {
                 DSA Knowledge Graph
               </Link>
             </li>
-            <li>
-              <Link href="/admin/coding-audit" className="hover:text-cyan-400 transition">
-                QA Content Audit Dashboard
-              </Link>
-            </li>
+
             <li>
               <Link href="/dashboard" className="hover:text-cyan-400 transition">
                 Student Performance Analytics

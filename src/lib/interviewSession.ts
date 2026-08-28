@@ -81,6 +81,7 @@ export type VoiceInterviewSession = {
   dsaQuestion?: VoiceDsaQuestion;
   submission?: CodingSubmission;
   analysis?: InterviewAnalysis;
+  knowledgeGraph?: any; // CandidateKnowledgeGraph
   createdAt: number;
   aiResponses: Array<{ role: "ai" | "user"; content: string; timestamp: number }>;
 };

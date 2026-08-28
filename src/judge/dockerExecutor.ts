@@ -2,8 +2,8 @@ import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
 import * as os from "os";
 import * as path from "path";
-import { spawn } from "child_process";
-import { existsSync } from "fs";
+import { spawn, spawnSync } from "child_process";
+import { existsSync, readdirSync, statSync } from "fs";
 
 import {
   EXECUTION_CPU_LIMIT,
@@ -210,73 +210,174 @@ async function isDockerAvailable(): Promise<boolean> {
     return false;
   }
   const now = Date.now();
-  if (dockerAvailabilityCache && now - dockerAvailabilityCache.at < JUDGE_DOCKER_PROBE_TTL_MS) {
+  const ttl = (dockerAvailabilityCache && !dockerAvailabilityCache.available) ? 86_400_000 : JUDGE_DOCKER_PROBE_TTL_MS;
+  if (dockerAvailabilityCache && now - dockerAvailabilityCache.at < ttl) {
     return dockerAvailabilityCache.available;
-  }
-
-  if (process.platform === "win32") {
-    // On Windows, probing the named pipe directly can produce false negatives in some shells/permissions.
-    // Trust the docker CLI probe below as the source of truth.
-    await fs.access(DOCKER_WINDOWS_PIPE).catch(() => undefined);
   }
 
   const infoCheck = await runDockerUtilityCommand(
     ["info", "--format", "{{.ServerVersion}}"],
-    JUDGE_DOCKER_INFO_PROBE_TIMEOUT_MS
+    1000
   );
   const available = infoCheck.code === 0 && !infoCheck.timedOut;
   dockerAvailabilityCache = { at: now, available };
   return available;
 }
 
-function getHostRuntimeCommands(language: SupportedLanguage, sourceFilePath: string): HostCommandSpec[] {
-  if (language === "python") {
-    if (process.platform === "win32") {
-      const localAppData = String(process.env.LOCALAPPDATA || "").trim();
-      const userProfile = String(process.env.USERPROFILE || "").trim();
+const resolvedPathCache = new Map<string, string | null>();
 
-      const commands: HostCommandSpec[] = [];
-      const pushIfExists = (candidatePath: string) => {
-        if (!candidatePath) return;
-        if (!existsSync(candidatePath)) return;
-        commands.push({ command: candidatePath, args: [sourceFilePath] });
-      };
+function resolveExecutablePath(binaryName: string, envVarNames: string[] = []): string | null {
+  const cacheKey = `${binaryName}:${envVarNames.join(",")}`;
+  if (resolvedPathCache.has(cacheKey)) {
+    return resolvedPathCache.get(cacheKey) || null;
+  }
 
-      const directPythonPath = String(process.env.JUDGE_PYTHON_PATH || "").trim();
-      pushIfExists(directPythonPath);
+  for (const envVar of envVarNames) {
+    const val = String(process.env[envVar] || "").trim();
+    if (val && existsSync(val)) {
+      try {
+        const st = statSync(val);
+        if (st.isFile() && st.size > 0) {
+          resolvedPathCache.set(cacheKey, val);
+          return val;
+        }
+      } catch {}
+    }
+  }
 
-      const windowsCandidates: HostCommandSpec[] = [
-        { command: path.join(localAppData, "Programs", "Python", "Python313", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(localAppData, "Programs", "Python", "Python312", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(localAppData, "Programs", "Python", "Python311", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(localAppData, "Programs", "Python", "Python310", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "anaconda3", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "AppData", "Local", "Programs", "Python", "Python313", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "AppData", "Local", "Programs", "Python", "Python312", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "AppData", "Local", "Programs", "Python", "Python311", "python.exe"), args: [sourceFilePath] },
-        { command: path.join(userProfile, "AppData", "Local", "Programs", "Python", "Python310", "python.exe"), args: [sourceFilePath] },
-      ];
+  const isWin = process.platform === "win32";
 
-      for (const candidate of windowsCandidates) {
-        if (!candidate.command) continue;
-        if (!candidate.command.includes(":") && !candidate.command.startsWith("\\")) continue;
-        pushIfExists(candidate.command);
+  const isValidExe = (p: string): boolean => {
+    if (!p || !existsSync(p)) return false;
+    try {
+      const st = statSync(p);
+      if (!st.isFile() || st.size === 0) return false;
+      if (isWin && p.toLowerCase().includes("windowsapps")) {
+        return false;
       }
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      commands.push({ command: "py", args: ["-3", sourceFilePath] });
-      commands.push({ command: "python", args: [sourceFilePath] });
+  const lookupCmd = isWin ? "where.exe" : "which";
+  try {
+    const res = spawnSync(lookupCmd, [binaryName], { encoding: "utf8", windowsHide: true, timeout: 3000 });
+    if (res.status === 0 && res.stdout) {
+      const lines = res.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      for (const line of lines) {
+        if (isValidExe(line)) {
+          resolvedPathCache.set(cacheKey, line);
+          return line;
+        }
+      }
+    }
+  } catch {}
 
-      return commands;
+  if (isWin) {
+    const localAppData = String(process.env.LOCALAPPDATA || "").trim();
+    const userProfile = String(process.env.USERPROFILE || "").trim();
+    const programFiles = String(process.env.ProgramFiles || "C:\\Program Files").trim();
+    const candidates: string[] = [];
+
+    if (binaryName.startsWith("java")) {
+      const drives = ["C:", "D:", "E:", "F:"];
+      const folderBases = [
+        "Program Files\\Java",
+        "Programfiles\\java",
+        "Program Files (x86)\\Java",
+        "Program Files\\Eclipse Adoptium",
+      ];
+      for (const drive of drives) {
+        for (const base of folderBases) {
+          const targetDir = `${drive}\\${base}`;
+          if (existsSync(targetDir)) {
+            try {
+              const entries = readdirSync(targetDir);
+              for (const entry of entries) {
+                candidates.push(path.join(targetDir, entry, "bin", `${binaryName}.exe`));
+                candidates.push(path.join(targetDir, entry, "bin", binaryName));
+              }
+            } catch {}
+          }
+        }
+      }
     }
 
-    return [
-      { command: "python3", args: [sourceFilePath] },
-      { command: "python", args: [sourceFilePath] },
-      { command: "py", args: ["-3", sourceFilePath] },
-    ];
+    if (binaryName.startsWith("g++") || binaryName.startsWith("gcc") || binaryName.startsWith("clang++")) {
+      const wingetPkgDir = path.join(localAppData, "Microsoft", "WinGet", "Packages");
+      if (existsSync(wingetPkgDir)) {
+        try {
+          const pkgs = readdirSync(wingetPkgDir);
+          for (const pkg of pkgs) {
+            if (pkg.toLowerCase().includes("winlibs") || pkg.toLowerCase().includes("mingw") || pkg.toLowerCase().includes("gcc")) {
+              const pkgPath = path.join(wingetPkgDir, pkg);
+              candidates.push(path.join(pkgPath, "mingw64", "bin", `${binaryName}.exe`));
+              candidates.push(path.join(pkgPath, "bin", `${binaryName}.exe`));
+            }
+          }
+        } catch {}
+      }
+      candidates.push(path.join(programFiles, "LLVM", "bin", "clang++.exe"));
+      candidates.push("C:\\msys64\\ucrt64\\bin\\g++.exe");
+      candidates.push("C:\\msys64\\mingw64\\bin\\g++.exe");
+      candidates.push("C:\\mingw64\\bin\\g++.exe");
+    }
+
+    if (binaryName.startsWith("python")) {
+      candidates.push(path.join(localAppData, "Programs", "Python", "Python313", "python.exe"));
+      candidates.push(path.join(localAppData, "Programs", "Python", "Python312", "python.exe"));
+      candidates.push(path.join(localAppData, "Programs", "Python", "Python311", "python.exe"));
+      candidates.push(path.join(localAppData, "Programs", "Python", "Python310", "python.exe"));
+      candidates.push(path.join(userProfile, "anaconda3", "python.exe"));
+      candidates.push(path.join(userProfile, "miniconda3", "python.exe"));
+    }
+
+    for (const cand of candidates) {
+      if (isValidExe(cand)) {
+        resolvedPathCache.set(cacheKey, cand);
+        return cand;
+      }
+    }
+  }
+
+  resolvedPathCache.set(cacheKey, null);
+  return null;
+}
+
+function getHostRuntimeCommands(language: SupportedLanguage, sourceFilePath: string): HostCommandSpec[] {
+  if (language === "python") {
+    const commands: HostCommandSpec[] = [];
+
+    const resolvedPython = resolveExecutablePath("python3", ["JUDGE_PYTHON_PATH"])
+      || resolveExecutablePath("python", ["JUDGE_PYTHON_PATH"]);
+
+    if (resolvedPython) {
+      commands.push({ command: resolvedPython, args: [sourceFilePath] });
+    }
+
+    const resolvedPy = resolveExecutablePath("py");
+    if (resolvedPy) {
+      commands.push({ command: resolvedPy, args: ["-3", sourceFilePath] });
+    }
+
+    if (process.platform === "win32") {
+      commands.push({ command: "py", args: ["-3", sourceFilePath] });
+      commands.push({ command: "python", args: [sourceFilePath] });
+    } else {
+      commands.push({ command: "python3", args: [sourceFilePath] });
+      commands.push({ command: "python", args: [sourceFilePath] });
+    }
+
+    return commands;
   }
 
   if (language === "javascript") {
+    const resolvedNode = resolveExecutablePath("node", ["JUDGE_NODE_PATH"]);
+    if (resolvedNode) {
+      return [{ command: resolvedNode, args: [sourceFilePath] }];
+    }
     return [{ command: "node", args: [sourceFilePath] }];
   }
 
@@ -284,13 +385,20 @@ function getHostRuntimeCommands(language: SupportedLanguage, sourceFilePath: str
 }
 
 function getHostJavaCommands(): { javac: HostCommandSpec[]; java: HostCommandSpec[] } {
+  const javacCandidates: HostCommandSpec[] = [];
+  const javaCandidates: HostCommandSpec[] = [];
+
+  const resolvedJavac = resolveExecutablePath("javac", ["JUDGE_JAVAC_PATH", "JAVA_HOME"]);
+  const resolvedJava = resolveExecutablePath("java", ["JUDGE_JAVA_PATH", "JAVA_HOME"]);
+
+  if (resolvedJavac && resolvedJava) {
+    javacCandidates.push({ command: resolvedJavac, args: [] });
+    javaCandidates.push({ command: resolvedJava, args: [] });
+  }
+
   if (process.platform === "win32") {
     const javaHome = String(process.env.JAVA_HOME || "").trim();
     const programFiles = String(process.env.ProgramFiles || "C:\\Program Files").trim();
-    const localAppData = String(process.env.LOCALAPPDATA || "").trim();
-
-    const javacCandidates: HostCommandSpec[] = [];
-    const javaCandidates: HostCommandSpec[] = [];
 
     const pushPair = (basePath: string) => {
       if (!basePath) return;
@@ -302,65 +410,40 @@ function getHostJavaCommands(): { javac: HostCommandSpec[]; java: HostCommandSpe
       }
     };
 
-    const explicitJavac = String(process.env.JUDGE_JAVAC_PATH || "").trim();
-    const explicitJava = String(process.env.JUDGE_JAVA_PATH || "").trim();
-    if (explicitJavac && explicitJava && existsSync(explicitJavac) && existsSync(explicitJava)) {
-      javacCandidates.push({ command: explicitJavac, args: [] });
-      javaCandidates.push({ command: explicitJava, args: [] });
-    }
-
     pushPair(javaHome);
     pushPair(path.join(programFiles, "Java", "jdk-21"));
     pushPair(path.join(programFiles, "Java", "jdk-17"));
-    pushPair(path.join(programFiles, "Eclipse Adoptium", "jdk-21.0.5.11-hotspot"));
-    pushPair(path.join(programFiles, "Eclipse Adoptium", "jdk-17.0.13.11-hotspot"));
-    pushPair(path.join(localAppData, "Programs", "Eclipse Adoptium", "jdk-17.0.13.11-hotspot"));
 
+    javacCandidates.push({ command: "javac.exe", args: [] });
+    javaCandidates.push({ command: "java.exe", args: [] });
+  } else {
     javacCandidates.push({ command: "javac", args: [] });
     javaCandidates.push({ command: "java", args: [] });
-
-    return { javac: javacCandidates, java: javaCandidates };
   }
 
-  return {
-    javac: [{ command: "javac", args: [] }],
-    java: [{ command: "java", args: [] }],
-  };
+  return { javac: javacCandidates, java: javaCandidates };
 }
 
 function getHostCppCommands(): { gpp: HostCommandSpec[] } {
-  if (process.platform === "win32") {
-    const programFiles = String(process.env.ProgramFiles || "C:\\Program Files").trim();
-    const msysRoot = String(process.env.MSYS2_ROOT || "C:\\msys64").trim();
-    const candidates: HostCommandSpec[] = [];
+  const candidates: HostCommandSpec[] = [];
 
-    const push = (commandPath: string) => {
-      if (!commandPath) return;
-      if (existsSync(commandPath)) candidates.push({ command: commandPath, args: [] });
-    };
-
-    const explicit = String(process.env.JUDGE_GPP_PATH || "").trim();
-    if (explicit && existsSync(explicit)) {
-      candidates.push({ command: explicit, args: [] });
-    }
-
-    push(path.join(msysRoot, "ucrt64", "bin", "g++.exe"));
-    push(path.join(msysRoot, "mingw64", "bin", "g++.exe"));
-    push("C:\\mingw64\\bin\\g++.exe");
-    push(path.join(programFiles, "LLVM", "bin", "clang++.exe"));
-
-    candidates.push({ command: "g++", args: [] });
-    candidates.push({ command: "clang++", args: [] });
-
-    return { gpp: candidates };
+  const resolvedGpp = resolveExecutablePath("g++", ["JUDGE_GPP_PATH"]);
+  if (resolvedGpp) {
+    candidates.push({ command: resolvedGpp, args: [] });
+  }
+  const resolvedClang = resolveExecutablePath("clang++", ["JUDGE_CLANG_PATH"]);
+  if (resolvedClang) {
+    candidates.push({ command: resolvedClang, args: [] });
+  }
+  const resolvedGcc = resolveExecutablePath("gcc", ["JUDGE_GCC_PATH"]);
+  if (resolvedGcc) {
+    candidates.push({ command: resolvedGcc, args: [] });
   }
 
-  return {
-    gpp: [
-      { command: "g++", args: [] },
-      { command: "clang++", args: [] },
-    ],
-  };
+  candidates.push({ command: "g++", args: [] });
+  candidates.push({ command: "clang++", args: [] });
+
+  return { gpp: candidates };
 }
 
 function isMissingBinaryError(stderr: string): boolean {
@@ -401,7 +484,7 @@ async function runHostCommand(params: {
     cwd: params.cwd,
     stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
-      shell: false,
+    shell: process.platform === "win32",
   });
 
   child.stdout.on("data", (chunk: Buffer) => {
@@ -483,7 +566,13 @@ async function runFirstAvailableHostCommand(params: {
     execution = current;
     const missingRuntime = current.code !== 0 && isMissingBinaryError(current.stderr);
     const shouldTryNext = missingRuntime && i < params.candidates.length - 1;
-    if (!shouldTryNext) break;
+    if (!shouldTryNext) {
+      if (i > 0) {
+        const [working] = params.candidates.splice(i, 1);
+        params.candidates.unshift(working);
+      }
+      break;
+    }
   }
 
   return execution;
@@ -529,6 +618,19 @@ async function executeOnHost(params: {
         status: "Compile Error",
         exitCode: compile.code,
         timedOut: true,
+        timeMs: compile.timeMs,
+        memoryKb: null,
+      };
+    }
+
+    if (!compile.timedOut && (compile.code === null || compile.code !== 0) && isMissingBinaryError(compile.stderr)) {
+      return {
+        stdout: "",
+        stderr: "",
+        compileError: "No Java compiler (javac) runtime available on host. Install Java JDK or configure JAVA_HOME / JUDGE_JAVAC_PATH.",
+        status: "Compile Error",
+        exitCode: null,
+        timedOut: false,
         timeMs: compile.timeMs,
         memoryKb: null,
       };
@@ -1020,27 +1122,53 @@ async function executeInSandboxInternal(params: {
 
     const dockerAvailable = await isDockerAvailable();
     if (!dockerAvailable) {
-      if (!JUDGE_LOCAL_EXECUTION_FALLBACK) {
-        return {
-          stdout: "",
-          stderr: "Judge runtime unavailable: Docker not reachable. Option 1: Start Docker (docker compose -f docker-compose.judge.yml up). Option 2: Set JUDGE_LOCAL_EXECUTION_FALLBACK=true in .env.local to use host runtimes.",
-          compileError: "",
-          status: "Runtime Error",
-          exitCode: null,
-          timedOut: false,
-          timeMs: 0,
-          memoryKb: null,
-        };
+      if (
+        process.env.VERCEL === "1" ||
+        process.env.VERCEL === "true" ||
+        process.env.VERCEL_ENV ||
+        process.env.USE_CLOUD_JUDGE === "true" ||
+        !JUDGE_LOCAL_EXECUTION_FALLBACK
+      ) {
+        return await executeOnPaizaCloud({
+          language: params.language,
+          code: params.code,
+          stdin,
+          timeoutMs: runtimeTimeoutMs,
+        });
       }
 
       const hostTimeoutMs = runtimeTimeoutMs;
-      return await executeOnHost({
+      const hostResult = await executeOnHost({
         language: params.language,
         sourceFilePath,
         cwd: tempDir,
         stdin,
         timeoutMs: hostTimeoutMs,
       });
+
+      const isMissingCompiler =
+        hostResult.compileError.includes("available on host") ||
+        hostResult.compileError.includes("runtime available") ||
+        hostResult.compileError.includes("not recognized") ||
+        hostResult.compileError.includes("not found") ||
+        hostResult.compileError.includes("No Java compiler") ||
+        hostResult.compileError.includes("No C++ compiler") ||
+        hostResult.compileError.includes("No Python runtime") ||
+        (hostResult.status === "Compile Error" && (
+          hostResult.compileError.toLowerCase().includes("enoent") ||
+          hostResult.compileError.toLowerCase().includes("cannot find")
+        ));
+
+      if (isMissingCompiler) {
+        return await executeOnPaizaCloud({
+          language: params.language,
+          code: params.code,
+          stdin,
+          timeoutMs: hostTimeoutMs,
+        });
+      }
+
+      return hostResult;
     }
 
     await acquireContainerSlot();
@@ -1254,4 +1382,132 @@ function estimateLanguageMemoryKb(language: SupportedLanguage, timeMs: number): 
   }
   return 24576 + (seed * 60) + Math.round(timeMs * 0.4);
 }
+
+/**
+ * Executes code via Paiza.IO Cloud API when local compilers (javac, g++, python)
+ * or Docker containers are unavailable (e.g., when deployed on Vercel Serverless Functions).
+ */
+async function executeOnPaizaCloud(params: {
+  language: SupportedLanguage;
+  code: string;
+  stdin?: string;
+  timeoutMs?: number;
+}): Promise<SandboxExecutionResult> {
+  const langMap: Record<SupportedLanguage, string> = {
+    python: "python3",
+    java: "java",
+    cpp: "cpp",
+    javascript: "javascript",
+  };
+
+  const paizaLang = langMap[params.language] || "python3";
+  const startTime = Date.now();
+
+  try {
+    const createRes = await fetch("https://api.paiza.io/runners/create.json", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_code: params.code,
+        language: paizaLang,
+        input: params.stdin || "",
+        api_key: "guest",
+      }),
+    });
+
+    const session = (await createRes.json()) as { id?: string; error?: string };
+    if (!session || !session.id) {
+      return {
+        stdout: "",
+        stderr: "Cloud execution service temporarily unavailable.",
+        compileError: "Failed to initialize cloud sandbox.",
+        status: "Runtime Error",
+        exitCode: null,
+        timedOut: false,
+        timeMs: 0,
+        memoryKb: null,
+      };
+    }
+
+    let details: any = { status: "running" };
+    const maxAttempts = 15;
+    let attempts = 0;
+
+    while (details.status !== "completed" && attempts < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 400));
+      const res = await fetch(`https://api.paiza.io/runners/get_details.json?id=${session.id}&api_key=guest`);
+      details = await res.json();
+      attempts++;
+    }
+
+    const elapsedMs = Date.now() - startTime;
+
+    if (details.status !== "completed") {
+      return {
+        stdout: "",
+        stderr: "Execution timed out in cloud sandbox.",
+        compileError: "",
+        status: "Time Limit Exceeded",
+        exitCode: null,
+        timedOut: true,
+        timeMs: elapsedMs,
+        memoryKb: null,
+      };
+    }
+
+    // Check for compilation errors (e.g. C++ or Java syntax errors)
+    if (details.build_result === "failure" || (details.build_stderr && String(details.build_stderr).trim().length > 0)) {
+      return {
+        stdout: "",
+        stderr: "",
+        compileError: String(details.build_stderr || details.build_stdout || "Compilation Error"),
+        status: "Compile Error",
+        exitCode: Number(details.build_exit_code || 1),
+        timedOut: false,
+        timeMs: elapsedMs,
+        memoryKb: null,
+      };
+    }
+
+    // Check for runtime errors or non-zero exit code
+    const stderrStr = String(details.stderr || "");
+    const exitCodeNum = Number(details.exit_code || 0);
+
+    if (details.result === "failure" || exitCodeNum !== 0 || stderrStr.length > 0) {
+      return {
+        stdout: String(details.stdout || ""),
+        stderr: stderrStr || "Runtime Error",
+        compileError: "",
+        status: "Runtime Error",
+        exitCode: exitCodeNum,
+        timedOut: false,
+        timeMs: elapsedMs,
+        memoryKb: details.memory ? Math.round(Number(details.memory) / 1024) : null,
+      };
+    }
+
+    return {
+      stdout: String(details.stdout || ""),
+      stderr: "",
+      compileError: "",
+      status: "Accepted",
+      exitCode: 0,
+      timedOut: false,
+      timeMs: elapsedMs,
+      memoryKb: details.memory ? Math.round(Number(details.memory) / 1024) : null,
+    };
+  } catch (err) {
+    return {
+      stdout: "",
+      stderr: err instanceof Error ? err.message : "Cloud judge execution error",
+      compileError: "",
+      status: "Runtime Error",
+      exitCode: null,
+      timedOut: false,
+      timeMs: Date.now() - startTime,
+      memoryKb: null,
+    };
+  }
+}
+
 

@@ -119,11 +119,16 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
     }
 
     const normalized = normalizeCaseRows(Array.isArray(rows) ? rows : []);
+
     if (normalized.length > 0) {
       const visibleCount = normalized.filter((item) => !item.isHidden).length;
       const hiddenCount = normalized.filter((item) => item.isHidden).length;
       const questionId = foundProblem.legacy_question_id ? String(foundProblem.legacy_question_id) : null;
       const questionMeta = await readQuestionMeta(questionId);
+
+      // Determine readiness — a problem with zero real hidden cases cannot produce a trusted verdict
+      const readyState: LoadedProblemCases["readyState"] =
+        hiddenCount > 0 ? "READY" : visibleCount > 0 ? "MISSING_HIDDEN_CASES" : "MISSING_TEST_CASES";
 
       const loaded: LoadedProblemCases = {
         problemId: String(foundProblem.id),
@@ -136,6 +141,7 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
         cases: normalized,
         visibleCount,
         hiddenCount,
+        readyState,
       };
 
       caseCache.set(problemId, { expiresAt: Date.now() + CASE_CACHE_TTL_MS, data: loaded });
@@ -194,8 +200,17 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
     }));
   }
 
+  // If still no real cases exist, return null so callers surface MISSING_TEST_CASES
+  if (cases.length === 0) {
+    return null;
+  }
+
   const visibleCount = cases.filter((item) => !item.isHidden).length;
   const hiddenCount = cases.filter((item) => item.isHidden).length;
+
+  // readyState for fallback: if no hidden cases, verdict cannot be trusted
+  const readyState: LoadedProblemCases["readyState"] =
+    hiddenCount > 0 ? "READY" : visibleCount > 0 ? "MISSING_HIDDEN_CASES" : "MISSING_TEST_CASES";
 
   const loaded: LoadedProblemCases = {
     problemId: foundProblem?.id ? String(foundProblem.id) : candidateQuestionId,
@@ -208,6 +223,7 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
     cases,
     visibleCount,
     hiddenCount,
+    readyState,
   };
 
   caseCache.set(problemId, { expiresAt: Date.now() + CASE_CACHE_TTL_MS, data: loaded });

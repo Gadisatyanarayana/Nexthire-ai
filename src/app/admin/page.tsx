@@ -411,7 +411,7 @@ function normalizeMetrics(metricsValue: unknown, usersLength: number): AdminMetr
 }
 
 export default function AdminPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
 
   const [isDark, setIsDark] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -681,20 +681,43 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <section className="premium-card relative overflow-hidden bg-background/50 backdrop-blur-md">
+        <section className="premium-card relative overflow-hidden bg-background/50 backdrop-blur-md border border-emerald-500/20 p-6 rounded-2xl">
           <div className="relative z-10 space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-foreground/10 pb-4">
               <div className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-blue">PLATFORM INTEL</span>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">System Operator Console</h1>
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">ADMIN COMMAND CENTER</span>
+                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Platform Master Control</h1>
               </div>
+
+              {/* Admin Identity Badge Card */}
+              {session?.user && (
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center font-bold text-emerald-300 text-sm">
+                    {(session.user.name || session.user.email || 'A').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-sm">{session.user.name || 'Platform Administrator'}</span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold uppercase">
+                        ROLE: ADMIN
+                      </span>
+                    </div>
+                    <div className="text-zinc-400 font-mono text-[11px] mt-0.5">
+                      Email: <span className="text-emerald-400 font-bold">{session.user.email}</span>
+                    </div>
+                    <div className="text-zinc-500 text-[10px] mt-0.5">
+                      Session Active • Logged in as Master Operator
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
-            <p className="text-sm md:text-base text-foreground/70 leading-relaxed max-w-4xl">
-              High-signal analytics for user activity, sandbox compilation requests, interview performance tracking, and core database quality checkpoints.
+            <p className="text-sm text-foreground/70 leading-relaxed max-w-4xl">
+              Real-time telemetry and management portal for user accounts, coding submissions, voice AI interview metrics, resume diagnostics, and system activity logs. Access restricted exclusively to authorized platform administrators.
             </p>
           </div>
-          <div className="absolute right-0 top-0 w-80 h-80 bg-brand-purple-dim blur-3xl opacity-20 -z-10 rounded-full" />
+          <div className="absolute right-0 top-0 w-80 h-80 bg-emerald-500/10 blur-3xl opacity-30 -z-10 rounded-full" />
         </section>
 
         {/* ── macOS styled mailbox window ── */}

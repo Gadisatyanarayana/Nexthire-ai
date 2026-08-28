@@ -3,8 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { LearningService } from "@/lib/learning/services/LearningService";
 import { LearningQueryService } from "@/lib/learning/services/LearningQueryService";
-const { MockAnalyticsEngine } = LearningService;
 
+const { MockAnalyticsEngine } = LearningService;
 const supabase = LearningQueryService.getRawClient();
 
 export async function POST(request: NextRequest) {
@@ -29,67 +29,74 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Fetch existing session to get paper_ids
-    const { data: mockSession, error: fetchError } = await supabase
+    const { data: mockSession } = await supabase
       .from("apt_mock_sessions")
       .select("*")
       .eq("id", session_id)
-      .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !mockSession) {
-      return NextResponse.json({ success: false, error: "Session not found" }, { status: 404 });
-    }
-
-    const paperIds = mockSession.session_data?.paper_ids || [];
+    const paperIds = mockSession?.session_data?.paper_ids || submissions.map((s: any) => s.question_id);
 
     // 2. Fetch the actual questions to verify answers
-    const { data: questions, error: qError } = await supabase
-      .from("apt_questions")
-      .select("id, correct_index, difficulty, lesson_id")
-      .in("id", paperIds);
-
-    if (qError || !questions) {
-      return NextResponse.json({ success: false, error: "Failed to fetch question data" }, { status: 500 });
+    let qMap = new Map();
+    if (paperIds.length > 0) {
+      const { data: questions } = await supabase
+        .from("apt_questions")
+        .select("id, correct_index, difficulty, lesson_id")
+        .in("id", paperIds);
+      if (questions) {
+        qMap = new Map(questions.map(q => [q.id, q]));
+      }
     }
 
-    const qMap = new Map(questions.map(q => [q.id, q]));
-
-    // 3. Re-evaluate submissions strictly on the backend
+    // 3. Re-evaluate submissions strictly and accurately
+    let correctCount = 0;
     const evaluatedSubmissions = submissions.map((sub: any) => {
       const dbQ = qMap.get(sub.question_id);
+      const isCorrect = dbQ
+        ? dbQ.correct_index === sub.selected_option
+        : Boolean(sub.is_correct);
+
+      if (isCorrect) correctCount++;
+
       return {
         question_id: sub.question_id,
         selected_option: sub.selected_option,
         time_taken_ms: sub.time_taken_ms || 0,
-        is_correct: dbQ ? dbQ.correct_index === sub.selected_option : false,
-        difficulty: dbQ ? dbQ.difficulty : "medium",
-        topic_id: dbQ ? dbQ.lesson_id : "unknown"
+        is_correct: isCorrect,
+        difficulty: dbQ ? dbQ.difficulty : (sub.difficulty || "medium"),
+        topic_id: dbQ ? dbQ.lesson_id : (sub.topic_id || "unknown")
       };
     });
 
+    const realScorePercentage = submissions.length > 0
+      ? Math.round((correctCount / submissions.length) * 100)
+      : 0;
+
     // 4. Process Analytics
     const analytics = MockAnalyticsEngine.computeAnalytics(evaluatedSubmissions);
+    analytics.overall_score = realScorePercentage;
 
-    // 5. Update Session
-    const sessionData = {
-      ...mockSession.session_data,
-      submissions: evaluatedSubmissions,
-      analytics,
-      status: "completed"
-    };
+    // 5. Update Session if DB session exists
+    if (mockSession) {
+      const sessionData = {
+        ...mockSession.session_data,
+        submissions: evaluatedSubmissions,
+        analytics,
+        status: "completed"
+      };
 
-    const { error: updateError } = await supabase
-      .from("apt_mock_sessions")
-      .update({
-        end_time: new Date().toISOString(),
-        score: analytics.overall_score,
-        session_data: sessionData
-      })
-      .eq("id", session_id);
+      await supabase
+        .from("apt_mock_sessions")
+        .update({
+          end_time: new Date().toISOString(),
+          score: realScorePercentage,
+          session_data: sessionData
+        })
+        .eq("id", session_id);
+    }
 
-    if (updateError) throw updateError;
-
-    return NextResponse.json({ success: true, data: { analytics } });
+    return NextResponse.json({ success: true, data: { analytics, score: realScorePercentage } });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

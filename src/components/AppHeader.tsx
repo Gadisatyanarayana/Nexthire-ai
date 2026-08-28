@@ -2,42 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Briefcase, FileText, Sparkles } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/UserAvatarDropdown';
 
 export function AppHeader() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const hideHeader = pathname !== '/';
-  const [toolsOpen, setToolsOpen] = useState(false);
-  const toolsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!toolsOpen) return;
-
-    const closeOnOutside = (event: MouseEvent) => {
-      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
-        setToolsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', closeOnOutside);
-    return () => document.removeEventListener('mousedown', closeOnOutside);
-  }, [toolsOpen]);
-
-  useEffect(() => {
-    if (!toolsOpen) return;
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setToolsOpen(false);
-    };
-
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [toolsOpen]);
-
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -47,23 +18,24 @@ export function AppHeader() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const homePrefix = pathname === '/' ? '' : '/';
-  const isAuthRoute = pathname.startsWith('/auth');
-
-  if (hideHeader) {
+  const isWorkspaceRoute = 
+    !pathname || 
+    pathname.startsWith('/question') || 
+    pathname.startsWith('/coding') ||
+    pathname.startsWith('/aptitude') ||
+    pathname.startsWith('/reasoning') ||
+    pathname.startsWith('/verbal') ||
+    pathname.startsWith('/system-design');
+  if (isWorkspaceRoute) {
     return null;
   }
 
+  const homePrefix = pathname === '/' ? '' : '/';
+  const isAuthRoute = pathname ? pathname.startsWith('/auth') : false;
+
   return (
-    <header
-      className={`fixed top-0 z-[120] w-full border-b transition-all duration-300 ${
-        scrolled 
-          ? 'border-white/10 bg-[#030308]/95 shadow-xl' 
-          : 'border-transparent bg-transparent'
-      }`}
-    >
-      <div className="w-full grid h-20 grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8 lg:px-12">
+    <header className="sticky top-0 z-[120] w-full border-b transition-all duration-300 bg-[#0B0B0B] border-white/10 shadow-sm">
+      <div className="w-full grid h-[64px] grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8 lg:px-12">
         <Link href="/" className="justify-self-start text-2xl font-bold tracking-tight text-foreground md:text-3xl">
           NEXTHIRE
         </Link>

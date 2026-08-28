@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { CodingQuestion } from "@/lib/codingQuestions";
 import { buildLearningBlueprint } from "@/lib/studentLearning";
-import { Tag, Building2, ChevronDown, ChevronUp, BookOpen, Lightbulb } from "lucide-react";
+import { Tag, Building2, ChevronDown, ChevronUp, BookOpen, Lightbulb, Zap, Clock, Cpu } from "lucide-react";
 
 type Props = {
   question: CodingQuestion;
@@ -137,10 +137,28 @@ export function QuestionPanel({ question, isDark, similarQuestions }: Props) {
         }}
       >
         {/* Description */}
-        <div className="mb-5">
+        <div className="mb-4">
           <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)", lineHeight: 1.8 }}>
             {question.description}
           </p>
+        </div>
+
+        {/* Expected Time & Space Complexity Box */}
+        <div className="mb-5 p-3 rounded-xl flex items-center justify-between flex-wrap gap-2" style={{ background: "rgba(163,113,247,0.08)", border: "1px solid rgba(163,113,247,0.2)" }}>
+          <div className="flex items-center gap-2">
+            <Zap style={{ width: 14, height: 14, color: "var(--brand-purple, #a371f7)" }} />
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--brand-purple, #a371f7)" }}>Expected Complexity</span>
+          </div>
+          <div className="flex items-center gap-2 font-mono text-xs flex-wrap">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold" style={{ background: "rgba(0,184,163,0.12)", color: "var(--color-easy, #00b8a3)", border: "1px solid rgba(0,184,163,0.25)" }}>
+              <Clock style={{ width: 12, height: 12 }} />
+              Time: {question.expected_time_complexity || "O(N)"}
+            </span>
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold" style={{ background: "rgba(88,166,255,0.12)", color: "var(--brand-blue, #58a6ff)", border: "1px solid rgba(88,166,255,0.25)" }}>
+              <Cpu style={{ width: 12, height: 12 }} />
+              Space: {question.expected_space_complexity || "O(1)"}
+            </span>
+          </div>
         </div>
 
         {/* Examples */}

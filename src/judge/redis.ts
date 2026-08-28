@@ -8,8 +8,8 @@ function buildRedisClient(): IORedis {
   const redisUrl = String(process.env.REDIS_URL || "").trim();
   const commonOptions = {
     maxRetriesPerRequest: null,
-    enableReadyCheck: true,
-    lazyConnect: false,
+    enableReadyCheck: false,
+    lazyConnect: true,
   } as const;
 
   const client = redisUrl

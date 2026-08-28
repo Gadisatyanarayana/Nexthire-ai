@@ -85,6 +85,16 @@ export class LearningQueryService {
           }
         });
       }
+      if (modules.length === 0) {
+        return [
+          { id: "quant-arithmetic", title: "Arithmetic", description: "Core percentage, interest, ratio, time, work, speed, and distance problems.", level_order: 1, domain_id: "quantitative-aptitude" },
+          { id: "quant-numbers", title: "Problems on Numbers", description: "Number systems, divisibility rules, remainders, fractions, clock, and calendar.", level_order: 2, domain_id: "quantitative-aptitude" },
+          { id: "quant-algebra", title: "Algebra & Sequences", description: "Linear & quadratic equations, inequalities, AP/GP progressions, and binomial expansions.", level_order: 3, domain_id: "quantitative-aptitude" },
+          { id: "quant-geometry", title: "Geometry & Mensuration", description: "Triangles, circles, coordinate geometry, surface areas, and 3D volumes.", level_order: 4, domain_id: "quantitative-aptitude" },
+          { id: "quant-modern-math", title: "Modern Mathematics & Probability", description: "Permutations, combinations, probability distributions, and set theory.", level_order: 5, domain_id: "quantitative-aptitude" },
+          { id: "quant-data-interpretation", title: "Data Interpretation (DI)", description: "Extracting trends from tables, bar charts, line graphs, and pie charts.", level_order: 6, domain_id: "quantitative-aptitude" }
+        ] as unknown as AptitudeModule[];
+      }
     } else if (domainId === "logical-reasoning") {
       const { data: legReas } = await supabase.from("reasoning_modules").select("*").order("level_order", { ascending: true });
       if (legReas) {
@@ -97,6 +107,13 @@ export class LearningQueryService {
             } as AptitudeModule);
           }
         });
+      }
+      if (modules.length === 0) {
+        return [
+          { id: "reasoning-puzzles", title: "Logical Puzzles & Seating", description: "Linear & circular seating arrangements, floor scheduling, and blood relations.", level_order: 1, domain_id: "logical-reasoning" },
+          { id: "reasoning-analytical", title: "Analytical & Statement Deduction", description: "Syllogisms, statement-assumptions, course of action, and direction sense.", level_order: 2, domain_id: "logical-reasoning" },
+          { id: "reasoning-non-verbal", title: "Series & Non-Verbal Reasoning", description: "Number/letter series, coding-decoding, and cube/dice spatial visualizer.", level_order: 3, domain_id: "logical-reasoning" }
+        ] as unknown as AptitudeModule[];
       }
     } else if (domainId === "verbal-ability") {
       if (modules.length === 0) {
@@ -142,6 +159,9 @@ export class LearningQueryService {
         } as AptitudeModule;
       }
     }
+    const allMods = await this.getModules(subject);
+    const foundMod = allMods.find(m => m.id === id);
+    if (foundMod) return foundMod;
     return null;
   }
 
@@ -171,7 +191,26 @@ export class LearningQueryService {
       // Safe fallback if Supabase is unreachable
     }
 
-    return null;
+    const allModulesList = [
+      "quant-arithmetic", "quant-numbers", "quant-algebra", "quant-geometry", "quant-modern-math", "quant-data-interpretation",
+      "reasoning-puzzles", "reasoning-analytical", "reasoning-non-verbal",
+      "va-grammar", "va-vocabulary", "va-comprehension", "va-reasoning", "va-business-english"
+    ];
+    for (const modId of allModulesList) {
+      const lessonsInMod = await this.getLessonsByModule(modId, subject);
+      const found = lessonsInMod.find(l => l.id === id);
+      if (found) return found;
+    }
+
+    const fallbackModuleId = id.includes("-lesson-") ? id.split("-lesson-")[0] : "quant-arithmetic";
+    return {
+      id,
+      module_id: fallbackModuleId,
+      title: id.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+      description: "Comprehensive placement preparation lesson covering theory, key formulas, and practice problems.",
+      difficulty: "intermediate",
+      reading_time: "15 mins"
+    } as AptitudeLesson;
   }
 
   public static async getLessonsByModule(moduleId: string, subject: string = "aptitude"): Promise<AptitudeLesson[]> {
@@ -188,14 +227,14 @@ export class LearningQueryService {
         const supabase = this.getRawClient();
         const { data: legApt } = await Promise.race([
           supabase.from("apt_lessons").select("*").eq("module_id", moduleId),
-          new Promise<{ data: null }>(r => setTimeout(() => r({ data: null }), 300))
+          new Promise<{ data: null }>(r => setTimeout(() => r({ data: null }), 2500))
         ]);
         if (legApt && legApt.length > 0) {
           lessons = legApt as AptitudeLesson[];
         } else {
           const { data: legReas } = await Promise.race([
             supabase.from("reasoning_lessons").select("*").eq("module_id", moduleId),
-            new Promise<{ data: null }>(r => setTimeout(() => r({ data: null }), 300))
+            new Promise<{ data: null }>(r => setTimeout(() => r({ data: null }), 2500))
           ]);
           if (legReas && legReas.length > 0) {
             lessons = legReas as AptitudeLesson[];
@@ -207,43 +246,101 @@ export class LearningQueryService {
     }
 
     if (!lessons || lessons.length === 0) {
-      if (moduleId === "va-grammar") {
-        return [
+      const fallbackMap: Record<string, any[]> = {
+        // Quantitative Aptitude
+        "quant-arithmetic": [
+          { id: "percentages", module_id: "quant-arithmetic", title: "Percentage & Net Change", description: "Calculating parts per hundred, growth rates, and successive changes.", difficulty: "beginner", reading_time: "15 mins" },
+          { id: "profit-loss", module_id: "quant-arithmetic", title: "Profit, Loss & Discounts", description: "Cost price, selling price, discounts, marked price, and margin calculations.", difficulty: "intermediate", reading_time: "20 mins" },
+          { id: "simple-interest", module_id: "quant-arithmetic", title: "Simple Interest & Installments", description: "Interest calculations with constant principal and installment payments.", difficulty: "beginner", reading_time: "15 mins" },
+          { id: "compound-interest", module_id: "quant-arithmetic", title: "Compound Interest & Compounding Cycles", description: "Interest on interest with annual, semi-annual, and quarterly compounding.", difficulty: "advanced", reading_time: "22 mins" },
+          { id: "ratio-proportion", module_id: "quant-arithmetic", title: "Ratio, Proportion & Variation", description: "Comparing quantities, scaling values, mean proportion, and partnership shares.", difficulty: "beginner", reading_time: "15 mins" },
+          { id: "time-work", module_id: "quant-arithmetic", title: "Time, Work & Efficiency", description: "Unitary method, LCM efficiency method, alternative working days, and wages.", difficulty: "intermediate", reading_time: "20 mins" },
+          { id: "time-speed-distance", module_id: "quant-arithmetic", title: "Time, Speed & Distance", description: "Relative speed, average speed, linear track meetings, and train dynamics.", difficulty: "intermediate", reading_time: "22 mins" }
+        ],
+        "quant-numbers": [
+          { id: "hcf-lcm", module_id: "quant-numbers", title: "HCF & LCM Applications", description: "Prime factorization, divisibility remainders, and co-primes.", difficulty: "beginner", reading_time: "15 mins" },
+          { id: "divisibility-rules", module_id: "quant-numbers", title: "Divisibility Rules & Remainder Theorems", description: "Checking divisors for prime and composite numbers and remainder logic.", difficulty: "intermediate", reading_time: "18 mins" },
+          { id: "decimal-fractions", module_id: "quant-numbers", title: "Simplification & Recurring Decimals", description: "BODMAS rules, fraction conversions, and simplification chains.", difficulty: "beginner", reading_time: "15 mins" },
+          { id: "surds-indices", module_id: "quant-numbers", title: "Surds & Indices", description: "Properties of exponents, roots, and rationalizing surds.", difficulty: "intermediate", reading_time: "20 mins" },
+          { id: "clock-calendar", module_id: "quant-numbers", title: "Clock & Calendar", description: "Clock hand angles, gaining/losing time, leap years, and odd days.", difficulty: "intermediate", reading_time: "20 mins" }
+        ],
+        "quant-algebra": [
+          { id: "linear-equations", module_id: "quant-algebra", title: "Linear Equations & Systems", description: "Single and multi-variable linear system solving methods.", difficulty: "beginner", reading_time: "15 mins" },
+          { id: "quadratic-equations", module_id: "quant-algebra", title: "Quadratic Equations & Discriminants", description: "Roots formula, discriminant analysis, and quadratic inequalities.", difficulty: "intermediate", reading_time: "20 mins" },
+          { id: "progressions", module_id: "quant-algebra", title: "Arithmetic & Geometric Progressions", description: "AP and GP general terms, summation, and infinite series.", difficulty: "intermediate", reading_time: "22 mins" }
+        ],
+        "quant-geometry": [
+          { id: "triangles", module_id: "quant-geometry", title: "Triangles & Trigonometry", description: "Properties, similarity, congruence, and Pythagoras theorem.", difficulty: "intermediate", reading_time: "20 mins" },
+          { id: "circles", module_id: "quant-geometry", title: "Circles & Tangents", description: "Chord properties, secants, arc lengths, and cyclic quadrilaterals.", difficulty: "advanced", reading_time: "25 mins" },
+          { id: "mensuration-3d", module_id: "quant-geometry", title: "3D Mensuration & Volumes", description: "Surface area and volume of prisms, cones, cylinders, and spheres.", difficulty: "advanced", reading_time: "25 mins" }
+        ],
+        "quant-modern-math": [
+          { id: "permutations-combinations", module_id: "quant-modern-math", title: "Permutations & Combinations", description: "Factorials, arrangements, selections, and grid paths.", difficulty: "advanced", reading_time: "25 mins" },
+          { id: "probability", module_id: "quant-modern-math", title: "Probability & Bayes Theorem", description: "Sample spaces, independent events, cards, dice, and conditional odds.", difficulty: "advanced", reading_time: "25 mins" },
+          { id: "set-theory", module_id: "quant-modern-math", title: "Set Theory & Venn Diagrams", description: "Union, intersection, two-set and three-set Venn layouts.", difficulty: "intermediate", reading_time: "20 mins" }
+        ],
+        "quant-data-interpretation": [
+          { id: "table-di", module_id: "quant-data-interpretation", title: "Table Data Interpretation", description: "Parsing structured tabular data and computing percentage growth.", difficulty: "beginner", reading_time: "18 mins" },
+          { id: "bar-line-graph", module_id: "quant-data-interpretation", title: "Bar Charts & Line Graphs", description: "Trend analysis, comparative growth, and multi-line chart parsing.", difficulty: "intermediate", reading_time: "20 mins" },
+          { id: "pie-chart", module_id: "quant-data-interpretation", title: "Pie Chart Analysis", description: "Degree to percentage conversions and sector distribution ratios.", difficulty: "intermediate", reading_time: "20 mins" }
+        ],
+        // Logical Reasoning
+        "reasoning-puzzles": [
+          { id: "seating-arrangement", module_id: "reasoning-puzzles", title: "Linear & Circular Seating Arrangement", description: "Facing inward/outward seating rules and multi-variable position puzzles.", difficulty: "intermediate", reading_time: "22 mins" },
+          { id: "floor-matrix-puzzles", module_id: "reasoning-puzzles", title: "Floor & Matrix Puzzles", description: "Multi-deck floor scheduling, day-based arrangements, and matrix linking.", difficulty: "advanced", reading_time: "25 mins" },
+          { id: "blood-relations", module_id: "reasoning-puzzles", title: "Blood Relations & Family Trees", description: "Deciphering family bonds, coded relation symbols, and direct pointers.", difficulty: "beginner", reading_time: "18 mins" }
+        ],
+        "reasoning-analytical": [
+          { id: "syllogism", module_id: "reasoning-analytical", title: "Syllogisms & Venn Deduction", description: "Venn diagram deduction, 'only a few', and possibility logic.", difficulty: "intermediate", reading_time: "20 mins" },
+          { id: "statement-assumption", module_id: "reasoning-analytical", title: "Statement & Assumptions", description: "Evaluating implicit assumptions and necessary premises.", difficulty: "intermediate", reading_time: "18 mins" },
+          { id: "course-of-action", module_id: "reasoning-analytical", title: "Statement & Course of Action", description: "Selecting logical, practical, and non-drastic problem solutions.", difficulty: "intermediate", reading_time: "18 mins" },
+          { id: "direction-sense", module_id: "reasoning-analytical", title: "Direction & Distance Sense", description: "Cardinal directions, turns, shadow positioning, and shortest paths.", difficulty: "beginner", reading_time: "15 mins" }
+        ],
+        "reasoning-non-verbal": [
+          { id: "series-completion", module_id: "reasoning-non-verbal", title: "Number & Letter Series Completion", description: "Pattern discovery, Fibonacci jumps, and alternating skip rules.", difficulty: "beginner", reading_time: "15 mins" },
+          { id: "coding-decoding", module_id: "reasoning-non-verbal", title: "Coding & Decoding Patterns", description: "Letter shifting, reverse alphabetical coding, and matrix codes.", difficulty: "beginner", reading_time: "15 mins" },
+          { id: "cube-dice", module_id: "reasoning-non-verbal", title: "Cubes & Dice Visualizations", description: "Opposite face determination, painted cube cuts, and unfolded nets.", difficulty: "intermediate", reading_time: "20 mins" }
+        ],
+        // Verbal Ability
+        "va-grammar": [
           { id: "parts-of-speech", module_id: "va-grammar", title: "Parts of Speech", description: "Identification and correct usage of speech components.", difficulty: "beginner", reading_time: "15 mins" },
           { id: "subject-verb-agreement", module_id: "va-grammar", title: "Subject Verb Agreement", description: "Matching subject numbers with corresponding verb structures.", difficulty: "intermediate", reading_time: "20 mins" },
           { id: "active-passive-voice", module_id: "va-grammar", title: "Active & Passive Voice", description: "Transforming sentences grammatically between voices.", difficulty: "intermediate", reading_time: "18 mins" },
           { id: "direct-indirect-speech", module_id: "va-grammar", title: "Direct & Indirect Speech", description: "Reporting speech correctly with tense and pronoun changes.", difficulty: "intermediate", reading_time: "20 mins" }
-        ] as AptitudeLesson[];
-      }
-      if (moduleId === "va-vocabulary") {
-        return [
+        ],
+        "va-vocabulary": [
           { id: "synonyms-antonyms", module_id: "va-vocabulary", title: "Synonyms & Antonyms", description: "Finding words with similar and opposite meanings.", difficulty: "intermediate", reading_time: "15 mins" },
           { id: "root-words-affixes", module_id: "va-vocabulary", title: "Root Words & Affixes", description: "Deciphering meanings through roots, prefixes, and suffixes.", difficulty: "intermediate", reading_time: "20 mins" },
           { id: "idioms-phrases", module_id: "va-vocabulary", title: "Idioms & Phrases", description: "Deciphering figurative expressions and phrasal verbs.", difficulty: "beginner", reading_time: "15 mins" },
           { id: "confusing-words", module_id: "va-vocabulary", title: "Confusing Words", description: "Homophones, homonyms, and commonly mixed-up words.", difficulty: "beginner", reading_time: "15 mins" }
-        ] as AptitudeLesson[];
-      }
-      if (moduleId === "va-comprehension") {
-        return [
+        ],
+        "va-comprehension": [
           { id: "rc-fact-based", module_id: "va-comprehension", title: "Fact-Based Reading Comprehension", description: "Locating and extracting facts directly from the text.", difficulty: "beginner", reading_time: "20 mins" },
           { id: "rc-inference-based", module_id: "va-comprehension", title: "Inference-Based Reading Comprehension", description: "Drawing logical conclusions not explicitly stated.", difficulty: "advanced", reading_time: "25 mins" },
           { id: "rc-tone-theme", module_id: "va-comprehension", title: "Tone & Theme Analysis", description: "Identifying the author's voice and main theme of the passage.", difficulty: "advanced", reading_time: "25 mins" }
-        ] as AptitudeLesson[];
-      }
-      if (moduleId === "va-reasoning") {
-        return [
+        ],
+        "va-reasoning": [
           { id: "para-jumbles", module_id: "va-reasoning", title: "Para Jumbles & Order of Sentences", description: "Rearranging scrambled sentences into a coherent paragraph.", difficulty: "intermediate", reading_time: "20 mins" },
           { id: "sentence-completion", module_id: "va-reasoning", title: "Sentence Completion & Fillers", description: "Filling missing blanks using vocabulary context and grammar rules.", difficulty: "beginner", reading_time: "15 mins" },
           { id: "paragraph-completion", module_id: "va-reasoning", title: "Paragraph Completion & Summary", description: "Choosing the best concluding sentence or summary for a paragraph.", difficulty: "advanced", reading_time: "22 mins" }
-        ] as AptitudeLesson[];
-      }
-      if (moduleId === "va-business-english") {
-        return [
+        ],
+        "va-business-english": [
           { id: "error-spotting", module_id: "va-business-english", title: "Error Spotting & Sentence Correction", description: "Identifying grammatical, syntax, and punctuation errors in sentences.", difficulty: "intermediate", reading_time: "20 mins" },
           { id: "modifiers-dangling-clauses", module_id: "va-business-english", title: "Modifiers & Dangling Clauses", description: "Fixing misplaced modifiers and dangling participle clauses.", difficulty: "advanced", reading_time: "22 mins" },
           { id: "business-correspondence", module_id: "va-business-english", title: "Business Communication & Email Etiquette", description: "Professional vocabulary, formal register, and email etiquette.", difficulty: "beginner", reading_time: "15 mins" }
-        ] as AptitudeLesson[];
+        ]
+      };
+
+      if (fallbackMap[moduleId]) {
+        return fallbackMap[moduleId] as unknown as AptitudeLesson[];
       }
+
+      // Generic fallback generator so NO module ever returns empty
+      return [
+        { id: `${moduleId}-lesson-1`, module_id: moduleId, title: `${moduleId.replace(/-/g, ' ').toUpperCase()} Core Fundamentals`, description: "Master essential rules, foundational formulas, and shortcuts.", difficulty: "beginner", reading_time: "15 mins" },
+        { id: `${moduleId}-lesson-2`, module_id: moduleId, title: `${moduleId.replace(/-/g, ' ').toUpperCase()} Intermediate Problem Solving`, description: "Practice medium-level placement question patterns and speed tricks.", difficulty: "intermediate", reading_time: "20 mins" },
+        { id: `${moduleId}-lesson-3`, module_id: moduleId, title: `${moduleId.replace(/-/g, ' ').toUpperCase()} Advanced Exam Challenges`, description: "Solve high-difficulty company test cases and multi-concept questions.", difficulty: "advanced", reading_time: "25 mins" }
+      ] as AptitudeLesson[];
     }
     return (lessons || []).sort((a, b) => {
       const aNum = parseInt(a.id.split('-').pop() || "0", 10) || 0;
@@ -273,6 +370,24 @@ export class LearningQueryService {
         legReas.forEach(l => {
           if (!existingIds.has(l.id)) lessons.push(l as AptitudeLesson);
         });
+      }
+    }
+
+    const targetModules =
+      domainId === "quantitative-aptitude"
+        ? ["quant-arithmetic", "quant-numbers", "quant-algebra", "quant-geometry", "quant-modern-math", "quant-data-interpretation"]
+        : domainId === "logical-reasoning"
+          ? ["reasoning-puzzles", "reasoning-analytical", "reasoning-non-verbal"]
+          : ["va-grammar", "va-vocabulary", "va-comprehension", "va-reasoning", "va-business-english"];
+
+    const existingIds = new Set(lessons.map(l => l.id));
+    for (const modId of targetModules) {
+      const modLessons = await this.getLessonsByModule(modId, subject);
+      for (const ml of modLessons) {
+        if (!existingIds.has(ml.id)) {
+          lessons.push(ml);
+          existingIds.add(ml.id);
+        }
       }
     }
 

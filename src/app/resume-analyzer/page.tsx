@@ -24,6 +24,14 @@ type SectionScores = {
   education: number;
 };
 
+export interface AnalyzerFinding {
+  category: string;
+  statement: string;
+  evidence: string[];
+  confidence: number;
+  status: "PRESENT" | "MISSING" | "UNKNOWN";
+}
+
 type ResumeResponse = {
   atsScore?: number;
   label?: "Excellent" | "Good" | "Needs Improvement";
@@ -31,6 +39,7 @@ type ResumeResponse = {
   strengths?: string[];
   weaknesses?: string[];
   suggestions?: string[];
+  findings?: AnalyzerFinding[];
   includedKeywords?: string[];
   missingKeywords?: string[];
   sectionScores?: SectionScores;
@@ -58,6 +67,7 @@ type AnalyzerWorkspaceSnapshot = {
   strengths: string[];
   weaknesses: string[];
   suggestions: string[];
+  findings: AnalyzerFinding[];
   includedKeywords: string[];
   missingKeywords: string[];
   sectionScores: SectionScores;
@@ -136,31 +146,11 @@ function Glass({ children, isDark, className }: { children: React.ReactNode; isD
           : "bg-white/70 border-black/5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] hover:bg-white/90"
       } ${className ?? ""}`}
     >
-      {/* Subtle top glare effect */}
       <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${isDark ? 'from-transparent via-white/20 to-transparent' : 'from-transparent via-white/80 to-transparent'}`} />
       <div className="relative z-10">
         {children}
       </div>
     </section>
-  );
-}
-
-function ScoreBar({ label, value, isDark }: { label: string; value: number; isDark: boolean }) {
-  return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between text-sm font-semibold">
-        <span className={isDark ? "text-gray-200" : "text-gray-800"}>{label}</span>
-        <span className={scoreClass(value, isDark)}>{value}%</span>
-      </div>
-      <div className={`h-2.5 rounded-full overflow-hidden ${isDark ? "bg-white/10" : "bg-black/10"} shadow-inner`}>
-        <div 
-          className={`h-full rounded-full transition-all duration-1000 ease-out relative ${
-            isDark ? "bg-gradient-to-r from-brand-blue to-brand-purple" : "bg-gradient-to-r from-brand-blue/90 to-brand-purple/90"
-          }`} 
-          style={{ width: `${value}%` }} 
-        />
-      </div>
-    </div>
   );
 }
 
@@ -173,13 +163,14 @@ export default function ResumeAnalyzerPage() {
 
   const [atsScore, setAtsScore] = useState<number | null>(null);
   const [label, setLabel] = useState<"Excellent" | "Good" | "Needs Improvement" | null>(null);
-  const [summary, setSummary] = useState("Upload a resume and run analysis to get a complete recruiter-style assessment.");
+  const [summary, setSummary] = useState("");
   const [strengths, setStrengths] = useState<string[]>([]);
   const [weaknesses, setWeaknesses] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [findings, setFindings] = useState<AnalyzerFinding[]>([]);
   const [includedKeywords, setIncludedKeywords] = useState<string[]>([]);
   const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
   const [sectionScores, setSectionScores] = useState<SectionScores>({ skills: 0, projects: 0, experience: 0, education: 0 });
-  const [suggestions, setSuggestions] = useState<string[]>([]);
 
   const [matchPercentage, setMatchPercentage] = useState<number | null>(null);
   const [matchSummary, setMatchSummary] = useState("Paste a job description to evaluate role fit.");
@@ -212,33 +203,20 @@ export default function ResumeAnalyzerPage() {
     let active = true;
 
     const restoreAnalyzerWorkspace = async () => {
-      await saveUserData({ name: session.user?.name ?? null, email });
-      const { data: userRow } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-      if (!userRow?.id || !active) return;
-
-      const { data: latestWorkspace } = await supabase
-        .from("submissions")
-        .select("code")
-        .eq("user_id", userRow.id)
-        .eq("language", "resume-workspace")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!latestWorkspace?.code || !active) return;
-
       try {
-        const parsed = JSON.parse(String(latestWorkspace.code)) as Partial<AnalyzerWorkspaceSnapshot>;
-        setAtsScore(typeof parsed.atsScore === "number" ? parsed.atsScore : null);
-        setLabel(parsed.label === "Excellent" || parsed.label === "Good" || parsed.label === "Needs Improvement" ? parsed.label : null);
-        setSummary(typeof parsed.summary === "string" && parsed.summary.trim() ? parsed.summary : "Upload a resume and run analysis to get a complete recruiter-style assessment.");
+        const res = await fetch("/api/resume-analysis");
+        if (!res.ok) return;
+        const data = await res.json();
+        const parsed = (data.workspace || {}) as Partial<AnalyzerWorkspaceSnapshot>;
+        if (!parsed || Object.keys(parsed).length === 0 || !active) return;
+
+        setAtsScore(parsed.atsScore ?? null);
+        setLabel(parsed.label ?? null);
+        setSummary(parsed.summary ?? "");
         setStrengths(Array.isArray(parsed.strengths) ? parsed.strengths : []);
         setWeaknesses(Array.isArray(parsed.weaknesses) ? parsed.weaknesses : []);
         setSuggestions(Array.isArray(parsed.suggestions) ? parsed.suggestions : []);
+        setFindings(Array.isArray(parsed.findings) ? parsed.findings : []);
         setIncludedKeywords(Array.isArray(parsed.includedKeywords) ? parsed.includedKeywords : []);
         setMissingKeywords(Array.isArray(parsed.missingKeywords) ? parsed.missingKeywords : []);
         setSectionScores(parsed.sectionScores && typeof parsed.sectionScores === "object"
@@ -259,7 +237,6 @@ export default function ResumeAnalyzerPage() {
         setJobDescription(typeof parsed.jobDescription === "string" ? parsed.jobDescription : "");
         setRecruiterNotes(typeof parsed.recruiterNotes === "string" ? parsed.recruiterNotes : "");
       } catch {
-        // Ignore malformed persisted workspace snapshot.
       }
     };
 
@@ -283,24 +260,14 @@ export default function ResumeAnalyzerPage() {
     return async (snapshot: AnalyzerWorkspaceSnapshot) => {
       const email = session?.user?.email;
       if (status !== "authenticated" || !email) return;
-
-      await saveUserData({ name: session.user?.name ?? null, email });
-      const { data: userRow } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-      if (!userRow?.id) return;
-
-      await supabase.from("submissions").insert({
-        user_id: userRow.id,
-        language: "resume-workspace",
-        code: JSON.stringify(snapshot),
-        output: "Analyzer workspace synced",
-        feedback: "Resume analyzer state saved",
-        difficulty: "easy",
-        result: "Saved",
-      });
+      try {
+        await fetch("/api/resume-analysis", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ snapshot }),
+        });
+      } catch {
+      }
     };
   }, [session, status]);
 
@@ -369,13 +336,14 @@ export default function ResumeAnalyzerPage() {
         const score = typeof resumeData.atsScore === "number" ? resumeData.atsScore : null;
         setAtsScore(score);
         setLabel(resumeData.label ?? null);
-        setSummary(resumeData.aiSummary ?? "Analysis completed.");
+        setSummary(resumeData.aiSummary ?? "");
         setStrengths(resumeData.strengths ?? []);
         setWeaknesses(resumeData.weaknesses ?? []);
+        setSuggestions(resumeData.suggestions ?? []);
+        setFindings(resumeData.findings ?? []);
         setIncludedKeywords(resumeData.includedKeywords ?? []);
         setMissingKeywords(resumeData.missingKeywords ?? []);
         setSectionScores(resumeData.sectionScores ?? { skills: 0, projects: 0, experience: 0, education: 0 });
-        setSuggestions(resumeData.suggestions ?? []);
 
         setMatchPercentage(typeof matchData.matchPercentage === "number" ? matchData.matchPercentage : null);
         setMatchSummary(matchData.matchSummary ?? "Match analysis completed.");
@@ -387,10 +355,11 @@ export default function ResumeAnalyzerPage() {
         const nextSnapshot: AnalyzerWorkspaceSnapshot = {
           atsScore: score,
           label: resumeData.label ?? null,
-          summary: resumeData.aiSummary ?? "Analysis completed.",
+          summary: resumeData.aiSummary ?? "",
           strengths: resumeData.strengths ?? [],
           weaknesses: resumeData.weaknesses ?? [],
           suggestions: resumeData.suggestions ?? [],
+          findings: resumeData.findings ?? [],
           includedKeywords: resumeData.includedKeywords ?? [],
           missingKeywords: resumeData.missingKeywords ?? [],
           sectionScores: resumeData.sectionScores ?? { skills: 0, projects: 0, experience: 0, education: 0 },
@@ -406,27 +375,6 @@ export default function ResumeAnalyzerPage() {
           updatedAt: new Date().toISOString(),
         };
         void persistWorkspace(nextSnapshot);
-
-        const email = session?.user?.email;
-        if (status === "authenticated" && email) {
-          void (async () => {
-            await saveUserData({ name: session.user?.name ?? null, email });
-            const { data: userRow } = await supabase
-              .from("users")
-              .select("id")
-              .eq("email", email)
-              .maybeSingle();
-            if (!userRow?.id) return;
-            await supabase.from("submissions").insert({
-              user_id: userRow.id,
-              language: "resume-analyzer",
-              code: resumeFile?.name ?? "resume",
-              output: `ATS ${score} | MATCH ${typeof matchData.matchPercentage === "number" ? matchData.matchPercentage : "--"}`,
-              feedback: (resumeData.suggestions ?? []).slice(0, 3).join(" | "),
-              difficulty: "hard",
-            });
-          })();
-        }
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Failed to analyze");
@@ -449,7 +397,6 @@ export default function ResumeAnalyzerPage() {
         const data = (await res.json()) as FixResponse;
         if (!res.ok) throw new Error(data.error || "Failed to fix resume");
         setImprovedBullets(data.improvedBullets ?? []);
-        // Generate original bullets from weaknesses for before/after comparison
         setOriginalBullets([]);
         setSuccess("Resume improvement generated.");
 
@@ -460,8 +407,9 @@ export default function ResumeAnalyzerPage() {
           strengths,
           weaknesses,
           suggestions,
-          includedKeywords,
+          findings,
           missingKeywords,
+          includedKeywords,
           sectionScores,
           matchPercentage,
           matchSummary,
@@ -689,6 +637,42 @@ export default function ResumeAnalyzerPage() {
           )}
         </Glass>
 
+        {findings.length > 0 && (
+          <Glass isDark={isDark} className="p-6">
+            <h3 className={`mb-3 text-lg font-semibold ${isDark ? "text-white" : "text-black"}`}>Grounded Evidence Analysis</h3>
+            <div className="space-y-4">
+              {findings.map((finding, idx) => (
+                <div key={idx} className={`p-4 rounded-xl border ${isDark ? 'border-white/10 bg-white/5' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        finding.status === 'PRESENT' ? 'bg-green-500/20 text-green-500' : 
+                        finding.status === 'MISSING' ? 'bg-red-500/20 text-red-500' : 'bg-gray-500/20 text-gray-500'
+                      }`}>
+                        {finding.status}
+                      </span>
+                      <span className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{finding.category}</span>
+                    </div>
+                    <span className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Confidence: {(finding.confidence * 100).toFixed(0)}%</span>
+                  </div>
+                  <p className={`text-sm mb-3 ${isDark ? 'text-white' : 'text-black'}`}>{finding.statement}</p>
+                  
+                  {finding.evidence && finding.evidence.length > 0 && (
+                    <div className={`text-xs pl-3 py-2 border-l-2 ${isDark ? 'border-white/20 text-gray-400' : 'border-gray-300 text-gray-600'}`}>
+                      <p className="font-semibold mb-1 opacity-70">Source Evidence:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {finding.evidence.map((ev, evIdx) => (
+                          <li key={evIdx}>"{ev}"</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Glass>
+        )}
+
         <Glass isDark={isDark} className="p-6">
           <h3 className={`mb-3 text-lg font-semibold ${isDark ? "text-white" : "text-black"}`}>Priority Placement Actions</h3>
           <ul className="space-y-2">
@@ -881,5 +865,19 @@ export default function ResumeAnalyzerPage() {
         {error && <p className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>{error}</p>}
       </div>
     </main>
+  );
+}
+
+function ScoreBar({ label, value, isDark }: { label: string; value: number; isDark: boolean }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs font-semibold">
+        <span className={isDark ? "text-gray-300" : "text-gray-700"}>{label}</span>
+        <span className={isDark ? "text-brand-blue" : "text-blue-600"}>{value}%</span>
+      </div>
+      <div className={`h-2 w-full rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-gray-200"}`}>
+        <div className="h-full bg-brand-blue rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+      </div>
+    </div>
   );
 }

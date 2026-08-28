@@ -20,8 +20,19 @@ const CATEGORIES = [
 
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
+function checkIsAdmin(email: string | null | undefined, role: string | null | undefined): boolean {
+  const norm = String(email || '').trim().toLowerCase();
+  if (!norm) return false;
+  if (norm === 'satyanarayanag904@gmail.com') return true;
+  if (String(role || '').toUpperCase() === 'ADMIN') return true;
+  return false;
+}
+
 export function SupportChatWidget() {
   const { data: session } = useSession();
+  const isAdmin = checkIsAdmin(session?.user?.email, (session?.user as any)?.role);
+
+  // All hooks must be called unconditionally (Rules of Hooks)
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
 
@@ -31,7 +42,7 @@ export function SupportChatWidget() {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -60,6 +71,11 @@ export function SupportChatWidget() {
       fetchTickets();
     }
   }, [isOpen, activeTab]);
+
+  // Admin users never see the support widget
+  if (isAdmin) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1524,3 +1524,14 @@ ALTER TABLE platform_assessments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation_policy ON platform_assessments
     USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
 */
+
+-- Added for user_progress table fix
+CREATE TABLE IF NOT EXISTS public.user_progress (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  resume_data jsonb not null default '{}'::jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+NOTIFY pgrst, 'reload schema';
+

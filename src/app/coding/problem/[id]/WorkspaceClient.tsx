@@ -3,8 +3,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import MonacoEditorWrapper from '@/components/coding/MonacoEditorWrapper';
+
+const MonacoEditorWrapper = dynamic(() => import('@/components/coding/MonacoEditorWrapper'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center bg-[#181818] text-zinc-400 font-mono text-xs gap-3">
+      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <span>Loading Editor Engine...</span>
+    </div>
+  ),
+});
 import { 
   Sparkles, Code2, Layers, BookOpen, Lightbulb, AlertTriangle, Building2, 
   HelpCircle, Play, CheckCircle2, ChevronRight, ArrowRight, Wand2, ChevronLeft, ArrowLeft,
@@ -62,6 +72,14 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
     { input: "[3,2,4]\n6" },
     { input: "[3,3]\n6" }
   ]);
+
+  // Submission Animation State
+  const [submissionPhase, setSubmissionPhase] = useState<'idle' | 'pending' | 'judging' | 'animating' | 'done'>('idle');
+  const [animatedPassedCount, setAnimatedPassedCount] = useState(0);
+  const [targetPassedCount, setTargetPassedCount] = useState(0);
+  const [totalCasesCount, setTotalCasesCount] = useState(0);
+  const [failedCaseIndex, setFailedCaseIndex] = useState(-1);
+
 
   // Stopwatch timer hook with play/pause support
   useEffect(() => {
@@ -130,6 +148,24 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
     loadWorkspace();
   }, [problemId]);
 
+  // Animation Engine Hook
+  useEffect(() => {
+    if (submissionPhase === 'animating') {
+      const interval = setInterval(() => {
+        setAnimatedPassedCount(prev => {
+          if (prev < targetPassedCount) {
+            return prev + 1;
+          }
+          clearInterval(interval);
+          setSubmissionPhase('done');
+          return prev;
+        });
+      }, 30); // 30ms per case for a fast, snappy sweep
+      return () => clearInterval(interval);
+    }
+  }, [submissionPhase, targetPassedCount]);
+
+
   // Handle language switch
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value;
@@ -157,8 +193,12 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
         body: JSON.stringify({ 
           problemId, 
           language, 
-          code, 
-          testcases: [{ input: testCases[activeCaseIdx]?.input || "" }] 
+          code,
+          testcases: [{ 
+            input: testCases[activeCaseIdx]?.input || "",
+            expectedOutput: testCases[activeCaseIdx]?.expectedOutput || "",
+            isHidden: false 
+          }] 
         })
       });
       const data = await res.json();
@@ -174,6 +214,14 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
     setIsRunning(true);
     setConsoleTab('result');
     setOutput(null);
+    setSubmissionPhase('pending');
+    setAnimatedPassedCount(0);
+    setFailedCaseIndex(-1);
+
+    // Simulate "Pending" delay for realism
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setSubmissionPhase('judging');
+
     try {
       const res = await fetch('/api/coding/submit', {
         method: 'POST',
@@ -181,9 +229,38 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
         body: JSON.stringify({ problemId, language, code })
       });
       const data = await res.json();
-      setOutput(data.error ? { error: typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error) } : data);
+      
+      const parsedOutput = data.error 
+        ? { error: typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error) } 
+        : data;
+      
+      setOutput(parsedOutput);
+
+      if (!parsedOutput.error && !parsedOutput.compile_error && parsedOutput.cases) {
+        const totalCases = parsedOutput.cases.length;
+        // Count how many consecutive passed cases there are before a failure
+        let consecutivePasses = 0;
+        let failIdx = -1;
+        for (let i = 0; i < totalCases; i++) {
+          if (parsedOutput.cases[i].passed) {
+            consecutivePasses++;
+          } else {
+            failIdx = i;
+            break;
+          }
+        }
+        
+        setTotalCasesCount(totalCases);
+        setTargetPassedCount(consecutivePasses);
+        setFailedCaseIndex(failIdx);
+        setSubmissionPhase('animating');
+      } else {
+        setSubmissionPhase('done');
+      }
+
     } catch (err: any) {
       setOutput({ error: err.message || "Submission error" });
+      setSubmissionPhase('done');
     } finally {
       setIsRunning(false);
     }
@@ -246,6 +323,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
 
           <button 
             onClick={() => router.back()} 
+            aria-label="Back to Previous Page"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#383838] hover:bg-[#484848] text-zinc-200 font-medium transition text-[11px]"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-zinc-400" />
@@ -254,6 +332,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
 
           <Link 
             href="/coding" 
+            aria-label="Problem List"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#383838] hover:bg-[#484848] text-zinc-200 font-medium transition text-[11px]"
           >
             <Layers className="w-3.5 h-3.5 text-zinc-400" />
@@ -261,13 +340,13 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           </Link>
 
           <div className="flex items-center gap-0.5">
-            <button onClick={handlePrevProblem} className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition" title="Previous Question">
+            <button onClick={handlePrevProblem} aria-label="Previous Question" className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition" title="Previous Question">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={handleNextProblem} className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition" title="Next Question">
+            <button onClick={handleNextProblem} aria-label="Next Question" className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition" title="Next Question">
               <ChevronRight className="w-4 h-4" />
             </button>
-            <button onClick={handleShuffle} className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition ml-1" title="Shuffle / Pick Random Question">
+            <button onClick={handleShuffle} aria-label="Shuffle Question" className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition ml-1" title="Shuffle / Pick Random Question">
               <Shuffle className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -278,6 +357,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           <button 
             onClick={handleRun}
             disabled={isRunning}
+            aria-label="Run Code"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#383838] hover:bg-[#484848] text-zinc-200 font-semibold transition active:scale-95 disabled:opacity-50 text-xs"
           >
             <Play className="w-3.5 h-3.5 text-zinc-300 fill-zinc-300" />
@@ -287,6 +367,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           <button 
             onClick={handleSubmit}
             disabled={isRunning}
+            aria-label="Submit Code"
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition active:scale-95 disabled:opacity-50 text-xs shadow-md"
           >
             <CloudUpload className="w-3.5 h-3.5" />
@@ -295,6 +376,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
 
           <button 
             onClick={() => setActiveTab('solutions')}
+            aria-label="AI Editorial & Solutions"
             className="p-1.5 rounded hover:bg-[#383838] text-amber-400 transition ml-1"
             title="AI Editorial & Solutions"
           >
@@ -307,6 +389,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
           <div className="flex items-center gap-2 text-zinc-300 bg-[#1e1e1e] px-3 py-1 rounded border border-[#333]">
             <button
               onClick={() => setTimerRunning(!timerRunning)}
+              aria-label={timerRunning ? "Pause Timer" : "Play Timer"}
               className="hover:text-emerald-400 transition cursor-pointer flex items-center justify-center"
               title={timerRunning ? "Pause Timer" : "Play Timer"}
             >
@@ -499,7 +582,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                       className="w-full flex items-center justify-between font-bold text-xs text-zinc-300 hover:text-white"
                     >
                       <span className="flex items-center gap-2"><BookOpen className="w-3.5 h-3.5 text-blue-400" /> Similar Questions</span>
-                      <span className="text-zinc-500">{showSimilar ? '▲' : '▼'}</span>
+                      <span className="text-zinc-400">{showSimilar ? '▲' : '▼'}</span>
                     </button>
 
                     {showSimilar && (
@@ -529,7 +612,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                       className="w-full flex items-center justify-between font-bold text-xs text-zinc-300 hover:text-white"
                     >
                       <span className="flex items-center gap-2"><MessageSquare className="w-3.5 h-3.5 text-purple-400" /> Discussion (1.1K)</span>
-                      <span className="text-zinc-500">{showDiscussion ? '▲' : '▼'}</span>
+                      <span className="text-zinc-400">{showDiscussion ? '▲' : '▼'}</span>
                     </button>
 
                     {showDiscussion && (
@@ -587,7 +670,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                     <span className="text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Accepted</span>
                     <span className="font-mono text-zinc-400">42 ms</span>
                     <span className="font-mono text-zinc-400">14.2 MB</span>
-                    <span className="text-zinc-500">Just now</span>
+                    <span className="text-zinc-400">Just now</span>
                   </div>
                 </div>
               )}
@@ -615,6 +698,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                     <select
                       value={language}
                       onChange={handleLanguageChange}
+                      aria-label="Select Programming Language"
                       className="bg-[#1e1e1e] text-zinc-200 border border-[#383838] rounded px-2.5 py-0.5 text-xs font-bold outline-none focus:border-blue-500 cursor-pointer"
                     >
                       <option value="cpp">C++ (GCC 13)</option>
@@ -626,6 +710,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setCode(problem?.codingDetails?.starter_code?.[language] || "")}
+                      aria-label="Reset Code to Default"
                       className="p-1 rounded hover:bg-[#383838] text-zinc-400 hover:text-zinc-200 transition"
                       title="Reset Code to Default"
                     >
@@ -683,29 +768,30 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                               key={idx}
                               onClick={() => setActiveCaseIdx(idx)}
                               className={`px-3 py-1 rounded text-xs font-bold transition cursor-pointer ${
-                                activeCaseIdx === idx ? 'bg-[#383838] text-white border border-[#555]' : 'text-zinc-500 hover:text-zinc-300'
-                              }`}
-                            >
-                              Case {idx + 1}
-                            </button>
-                          ))}
-                        </div>
-                        <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-                          100+ Verified Test Cases Available
-                        </span>
+                              activeCaseIdx === idx ? 'bg-[#383838] text-white border border-[#555]' : 'text-zinc-400 hover:text-zinc-300'
+                            }`}
+                          >
+                            Case {idx + 1}
+                          </button>
+                        ))}
                       </div>
+                      <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                        100+ Verified Test Cases Available
+                      </span>
+                    </div>
 
-                      {/* Separate Input Box & Separate Expected Output Box */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* SEPARATE INPUT BOX */}
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] text-cyan-300 font-bold flex items-center justify-between">
-                            <span>Input:</span>
-                            <span className="text-[10px] text-zinc-500 font-normal">Editable Parameters</span>
-                          </label>
-                          <textarea
-                            rows={4}
-                            value={testCases[activeCaseIdx]?.input || ""}
+                    {/* Separate Input Box & Separate Expected Output Box */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* SEPARATE INPUT BOX */}
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] text-cyan-300 font-bold flex items-center justify-between">
+                          <span>Input:</span>
+                          <span className="text-[10px] text-zinc-400 font-normal">Editable Parameters</span>
+                        </label>
+                        <textarea
+                          rows={4}
+                          aria-label="Test Case Input Parameters"
+                          value={testCases[activeCaseIdx]?.input || ""}
                             onChange={(e) => {
                               const updated = [...testCases];
                               updated[activeCaseIdx] = { ...updated[activeCaseIdx], input: e.target.value };
@@ -728,10 +814,30 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
 
                   {consoleTab === 'result' && (
                     <div className="space-y-3">
-                      {isRunning ? (
-                        <div className="flex items-center gap-2 text-zinc-400 py-4">
-                          <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                          <span>Executing code...</span>
+                      {submissionPhase === 'pending' || submissionPhase === 'judging' ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                           <span className="text-zinc-400 font-bold text-sm tracking-wide">
+                              {submissionPhase === 'pending' ? 'Pending...' : 'Judging...'}
+                           </span>
+                        </div>
+                      ) : submissionPhase === 'animating' ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-6">
+                           <span className="text-blue-400 font-bold text-lg tracking-wide">Judging...</span>
+                           <div className="w-full max-w-md bg-[#252525] rounded-full h-3 border border-[#333] overflow-hidden relative">
+                              <div 
+                                 className="h-full bg-blue-500 transition-all duration-75 ease-linear"
+                                 style={{ width: `${Math.max(5, (animatedPassedCount / Math.max(1, totalCasesCount)) * 100)}%` }}
+                              />
+                           </div>
+                           <div className="font-mono text-zinc-300 font-bold">
+                              {animatedPassedCount} / {totalCasesCount} Test Cases Passed
+                           </div>
+                        </div>
+                      ) : isRunning ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                           <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                           <span className="text-zinc-400 font-bold">Executing code...</span>
                         </div>
                       ) : output ? (
                         output.error ? (
@@ -758,21 +864,27 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                               </div>
                             </div>
 
-                            {/* SEPARATE BOXES FOR RESULT */}
+                            {/* SEPARATE BOXES FOR RESULT (SHOW FAILED CASE IF SUBMITTED OR FIRST CASE IF RUN) */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-zinc-400">Input Box:</div>
-                                <div className="text-amber-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.input || testCases[activeCaseIdx]?.input || ""}</div>
+                                <div className="text-amber-300 font-mono whitespace-pre-wrap break-all">
+                                   {failedCaseIndex >= 0 ? output.cases?.[failedCaseIndex]?.input : (output.cases?.[0]?.input || testCases[activeCaseIdx]?.input || "")}
+                                </div>
                               </div>
 
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-zinc-400">Your Output Box:</div>
-                                <div className="text-cyan-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.output || output.output || ""}</div>
+                                <div className="text-cyan-300 font-mono whitespace-pre-wrap break-all">
+                                   {failedCaseIndex >= 0 ? output.cases?.[failedCaseIndex]?.output : (output.cases?.[0]?.output || output.output || "")}
+                                </div>
                               </div>
 
                               <div className="p-3 rounded-xl bg-[#141414] border border-[#333] space-y-1">
                                 <div className="text-[11px] font-bold text-emerald-400">Expected Output Box:</div>
-                                <div className="text-emerald-300 font-mono whitespace-pre-wrap break-all">{output.cases?.[0]?.expectedOutput || testCases[activeCaseIdx]?.expectedOutput || ""}</div>
+                                <div className="text-emerald-300 font-mono whitespace-pre-wrap break-all">
+                                   {failedCaseIndex >= 0 ? output.cases?.[failedCaseIndex]?.expectedOutput : (output.cases?.[0]?.expectedOutput || testCases[activeCaseIdx]?.expectedOutput || "")}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -782,7 +894,7 @@ export default function WorkspaceClient({ problemId }: { problemId: string }) {
                           </div>
                         )
                       ) : (
-                        <div className="text-zinc-500 py-4">Click &quot;Run&quot; or &quot;Submit&quot; to execute code.</div>
+                        <div className="text-zinc-400 py-4">Click &quot;Run&quot; or &quot;Submit&quot; to execute code.</div>
                       )}
                     </div>
                   )}

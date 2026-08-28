@@ -518,6 +518,10 @@ function deduplicateQuestions(questions: CodingQuestion[]): CodingQuestion[] {
 }
 
 export async function GET(req: NextRequest) {
+  const reqStart = performance.now();
+  const isDev = process.env.NODE_ENV === "development";
+  const debugMode = isDev || req.headers.get("x-nexthire-debug") === "1";
+
   try {
     const { searchParams } = new URL(req.url);
     const search = (searchParams.get("search") || searchParams.get("q") || "").toLowerCase().trim();
@@ -533,7 +537,10 @@ export async function GET(req: NextRequest) {
     const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 5000) : 50;
 
+    const bundleStart = performance.now();
     const bundle = await loadQuestionsBundle();
+    const bundleMs = performance.now() - bundleStart;
+
     const allQuestions = bundle.questions;
 
     if (!memoizedEnrichedQuestions || memoizedEnrichedQuestions.length !== allQuestions.length) {
@@ -683,6 +690,24 @@ export async function GET(req: NextRequest) {
       topics: q.topics || []
     }));
 
+    const totalMs = performance.now() - reqStart;
+    const filterMs = totalMs - bundleMs;
+
+    const timingHeaders: Record<string, string> = {
+      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+    };
+    if (debugMode) {
+      timingHeaders["Server-Timing"] =
+        `bundle;dur=${bundleMs.toFixed(1)}, filter;dur=${filterMs.toFixed(1)}, total;dur=${totalMs.toFixed(1)}`;
+      timingHeaders["X-NextHire-Timing"] = JSON.stringify({
+        bundleMs: Math.round(bundleMs),
+        filterMs: Math.round(filterMs),
+        totalMs: Math.round(totalMs),
+        count: lightPaged.length,
+        filteredCount,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: lightPaged,
@@ -701,9 +726,7 @@ export async function GET(req: NextRequest) {
       lastSyncAt: bundle.lastSyncAt || new Date().toISOString(),
       warning: bundle.warning,
     }, {
-      headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-      },
+      headers: timingHeaders,
     });
   } catch (error) {
     console.error("Questions API error:", error);

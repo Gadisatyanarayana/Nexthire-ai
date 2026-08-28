@@ -262,18 +262,27 @@ function isWeakDescription(value: string | undefined): boolean {
   return !text || text.startsWith("solve ");
 }
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const reqStart = performance.now();
     const { id } = await params;
     const cacheVersion = await loadQuestionsVersion();
     const cacheKey = buildQuestionDetailCacheKey(id, cacheVersion);
     const cachedResponse = await readJsonCache<ReturnType<typeof buildQuestionResponse>>(cacheKey);
+    const cacheMs = performance.now() - reqStart;
+
+    const isDev = process.env.NODE_ENV === "development";
+    const debugMode = isDev || req.headers.get("x-nexthire-debug") === "1";
+
     if (cachedResponse) {
-      return NextResponse.json(cachedResponse, {
-        headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
-        },
-      });
+      const totalMs = performance.now() - reqStart;
+      const headers: Record<string, string> = {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+      };
+      if (debugMode) {
+        headers["Server-Timing"] = `cache;dur=${cacheMs.toFixed(1)}, total;dur=${totalMs.toFixed(1)}`;
+      }
+      return NextResponse.json(cachedResponse, { headers });
     }
 
     const admin = getAdminClient();
@@ -386,11 +395,34 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
           ? fallbackExampleCases
           : enriched.testcases || [];
       const hasNormalizedSplit = normalizedVisibleCases.length > 0 || normalizedHiddenCount > 0;
-      const sampleCasesForClient = hasNormalizedSplit
+      let sampleCasesForClient = hasNormalizedSplit && normalizedVisibleCases.length > 0
         ? normalizedVisibleCases
         : dbSampleCases.length > 0
           ? dbSampleCases
           : effectiveTestcases.slice(0, 2);
+
+      if (sampleCasesForClient.length < 2 && fallbackExampleCases.length > 0) {
+        for (const ex of fallbackExampleCases) {
+          if (!sampleCasesForClient.some((c: { input: string }) => c.input === ex.input)) {
+            sampleCasesForClient.push(ex);
+          }
+          if (sampleCasesForClient.length >= 2) break;
+        }
+      }
+      if (sampleCasesForClient.length < 2 && effectiveTestcases.length > 0) {
+        for (const tc of effectiveTestcases) {
+          if (!sampleCasesForClient.some((c: { input: string }) => c.input === tc.input)) {
+            sampleCasesForClient.push(tc);
+          }
+          if (sampleCasesForClient.length >= 2) break;
+        }
+      }
+      if (sampleCasesForClient.length === 0) {
+        sampleCasesForClient = [
+          { input: "0", expectedOutput: "0" },
+          { input: "1", expectedOutput: "1" },
+        ];
+      }
       const rawHiddenCount = hasNormalizedSplit
         ? normalizedHiddenCount
         : dbHiddenCases.length > 0
@@ -433,11 +465,15 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
       await writeJsonCache(cacheKey, responsePayload, QUESTION_DETAIL_CACHE_TTL_SECONDS);
 
-      return NextResponse.json(responsePayload, {
-        headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
-        },
-      });
+      const totalMs = performance.now() - reqStart;
+      const headers: Record<string, string> = {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+      };
+      if (debugMode) {
+        headers["Server-Timing"] = `db;dur=${(totalMs - cacheMs).toFixed(1)}, total;dur=${totalMs.toFixed(1)}`;
+      }
+
+      return NextResponse.json(responsePayload, { headers });
     }
 
     const fallback = MOCK_QUESTIONS.find((q) => q.id === id);
@@ -449,11 +485,15 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
     await writeJsonCache(cacheKey, fallbackPayload, QUESTION_DETAIL_CACHE_TTL_SECONDS);
 
-    return NextResponse.json(fallbackPayload, {
-      headers: {
-        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
-      },
-    });
+    const totalMs = performance.now() - reqStart;
+    const headers: Record<string, string> = {
+      "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+    };
+    if (debugMode) {
+      headers["Server-Timing"] = `fallback;dur=${(totalMs - cacheMs).toFixed(1)}, total;dur=${totalMs.toFixed(1)}`;
+    }
+
+    return NextResponse.json(fallbackPayload, { headers });
   } catch (error) {
     console.error("Question detail API error:", error);
     return NextResponse.json({ error: "Failed to load question" }, {

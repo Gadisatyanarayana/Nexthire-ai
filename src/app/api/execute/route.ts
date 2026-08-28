@@ -1,7 +1,9 @@
 
 import { createHash, randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 
+import { authOptions } from "@/lib/auth";
 import { evaluateQuestion } from "@/judge/evaluator";
 import { resolveLanguage } from "@/judge/languages";
 import { enqueueJudgeJob } from "@/judge/queue";
@@ -76,6 +78,12 @@ export async function POST(req: NextRequest) {
         { error: `Too many execution requests. Try again in ${gate.retryAfterSeconds}s.` },
         { status: 429 }
       );
+    }
+
+    // Require authenticated session before performing any compute work
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = (await req.json().catch(() => ({}))) as ExecuteBody;
