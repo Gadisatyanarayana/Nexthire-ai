@@ -158,31 +158,64 @@ async function parsePdfText(buffer: Buffer): Promise<string> {
   }
 }
 
+class UploadError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function extractResumeText(file: File | null): Promise<string> {
   if (!file) return "";
+
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+  if (file.size > MAX_FILE_SIZE) {
+    throw new UploadError("File is too large. Maximum allowed size is 5 MB.", 413);
+  }
+
+  const mimeType = file.type.toLowerCase();
+  const lowerName = file.name.toLowerCase();
+
+  let expectedType = "";
+  if (lowerName.endsWith(".pdf") && (mimeType === "application/pdf" || mimeType === "")) {
+    expectedType = "pdf";
+  } else if (lowerName.endsWith(".docx") && (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || mimeType === "")) {
+    expectedType = "docx";
+  } else if ((lowerName.endsWith(".txt") || lowerName.endsWith(".doc")) && (mimeType === "text/plain" || mimeType === "")) {
+    expectedType = "txt";
+  } else {
+    throw new UploadError("Unsupported or invalid file type.", 415);
+  }
 
   try {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const lowerName = file.name.toLowerCase();
 
-    if (lowerName.endsWith(".pdf")) {
+    if (expectedType === "pdf") {
+      if (buffer.length < 5 || buffer.toString("utf8", 0, 5) !== "%PDF-") {
+        throw new UploadError("Unsupported or invalid file type.", 415);
+      }
       return await parsePdfText(buffer);
     }
 
-    if (lowerName.endsWith(".docx")) {
+    if (expectedType === "docx") {
+      if (buffer.length < 4 || buffer[0] !== 0x50 || buffer[1] !== 0x4B || buffer[2] !== 0x03 || buffer[3] !== 0x04) {
+        throw new UploadError("Unsupported or invalid file type.", 415);
+      }
       const parsed = await mammoth.extractRawText({ buffer });
       return cleanText(parsed.value ?? "");
     }
 
-    if (lowerName.endsWith(".doc") || lowerName.endsWith(".txt")) {
+    if (expectedType === "txt") {
       return cleanText(buffer.toString("utf-8"));
     }
 
     return "";
   } catch (error) {
+    if (error instanceof UploadError) throw error;
     console.error("Resume extraction failed:", error);
-    return "";
+    throw new UploadError("Unable to process this document.", 400);
   }
 }
 
@@ -373,6 +406,15 @@ async function callOpenRouter(prompt: string): Promise<Record<string, unknown> |
 
 export async function POST(req: NextRequest) {
   try {
+    const { mode, resumeText, resumeFileName, jobDescription } = await parseRequest(req);
+
+    // Validate that we actually extracted text
+    if (!resumeText || resumeText.trim().length < 50) {
+      return jsonBadRequest(
+        "Could not extract sufficient text from this file. The file may be image-based, encrypted, or corrupted. Please try a standard text-based PDF or DOCX."
+      );
+    }
+
     const ip = getClientIp(req);
     const gate = await checkRateLimit({ key: `resume-analysis:${ip}`, limit: 12, windowMs: 60_000 });
     if (!gate.allowed) {
@@ -382,8 +424,6 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     const sessionEmail = session?.user?.email ? String(session.user.email).trim().toLowerCase() : null;
     const sessionName = session?.user?.name ? String(session.user.name) : null;
-
-    const { mode, resumeText, resumeFileName, jobDescription } = await parseRequest(req);
 
     if (!["resume", "job-match", "fix-resume"].includes(mode)) {
       return jsonBadRequest("Invalid mode");
@@ -514,7 +554,73 @@ Job description: ${jobDescription}`;
 
     return jsonOk(responsePayload);
   } catch (error) {
+    if (error instanceof UploadError) {
+      return jsonError(error.message, error.status);
+    }
     console.error("Resume analysis error:", error);
     return jsonError("Failed to analyze resume", 500);
+  }
+}
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email ? String(session.user.email).trim().toLowerCase() : null;
+    if (!email) {
+      return jsonError("Unauthorized", 401);
+    }
+    const admin = getAdminClient();
+    const user = await upsertUserAdmin({ name: session?.user?.name ?? null, email });
+    const { data } = await admin
+      .from("submissions")
+      .select("code")
+      .eq("user_id", user.id)
+      .eq("language", "resume-workspace")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!data?.code) {
+      return jsonOk({ workspace: null });
+    }
+    return jsonOk({ workspace: JSON.parse(String(data.code)) });
+  } catch (error) {
+    return jsonError("Failed to fetch analyzer workspace", 500);
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email ? String(session.user.email).trim().toLowerCase() : null;
+    if (!email) {
+      return jsonError("Unauthorized", 401);
+    }
+    const body = await req.json().catch(() => ({}));
+    const snapshot = body.snapshot || body;
+    if (!snapshot || typeof snapshot !== "object") {
+      return jsonBadRequest("Invalid snapshot");
+    }
+    const admin = getAdminClient();
+    const user = await upsertUserAdmin({ name: session?.user?.name ?? null, email });
+
+    // UPSERT on user_id + language to prevent unbounded row growth.
+    // Each user has exactly one analyzer workspace record.
+    await admin.from("submissions").upsert(
+      {
+        user_id: user.id,
+        language: "resume-workspace",
+        code: JSON.stringify(snapshot),
+        output: "Analyzer workspace synced",
+        feedback: "Resume analyzer state saved",
+        difficulty: "easy",
+        result: "Saved",
+      },
+      { onConflict: "user_id,language" }
+    );
+
+    return jsonOk({ success: true });
+  } catch (error) {
+    return jsonError("Failed to save workspace", 500);
   }
 }

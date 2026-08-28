@@ -44,33 +44,31 @@ export default function ResumeDashboard() {
   const fetchResumes = async () => {
     if (!session?.user?.email) return;
     setLoading(true);
-    
-    const { data: userProgress } = await supabase
-      .from("user_progress")
-      .select("resume_data")
-      .eq("email", session.user.email)
-      .maybeSingle();
-      
-    if (userProgress?.resume_data) {
-      const rootData = userProgress.resume_data as any;
-      const resumesList = [];
-      
-      if (rootData.resumes) {
-        // Map the resumes dictionary into an array
-        for (const [id, resume] of Object.entries(rootData.resumes)) {
-          resumesList.push({ ...(resume as object), id });
+    try {
+      const res = await fetch("/api/resume-builder/progress");
+      if (!res.ok) throw new Error("Failed to load resumes");
+      const { resume_data } = await res.json();
+
+      if (resume_data) {
+        const rootData = resume_data as any;
+        const resumesList = [];
+
+        if (rootData.resumes) {
+          for (const [id, resume] of Object.entries(rootData.resumes)) {
+            resumesList.push({ ...(resume as object), id });
+          }
+        } else if (rootData.experiences) {
+          resumesList.push({ ...rootData, id: "legacy-1" });
         }
-      } else if (rootData.experiences) {
-        // Legacy flat resume
-        resumesList.push({ ...rootData, id: "legacy-1" });
+
+        resumesList.sort((a, b) => Number(b.id) - Number(a.id));
+        setResumes(resumesList);
       }
-      
-      // Sort by newest first (descending id)
-      resumesList.sort((a, b) => Number(b.id) - Number(a.id));
-      setResumes(resumesList);
+    } catch (e) {
+      console.error("Resume load error:", e);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -78,66 +76,74 @@ export default function ResumeDashboard() {
       router.push("/auth/signin");
       return;
     }
-    
+
     if (status !== "authenticated" || !session?.user?.email) return;
 
     fetchResumes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, status, router]);
 
   const createNewResume = () => {
-    // eslint-disable-next-line react-hooks/purity
     const id = Date.now().toString();
     router.push(`/resume-builder/${id}`);
   };
-  
+
   const duplicateResume = async (resume: any) => {
     if (!session?.user?.email) return;
-    // eslint-disable-next-line react-hooks/purity
     const newId = Date.now().toString();
-    const newResume = { 
-      ...resume, 
-      id: newId, 
+    const newResume = {
+      ...resume,
+      id: newId,
       metadata: {
         ...(resume.metadata || {}),
-        targetRole: (resume.metadata?.targetRole ? `${resume.metadata.targetRole} (Copy)` : 'Copy'),
-        updatedAt: new Date().toISOString()
-      } 
+        targetRole: resume.metadata?.targetRole ? `${resume.metadata.targetRole} (Copy)` : 'Copy',
+        updatedAt: new Date().toISOString(),
+      },
     };
-    
-    const { data: existing } = await supabase
-      .from("user_progress")
-      .select("resume_data")
-      .eq("email", session.user.email)
-      .single();
 
-    const existingData = existing?.resume_data || {};
-    const newRootData = {
-      ...existingData,
-      resumes: {
-        ...(existingData.resumes || {}),
-        [newId]: newResume
-      }
-    };
-    
-    await supabase.from("user_progress").upsert({ email: session.user.email, resume_data: newRootData }, { onConflict: "email" });
-    fetchResumes();
+    try {
+      const getRes = await fetch("/api/resume-builder/progress");
+      const { resume_data: existing } = await getRes.json();
+
+      const existingData = existing || {};
+      const newRootData = {
+        ...existingData,
+        resumes: {
+          ...(existingData.resumes || {}),
+          [newId]: newResume,
+        },
+      };
+
+      await fetch("/api/resume-builder/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume_data: newRootData }),
+      });
+
+      fetchResumes();
+    } catch (e) {
+      console.error("Duplicate resume error:", e);
+    }
   };
 
   const deleteResume = async (resumeId: string) => {
     if (!session?.user?.email) return;
-    
-    const { data: existing } = await supabase
-      .from("user_progress")
-      .select("resume_data")
-      .eq("email", session.user.email)
-      .single();
 
-    const existingData = existing?.resume_data || {};
-    if (existingData.resumes && existingData.resumes[resumeId]) {
-      delete existingData.resumes[resumeId];
-      await supabase.from("user_progress").upsert({ email: session.user.email, resume_data: existingData }, { onConflict: "email" });
-      fetchResumes();
+    try {
+      const getRes = await fetch("/api/resume-builder/progress");
+      const { resume_data: existing } = await getRes.json();
+
+      const existingData = existing || {};
+      if (existingData.resumes && existingData.resumes[resumeId]) {
+        delete existingData.resumes[resumeId];
+        await fetch("/api/resume-builder/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resume_data: existingData }),
+        });
+        fetchResumes();
+      }
+    } catch (e) {
+      console.error("Delete resume error:", e);
     }
   };
 

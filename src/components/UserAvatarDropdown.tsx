@@ -144,13 +144,7 @@ export function UserAvatarDropdown() {
             >
               Placement Hub
             </Link>
-            <Link
-              href="/admin/coding-audit"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-foreground/10 text-foreground transition text-emerald-400 font-bold"
-            >
-              QA Audit Dashboard
-            </Link>
+
           </div>
 
           <div className="p-2 border-t border-foreground/10">

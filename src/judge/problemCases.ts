@@ -119,44 +119,16 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
     }
 
     const normalized = normalizeCaseRows(Array.isArray(rows) ? rows : []);
-    
-    // Ensure we have at least 50 hidden cases and 2 visible cases for robustness
-    let paddedCases = [...normalized];
-    if (paddedCases.length > 0) {
-      let visible = paddedCases.filter(c => !c.isHidden);
-      let hidden = paddedCases.filter(c => c.isHidden);
-      
-      // Pad visible cases to at least 2
-      if (visible.length > 0 && visible.length < 2) {
-         while (visible.length < 2) {
-            visible.push({ ...visible[0] });
-         }
-      }
-      
-      // Pad hidden cases to at least 50
-      if (hidden.length > 0 && hidden.length < 50) {
-         let i = 0;
-         while (hidden.length < 50) {
-            hidden.push({ ...hidden[i % hidden.length] });
-            i++;
-         }
-      } else if (hidden.length === 0 && visible.length > 0) {
-         // If no hidden cases exist, clone visible cases as hidden
-         let i = 0;
-         while (hidden.length < 50) {
-            hidden.push({ ...visible[i % visible.length], isHidden: true });
-            i++;
-         }
-      }
-      
-      paddedCases = [...visible, ...hidden];
-    }
 
-    if (paddedCases.length > 0) {
-      const visibleCount = paddedCases.filter((item) => !item.isHidden).length;
-      const hiddenCount = paddedCases.filter((item) => item.isHidden).length;
+    if (normalized.length > 0) {
+      const visibleCount = normalized.filter((item) => !item.isHidden).length;
+      const hiddenCount = normalized.filter((item) => item.isHidden).length;
       const questionId = foundProblem.legacy_question_id ? String(foundProblem.legacy_question_id) : null;
       const questionMeta = await readQuestionMeta(questionId);
+
+      // Determine readiness — a problem with zero real hidden cases cannot produce a trusted verdict
+      const readyState: LoadedProblemCases["readyState"] =
+        hiddenCount > 0 ? "READY" : visibleCount > 0 ? "MISSING_HIDDEN_CASES" : "MISSING_TEST_CASES";
 
       const loaded: LoadedProblemCases = {
         problemId: String(foundProblem.id),
@@ -166,9 +138,10 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
         functionName: questionMeta.functionName,
         inputType: questionMeta.inputType,
         outputType: questionMeta.outputType,
-        cases: paddedCases,
+        cases: normalized,
         visibleCount,
         hiddenCount,
+        readyState,
       };
 
       caseCache.set(problemId, { expiresAt: Date.now() + CASE_CACHE_TTL_MS, data: loaded });
@@ -227,8 +200,17 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
     }));
   }
 
+  // If still no real cases exist, return null so callers surface MISSING_TEST_CASES
+  if (cases.length === 0) {
+    return null;
+  }
+
   const visibleCount = cases.filter((item) => !item.isHidden).length;
   const hiddenCount = cases.filter((item) => item.isHidden).length;
+
+  // readyState for fallback: if no hidden cases, verdict cannot be trusted
+  const readyState: LoadedProblemCases["readyState"] =
+    hiddenCount > 0 ? "READY" : visibleCount > 0 ? "MISSING_HIDDEN_CASES" : "MISSING_TEST_CASES";
 
   const loaded: LoadedProblemCases = {
     problemId: foundProblem?.id ? String(foundProblem.id) : candidateQuestionId,
@@ -241,6 +223,7 @@ export async function loadProblemCases(problemIdRaw: string): Promise<LoadedProb
     cases,
     visibleCount,
     hiddenCount,
+    readyState,
   };
 
   caseCache.set(problemId, { expiresAt: Date.now() + CASE_CACHE_TTL_MS, data: loaded });

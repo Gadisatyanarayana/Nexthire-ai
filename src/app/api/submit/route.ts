@@ -112,6 +112,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Require authenticated session before any evaluation work
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = (await req.json().catch(() => ({}))) as SubmitBody;
     const problemId = String(body.problem_id || "").trim();
     const code = String(body.code || "");
@@ -135,7 +141,26 @@ export async function POST(req: NextRequest) {
 
     const loaded = await loadProblemCases(problemId);
     if (!loaded || loaded.cases.length === 0) {
-      return NextResponse.json({ error: "No test cases found for this problem_id" }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "No test cases found for this problem. The problem may not be configured for evaluation yet.",
+          state: "MISSING_TEST_CASES",
+        },
+        { status: 422 }
+      );
+    }
+
+    // Reject outright if there are zero real evaluation cases
+    if (loaded.readyState === "MISSING_TEST_CASES") {
+      return NextResponse.json(
+        {
+          error: "This problem has no real evaluation test cases. Submission is not available until test cases are added.",
+          state: loaded.readyState,
+          visible_count: loaded.visibleCount,
+          hidden_count: loaded.hiddenCount,
+        },
+        { status: 422 }
+      );
     }
 
     if (loaded.visibleCount < MIN_VISIBLE_CASES) {
@@ -349,14 +374,13 @@ export async function POST(req: NextRequest) {
     };
 
     try {
-      const session = await getServerSession(authOptions);
-      const userEmail = session?.user?.email;
-      if (userEmail) {
-        const admin = getAdminClient();
-        const user = await upsertUserAdmin({
-          name: session.user?.name ?? null,
-          email: String(userEmail).trim().toLowerCase(),
-        });
+      // session is guaranteed non-null here (auth check at top of handler)
+      const userEmail = String(session.user!.email).trim().toLowerCase();
+      const admin = getAdminClient();
+      const user = await upsertUserAdmin({
+        name: session.user?.name ?? null,
+        email: userEmail,
+      });
         const submissionProblemId = isUuid(loaded.problemId) ? loaded.problemId : null;
 
         const fullPayload = {
@@ -424,7 +448,6 @@ export async function POST(req: NextRequest) {
           };
           await admin.from("submissions").insert(basePayload);
         }
-      }
     } catch {
       // Persistence is best-effort and must not block submit responses.
     }

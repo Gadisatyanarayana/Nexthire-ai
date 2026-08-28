@@ -40,6 +40,23 @@ function CodingQuestionsPageContent() {
 
   const [submittedMap, setSubmittedMap] = useState<Record<string, boolean>>({});
 
+  // Sync server progress map for loaded questions
+  const syncProgressMap = async (qList: QuestionRichMetadata[]) => {
+    if (qList.length === 0) return;
+    const ids = qList.map((q) => q.id).filter(Boolean);
+    try {
+      const res = await fetch(`/api/questions/progress-map?ids=${encodeURIComponent(ids.join(','))}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.solvedMap) {
+          setSubmittedMap((prev) => ({ ...prev, ...data.solvedMap }));
+        }
+      }
+    } catch {
+      // Fallback to local storage if API fails
+    }
+  };
+
   useEffect(() => {
     try {
       const historyStr = localStorage.getItem('nexthire_user_submissions');
@@ -48,11 +65,14 @@ function CodingQuestionsPageContent() {
         if (Array.isArray(history)) {
           const map: Record<string, boolean> = {};
           history.forEach((item: any) => {
-            if (item.status === 'Accepted' || item.passed) {
-              if (item.id) map[item.id] = true;
+            const isAccepted = (item.status === 'Accepted' || item.result === 'Accepted') &&
+              (typeof item.total !== 'number' || item.passed === item.total);
+            const qId = item.questionId || item.question_id || item.problemId;
+            if (isAccepted && qId) {
+              map[String(qId)] = true;
             }
           });
-          setSubmittedMap(map);
+          setSubmittedMap((prev) => ({ ...map, ...prev }));
         }
       }
     } catch {}
@@ -88,6 +108,7 @@ function CodingQuestionsPageContent() {
         if (data.patternCounts) setPatternCounts(data.patternCounts);
         if (data.companyCounts) setCompanyCounts(data.companyCounts);
         setError(null);
+        void syncProgressMap(qList);
       } else {
         setError(data.error || "Failed to load coding questions");
       }

@@ -203,27 +203,13 @@ export default function ResumeAnalyzerPage() {
     let active = true;
 
     const restoreAnalyzerWorkspace = async () => {
-      await saveUserData({ name: session.user?.name ?? null, email });
-      const { data: userRow } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-      if (!userRow?.id || !active) return;
-
-      const { data: latestWorkspace } = await supabase
-        .from("submissions")
-        .select("code")
-        .eq("user_id", userRow.id)
-        .eq("language", "resume-workspace")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!latestWorkspace?.code || !active) return;
-
       try {
-        const parsed = JSON.parse(String(latestWorkspace.code)) as Partial<AnalyzerWorkspaceSnapshot>;
+        const res = await fetch("/api/resume-analysis");
+        if (!res.ok) return;
+        const data = await res.json();
+        const parsed = (data.workspace || {}) as Partial<AnalyzerWorkspaceSnapshot>;
+        if (!parsed || Object.keys(parsed).length === 0 || !active) return;
+
         setAtsScore(parsed.atsScore ?? null);
         setLabel(parsed.label ?? null);
         setSummary(parsed.summary ?? "");
@@ -274,24 +260,14 @@ export default function ResumeAnalyzerPage() {
     return async (snapshot: AnalyzerWorkspaceSnapshot) => {
       const email = session?.user?.email;
       if (status !== "authenticated" || !email) return;
-
-      await saveUserData({ name: session.user?.name ?? null, email });
-      const { data: userRow } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-      if (!userRow?.id) return;
-
-      await supabase.from("submissions").insert({
-        user_id: userRow.id,
-        language: "resume-workspace",
-        code: JSON.stringify(snapshot),
-        output: "Analyzer workspace synced",
-        feedback: "Resume analyzer state saved",
-        difficulty: "easy",
-        result: "Saved",
-      });
+      try {
+        await fetch("/api/resume-analysis", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ snapshot }),
+        });
+      } catch {
+      }
     };
   }, [session, status]);
 
